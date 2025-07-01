@@ -10,6 +10,7 @@ import torch.optim as optim
 from torch.utils import data
 import torchvision.transforms as transforms
 import numpy as np
+from torch.utils.data import Subset
 
 import medmnist
 from medmnist import INFO, Evaluator
@@ -102,16 +103,25 @@ def main():
         transforms.Normalize(mean=[.5], std=[.5])
     ])
     
-    train_dataset = DataClass(split='train', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+    full_train_dataset = DataClass(split='train', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
     val_dataset = DataClass(split='val', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
     test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+
+    # Create a 1/6 subset of the training data for the actual training
+    num_train = len(full_train_dataset)
+    indices = list(range(num_train))
+    subset_size = num_train // 6
+    np.random.shuffle(indices)
+    subset_indices = indices[:subset_size]
+    train_dataset = Subset(full_train_dataset, subset_indices)
     
     train_loader = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
-    train_loader_eval = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=False)
+    train_loader_eval = data.DataLoader(dataset=full_train_dataset, batch_size=args.batch_size, shuffle=False)
     val_loader = data.DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
     
-    logger.info(f"Train samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}, Test samples: {len(test_dataset)}")
+    logger.info(f"Total Train samples: {len(full_train_dataset)}, Using {len(train_dataset)} for training.")
+    logger.info(f"Validation samples: {len(val_dataset)}, Test samples: {len(test_dataset)}")
 
     # --- 3. Model Preparation ---
     logger.info(f"Preparing model '{args.model_flag}' with ImageNet weights.")
