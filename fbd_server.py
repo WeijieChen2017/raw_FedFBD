@@ -369,6 +369,10 @@ def main_server(args):
     logger.info("FBD Server starting...")
     logger.info(f"Arguments: {vars(args)}")
 
+    # Setup device
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    logger.info(f"Using device: {device}")
+
     # Setup directories
     comm_dir = getattr(args, 'comm_dir', 'fbd_comm')
     if not os.path.exists(comm_dir):
@@ -399,10 +403,12 @@ def main_server(args):
         norm=args.norm,
         in_channels=args.in_channels,
         num_classes=args.num_classes,
+        device=device,
         use_pretrained=args.use_pretrained,
         logger=logger
     )
-    logger.info(f"Initialized global model: {args.model_flag}")
+    global_model.to(device)
+    logger.info(f"Initialized global model: {args.model_flag} on {device}")
 
     # Main server loop
     for round_num_str in sorted(shipping_plan.keys(), key=int):
@@ -483,7 +489,15 @@ def main_server(args):
 
         # Update global model
         if aggregated_weights:
-            global_model.load_state_dict(aggregated_weights, strict=False)
+            # Ensure aggregated weights are on the same device as the global model
+            device_aggregated_weights = {}
+            for key, tensor in aggregated_weights.items():
+                if isinstance(tensor, torch.Tensor):
+                    device_aggregated_weights[key] = tensor.to(device)
+                else:
+                    device_aggregated_weights[key] = tensor
+            
+            global_model.load_state_dict(device_aggregated_weights, strict=False)
             logger.info("Global model updated with aggregated weights.")
         else:
             logger.warning("No weights were aggregated in this round.")
