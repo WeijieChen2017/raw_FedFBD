@@ -68,6 +68,8 @@ def main():
     args_dict = vars(args)
     args_dict.update(vars(config))
     
+    # add time stamp to output_dir
+    args.output_dir = os.path.join(args.output_dir, time.strftime("%Y%m%d_%H%M%S"))
     # Create output directory
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
