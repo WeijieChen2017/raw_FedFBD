@@ -162,6 +162,19 @@ def initialize_experiment(args):
     logger.info(f"Server: Saving training configuration to {config_path}")
     save_json(vars(args), config_path)
     
+    # 7. Prepare test dataset for evaluations
+    logger.info("Server: Preparing test dataset for evaluations...")
+    info = INFO[args.experiment_name]
+    DataClass = getattr(medmnist, info['python_class'])
+    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
+    as_rgb = dataset_rules.get("as_rgb", False)
+    data_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5])
+    ])
+    args.test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+    logger.info("Server: Test dataset prepared.")
+    
     logger.info("Server: Experiment initialization complete.")
 
 def server_send_to_clients(r, args):
@@ -272,8 +285,8 @@ def server_collect_from_clients(r, args):
     logger.info(f"Server: Evaluating all models at end of round {r}...")
     for model_idx in range(6):  # Evaluate models M0 to M5
         model_color = f"M{model_idx}"
-        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
-    evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name)
+        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset)
+    evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset)
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
@@ -285,7 +298,7 @@ def end_experiment(args):
         with open(filepath, 'w') as f:
             json.dump({"secret": -1}, f) 
 
-def evaluate_server_model(args, model_color, model_name, dataset):
+def evaluate_server_model(args, model_color, model_name, dataset, test_dataset):
     """
     Evaluates a model specified by its color (e.g., M0-M5) from the warehouse.
     This version integrates the evaluation logic directly, without calling an external script.
@@ -295,6 +308,7 @@ def evaluate_server_model(args, model_color, model_name, dataset):
         model_color (str): The color of the model to evaluate (e.g., 'M0').
         model_name (str): The architecture of the model (e.g., 'resnet18').
         dataset (str): The dataset to evaluate on (e.g., 'bloodmnist').
+        test_dataset (data.Dataset): The test dataset for evaluation.
     """
     log_dir = os.path.join(args.output_dir, "fbd_log")
     logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
@@ -326,7 +340,12 @@ def evaluate_server_model(args, model_color, model_name, dataset):
         model_weights = {}
         param_keys = all_model_weights[0].keys()
         for key in param_keys:
-            model_weights[key] = torch.stack([weights[key] for weights in all_model_weights]).mean(dim=0)
+            if all_model_weights[0][key].is_floating_point():
+                model_weights[key] = torch.stack([weights[key] for weights in all_model_weights]).mean(dim=0)
+            else:
+                # For non-floating point tensors (e.g., num_batches_tracked in BatchNorm),
+                # just take the value from the first model.
+                model_weights[key] = all_model_weights[0][key]
         
         logger.info("Finished averaging model weights.")
     else:
@@ -351,17 +370,7 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     # 2. Prepare dataset and dataloader
     info = INFO[dataset]
     task = info['task']
-    DataClass = getattr(medmnist, info['python_class'])
     
-    dataset_rules = DATASET_SPECIFIC_RULES.get(dataset, {})
-    as_rgb = dataset_rules.get("as_rgb", False)
-    
-    data_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[.5], std=[.5])
-    ])
-    
-    test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
     test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
     
     # 3. Setup for evaluation
