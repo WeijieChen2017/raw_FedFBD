@@ -447,6 +447,15 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
             logger.error("No valid hybrid model predictions were generated. Aborting ensemble evaluation.")
             return
 
+        # Calculate Majority Vote Ratio
+        true_labels = test_dataset.labels.flatten()
+        member_predictions = np.argmax(np.array(all_y_scores), axis=2) # Shape: (num_ensemble, num_samples)
+        correct_votes = (member_predictions == true_labels)
+        majority_vote_ratio = np.sum(correct_votes) / correct_votes.size
+        
+        logger.info(f"Ensemble Majority Vote Ratio: {majority_vote_ratio:.5f} ({np.sum(correct_votes)}/{correct_votes.size} correct individual votes)")
+        print(f"Server - Ensemble: Majority Vote Ratio = {majority_vote_ratio:.5f}")
+
         # 4. Average the scores and evaluate
         avg_y_score = np.mean(all_y_scores, axis=0)
         
@@ -463,7 +472,8 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         os.makedirs(eval_results_dir, exist_ok=True)
         metrics_dict = {
             "model_color": model_color, "model_name": model_name, "dataset": dataset,
-            "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2]
+            "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2],
+            "majority_vote_ratio": majority_vote_ratio
         }
         save_name = os.path.join(eval_results_dir, f"eval_metrics.json")
         with open(save_name, 'w') as f:
