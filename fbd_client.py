@@ -10,7 +10,7 @@ import medmnist
 from medmnist import INFO
 
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_utils import load_fbd_settings, setup_logger
+from fbd_utils import load_fbd_settings, setup_logger, save_optimizer_state_by_block, build_optimizer_with_state
 from fbd_dataset import get_data_loader
 
 def get_dataset_stats(data_partition):
@@ -138,6 +138,7 @@ def client_task(client_id, data_partition, args):
             model_weights = data_packet.get("model_weights")
             shipping_list = data_packet.get("shipping_list")
             update_plan = data_packet.get("update_plan")
+            optimizer_states = data_packet.get("optimizer_states")
             
             logger.info(f"Round {current_round}: Received {len(shipping_list)} model parts.")
 
@@ -166,17 +167,25 @@ def client_task(client_id, data_partition, args):
             
             # Unfreeze parameters of trainable parts
             model_to_update = update_plan.get('model_to_update', {})
+            trainable_block_ids = []
             for component_name, info in model_to_update.items():
                 if info['status'] == 'trainable':
+                    trainable_block_ids.append(info['block_id'])
                     for name, param in model.named_parameters():
                         if name.startswith(component_name):
                             param.requires_grad = True
             
             criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
             
-            # Create optimizer with only trainable parameters
+            # Create optimizer with only trainable parameters, loading state if available
             trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-            optimizer = optim.Adam(trainable_params, lr=args.local_learning_rate)
+            optimizer = build_optimizer_with_state(
+                model, 
+                optimizer_states, 
+                list(trainable_params), 
+                device, 
+                default_lr=args.local_learning_rate
+            )
             
             loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device)
             logger.info(f"Round {current_round}: Training complete. Loss: {loss:.4f}")
@@ -184,7 +193,6 @@ def client_task(client_id, data_partition, args):
             # Extract updated weights based on the update plan (only trainable parts)
             updated_weights = {}
             trained_state_dict = model.state_dict()
-            model_to_update = update_plan.get('model_to_update', {})
             logger.info(f"Extracting weights for trainable components: {list(model_to_update.keys())}")
             
             for component_name, info in model_to_update.items():
@@ -201,6 +209,10 @@ def client_task(client_id, data_partition, args):
                     else:
                         logger.warning(f"No weights found for block {block_id} with model_part '{model_part}'")
             
+            # Extract updated optimizer state for trainable blocks
+            updated_optimizer_states = save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_ids)
+            logger.info(f"Extracted optimizer states for {len(updated_optimizer_states)} trainable blocks.")
+
             logger.info(f"Total blocks with updated weights: {len(updated_weights)}")
             print(f"Client {client_id} - Round {current_round}: Training Loss = {loss:.4f} Sending {len(updated_weights)} updated weight blocks")
 
@@ -210,6 +222,7 @@ def client_task(client_id, data_partition, args):
                 "round": current_round, 
                 "train_loss": loss,
                 "updated_weights": updated_weights,
+                "updated_optimizer_states": updated_optimizer_states,
                 "dataset_stats": stats
             }
             response_filepath = os.path.join(args.comm_dir, f"response_round_{current_round}_client_{client_id}.pth")

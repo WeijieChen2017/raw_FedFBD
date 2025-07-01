@@ -98,6 +98,123 @@ def load_request_plan(request_plan_path):
     # Convert string keys to integers for round numbers
     return {int(round_num): clients for round_num, clients in request_plan.items()}
 
+def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_ids):
+    """
+    Extracts optimizer state and partitions it by FBD block ID for trainable blocks.
+    """
+    # 1. Save hyper-parameters from the first parameter group
+    param_groups_info = []
+    if optimizer.param_groups:
+        group = optimizer.param_groups[0]
+        info = {k: v for k, v in group.items() if k != 'params'}
+        param_groups_info.append(info)
+
+    # 2. Save state partitioned by block_id
+    full_state = optimizer.state_dict()['state']
+    block_states = {}
+
+    param_to_block_map = {}
+    for block_id in trainable_block_ids:
+        model_part_prefix = fbd_trace[block_id]['model_part']
+        # Find all parameters belonging to this model part
+        for p_name, p in model.named_parameters():
+            if p_name.startswith(model_part_prefix):
+                param_to_block_map[id(p)] = block_id
+    
+    # Partition the state based on the map
+    partitioned_state = {block_id: {} for block_id in trainable_block_ids}
+    param_id_map = {id(p): i for i, group in enumerate(optimizer.param_groups) for p in group['params']}
+
+    for p_id_in_state, state_vals in full_state.items():
+        # Find the parameter this state belongs to
+        p_obj = None
+        for group in optimizer.param_groups:
+            for p in group['params']:
+                if p_id_in_state == param_id_map.get(id(p)):
+                    p_obj = p
+                    break
+            if p_obj:
+                break
+        
+        if p_obj is not None and id(p_obj) in param_to_block_map:
+            block_id = param_to_block_map[id(p_obj)]
+            # Detach and clone state tensors
+            cloned_state_vals = {}
+            for k, v in state_vals.items():
+                if isinstance(v, torch.Tensor):
+                    cloned_state_vals[k] = v.detach().cpu().clone()
+                else:
+                    cloned_state_vals[k] = v
+            partitioned_state[block_id][p_id_in_state] = cloned_state_vals
+            
+    # 3. Combine hyper-parameters and partitioned state for each block
+    final_block_states = {}
+    for block_id, state_data in partitioned_state.items():
+        if state_data: # Only save if there is state for this block
+            final_block_states[block_id] = {
+                'param_groups': param_groups_info,
+                'state': state_data
+            }
+            
+    return final_block_states
+
+def build_optimizer_with_state(model, optimizer_states, trainable_params, device, default_lr=0.001):
+    """
+    Builds an Adam optimizer from a dictionary of states per block.
+    """
+    # 1. Aggregate states from all blocks
+    combined_state = {}
+    param_groups_info = None
+    
+    if optimizer_states:
+        for block_id, state_data in optimizer_states.items():
+            if state_data and 'state' in state_data:
+                combined_state.update(state_data['state'])
+            if param_groups_info is None and state_data and 'param_groups' in state_data:
+                param_groups_info = state_data['param_groups']
+    
+    # 2. Create optimizer
+    if param_groups_info:
+        # Use hyper-parameters from the saved state
+        optimizer = torch.optim.Adam(trainable_params, **param_groups_info[0])
+    else:
+        # Fallback to default if no state was provided
+        optimizer = torch.optim.Adam(trainable_params, lr=default_lr)
+        
+    # 3. Load aggregated state
+    if combined_state:
+        # The state keys from the server are strings, but optimizer.load_state_dict
+        # might have int keys. We need to match based on parameter objects.
+        
+        # Map parameter objects to their state from the server
+        param_map = {p: i for i, group in enumerate(optimizer.param_groups) for p in group['params']}
+        
+        # The optimizer state dict that we will load
+        final_state_dict = optimizer.state_dict()
+        
+        # The combined state from the server needs to be mapped to the new optimizer's params
+        # This is complex because parameter IDs change across processes.
+        # A simpler approach is to load the state dict directly, assuming the structure matches.
+        # This might fail if param indices don't align.
+        
+        # Let's try a direct load first. The keys in combined_state are param indices
+        # from the previous optimizer. This won't work directly.
+        
+        # A robust solution requires mapping old params to new params.
+        # Given the client only trains a subset, let's just re-initialize the optimizer
+        # and load the state for the params that we can identify.
+        
+        # The state from server is already on CPU. Move to target device.
+        for param_idx, state_values in combined_state.items():
+            for k, v in state_values.items():
+                if isinstance(v, torch.Tensor):
+                    state_values[k] = v.to(device)
+
+        final_state_dict['state'] = combined_state
+        optimizer.load_state_dict(final_state_dict)
+
+    return optimizer
+
 class FBDWarehouse:
     """
     Warehouse for storing and managing function block weights at the server.
@@ -183,13 +300,19 @@ class FBDWarehouse:
                     if param_name.startswith(model_part + '.'):
                         part_weights[param_name] = param_tensor.clone()
                 
-                self.warehouse[block_id] = part_weights
+                self.warehouse[block_id] = {
+                    'weights': part_weights,
+                    'optimizer_state': {}
+                }
                 self.warehouse_logger.info(f"Initialized block {block_id} (color: {color}, part: {model_part}) with {len(part_weights)} parameters")
         else:
             # Initialize with empty dictionaries - will be populated later
             self.warehouse_logger.info("Initializing warehouse with empty blocks - will be populated during training")
             for block_id in self.fbd_trace.keys():
-                self.warehouse[block_id] = {}
+                self.warehouse[block_id] = {
+                    'weights': {},
+                    'optimizer_state': {}
+                }
                 
         self.warehouse_logger.info(f"Warehouse initialization complete - {len(self.warehouse)} blocks ready")
     
@@ -236,10 +359,41 @@ class FBDWarehouse:
         self.warehouse_logger.info(f"  └─ Tensor types: {', '.join(sorted(tensor_types))}")
         
         # Store the weights
-        self.warehouse[block_id] = {k: v.clone() if isinstance(v, torch.Tensor) else v 
+        self.warehouse[block_id]['weights'] = {k: v.clone() if isinstance(v, torch.Tensor) else v 
                                    for k, v in state_dict.items()}
         
         self.warehouse_logger.info(f"Successfully stored block {block_id} in warehouse")
+    
+    def store_optimizer_state(self, block_id, optimizer_state):
+        """
+        Store optimizer state for a specific function block.
+        
+        Args:
+            block_id (str): FBD block ID (e.g., "AFA79")
+            optimizer_state (dict): Dictionary containing the optimizer state
+        """
+        if block_id not in self.fbd_trace:
+            error_msg = f"Unknown block ID: {block_id}"
+            self.warehouse_logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        self.warehouse[block_id]['optimizer_state'] = optimizer_state
+        self.warehouse_logger.info(f"Stored optimizer state for block {block_id}")
+
+    def store_optimizer_state_batch(self, optimizer_states_dict):
+        """
+        Store optimizer states for multiple function blocks at once.
+        
+        Args:
+            optimizer_states_dict (dict): Dictionary mapping block IDs to their optimizer states
+        """
+        self.warehouse_logger.info(f"Starting batch storage of optimizer states for {len(optimizer_states_dict)} blocks")
+        for block_id, state in optimizer_states_dict.items():
+            try:
+                self.store_optimizer_state(block_id, state)
+            except Exception as e:
+                self.warehouse_logger.error(f"Failed to store optimizer state for block {block_id}: {e}")
+        self.warehouse_logger.info("Batch storage of optimizer states complete.")
     
     def store_weights_batch(self, weights_dict):
         """
@@ -281,11 +435,28 @@ class FBDWarehouse:
         model_part = block_info['model_part']
         
         weights = {k: v.clone() if isinstance(v, torch.Tensor) else v 
-                   for k, v in self.warehouse[block_id].items()}
+                   for k, v in self.warehouse[block_id]['weights'].items()}
         
         self.warehouse_logger.info(f"Retrieved block {block_id} (color: {color}, part: {model_part}) - {len(weights)} parameters")
         
         return weights
+    
+    def retrieve_optimizer_state(self, block_id):
+        """
+        Retrieve optimizer state for a specific function block.
+        
+        Args:
+            block_id (str): FBD block ID
+            
+        Returns:
+            dict: Optimizer state dictionary
+        """
+        if block_id not in self.warehouse:
+            error_msg = f"Block ID not found in warehouse: {block_id}"
+            self.warehouse_logger.error(error_msg)
+            raise ValueError(error_msg)
+        
+        return self.warehouse[block_id].get('optimizer_state', {})
     
     def retrieve_weights_batch(self, block_ids):
         """
@@ -317,10 +488,7 @@ class FBDWarehouse:
         # Retrieve weights for each block and combine them
         for block_id in block_ids_for_color:
             block_weights = self.retrieve_weights(block_id)
-            model_part_name = self.fbd_trace[block_id]['model_part']
-            # We need to flatten this into the full_state_dict
-            for key, value in block_weights.items():
-                full_state_dict[key] = value
+            full_state_dict.update(block_weights)
             self.warehouse_logger.info(f"  └─ Added block {block_id} to state_dict")
 
         self.warehouse_logger.info(f"Model reconstruction for {model_color} complete. Total params: {len(full_state_dict)}")
@@ -334,17 +502,32 @@ class FBDWarehouse:
             shipping_list (list): List of block IDs to ship
             
         Returns:
-            dict: Dictionary mapping model parts to their state_dicts
+            dict: A single state dictionary containing all weights to be shipped.
         """
         shipping_weights = {}
         
         for block_id in shipping_list:
             if block_id in self.fbd_trace:
-                model_part = self.fbd_trace[block_id]['model_part']
                 block_weights = self.retrieve_weights(block_id)
-                shipping_weights[model_part] = block_weights
+                shipping_weights.update(block_weights)
         
         return shipping_weights
+    
+    def get_shipping_optimizer_states(self, shipping_list):
+        """
+        Prepare optimizer states for shipping.
+        
+        Args:
+            shipping_list (list): List of block IDs for which to ship optimizer states.
+            
+        Returns:
+            dict: A dictionary mapping block_id to its optimizer state.
+        """
+        shipping_states = {}
+        for block_id in shipping_list:
+            if block_id in self.fbd_trace:
+                shipping_states[block_id] = self.retrieve_optimizer_state(block_id)
+        return shipping_states
     
     def warehouse_summary(self):
         """
@@ -360,7 +543,7 @@ class FBDWarehouse:
             'empty_blocks': []
         }
         
-        for block_id, weights in self.warehouse.items():
+        for block_id, data in self.warehouse.items():
             if block_id in self.fbd_trace:
                 block_info = self.fbd_trace[block_id]
                 color = block_info['color']
@@ -369,7 +552,7 @@ class FBDWarehouse:
                 summary['models'][color].append(block_id)
                 summary['model_parts'][model_part].append(block_id)
                 
-                if not weights:
+                if not data.get('weights'):
                     summary['empty_blocks'].append(block_id)
         
         return dict(summary)

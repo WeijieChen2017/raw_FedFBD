@@ -7,7 +7,7 @@ import hashlib
 import logging
 import torch
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger
+from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger, save_optimizer_state, build_optimizer_from_state
 from fbd_dataset import DATASET_SPECIFIC_RULES
 from config.bloodmnist.generate_plans import main_generate_plans
 import subprocess
@@ -215,11 +215,15 @@ def server_send_to_clients(r, args):
         # Get model weights from the warehouse
         model_weights = warehouse.get_shipping_weights(client_shipping_list)
         
+        # Get optimizer states from the warehouse
+        optimizer_states = warehouse.get_shipping_optimizer_states(client_shipping_list)
+
         # Prepare data packet
         data_to_send = {
             "shipping_list": client_shipping_list,
             "update_plan": client_update_plan,
             "model_weights": model_weights,
+            "optimizer_states": optimizer_states,
             "round": r
         }
         
@@ -255,6 +259,7 @@ def server_collect_from_clients(r, args):
                 # Process the client's update
                 loss = data.get("train_loss")
                 updated_weights = data.get("updated_weights")
+                updated_optimizer_states = data.get("updated_optimizer_states")
                 round_losses.append(loss)
                 
                 logger.info(f"Server: Received update from client {i} for round {r}, loss: {loss:.4f}")
@@ -262,13 +267,19 @@ def server_collect_from_clients(r, args):
                 if updated_weights:
                     logger.info(f"Server: Received {len(updated_weights)} weight blocks from client {i}: {list(updated_weights.keys())}")
                     warehouse.store_weights_batch(updated_weights)
-                    # Save the warehouse so the evaluation function can load the latest state
-                    warehouse.save_warehouse(warehouse_path)
-                    logger.info(f"Server: Warehouse updated by client {i} and saved.")
                     print(f"Server: Stored {len(updated_weights)} weight blocks from client {i}")
                 else:
                     logger.warning(f"Server: Client {i} sent no updated weights!")
                     print(f"Server: WARNING - Client {i} sent no updated weights!")
+                
+                if updated_optimizer_states:
+                    logger.info(f"Server: Received {len(updated_optimizer_states)} optimizer states from client {i}.")
+                    warehouse.store_optimizer_state_batch(updated_optimizer_states)
+                
+                if updated_weights or updated_optimizer_states:
+                    # Save the warehouse so the evaluation function can load the latest state
+                    warehouse.save_warehouse(warehouse_path)
+                    logger.info(f"Server: Warehouse updated by client {i} and saved.")
                 
                 # Mark as collected by renaming or deleting the file to avoid recounting
                 os.remove(filepath) 
