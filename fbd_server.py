@@ -422,7 +422,7 @@ def main_server(args):
     for round_num_str in sorted(shipping_plan.keys(), key=int):
         round_num = int(round_num_str)
         logger.info(f"\n----- Round {round_num} -----")
-        print(f"\n{'='*20} Round {round_num} {'='*20}")
+        print(f"\n{'='*20} Round {round_num} {'='*20}", flush=True)
         
         clients_in_round = shipping_plan[round_num_str]
         active_clients = list(clients_in_round.keys())
@@ -484,8 +484,6 @@ def main_server(args):
                         except Exception as e:
                             logger.error(f"Error processing response from client {client_id}: {e}")
                             collected_updates[client_id] = {}
-
-
             time.sleep(args.poll_interval)
         
         logger.info(f"All client responses for round {round_num} received.")
