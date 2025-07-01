@@ -253,12 +253,6 @@ def server_collect_from_clients(r, args):
                     # Save the warehouse so the evaluation function can load the latest state
                     warehouse.save_warehouse(warehouse_path)
                     logger.info(f"Server: Warehouse updated by client {i} and saved.")
-
-                    # Evaluate all models after this client's update
-                    logger.info(f"Server: Evaluating all models after update from client {i}...")
-                    for model_idx in range(6):  # Evaluate models M0 to M5
-                        model_color = f"M{model_idx}"
-                        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
                 
                 # Mark as collected by renaming or deleting the file to avoid recounting
                 os.remove(filepath) 
@@ -268,6 +262,12 @@ def server_collect_from_clients(r, args):
     # After collecting from all clients, print summary
     avg_loss = sum(round_losses) / len(round_losses) if round_losses else 0
     logger.info(f"Server: All responses for round {r} collected. Average loss: {avg_loss:.4f}")
+    
+    # Evaluate all models once at the end of the round
+    logger.info(f"Server: Evaluating all models at end of round {r}...")
+    for model_idx in range(6):  # Evaluate models M0 to M5
+        model_color = f"M{model_idx}"
+        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
