@@ -7,6 +7,8 @@ from fbd_utils import load_config
 from fbd_dataset import load_data, partition_data
 import time
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework")
     parser.add_argument("--experiment_name", type=str, default="bloodmnist", help="Name of the experiment.")
