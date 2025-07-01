@@ -20,6 +20,26 @@ import torchvision.transforms as transforms
 import PIL
 import numpy as np
 import argparse
+import importlib.util
+
+def _get_scores(model, data_loader, task, device):
+    """Runs the model on the data and returns the raw scores."""
+    model.eval()
+    y_score = torch.tensor([]).to(device)
+    with torch.no_grad():
+        for inputs, _ in data_loader:
+            outputs = model(inputs.to(device))
+            
+            if task == 'multi-label, binary-class':
+                m = nn.Sigmoid()
+                outputs = m(outputs)
+            else:
+                m = nn.Softmax(dim=1)
+                outputs = m(outputs)
+            
+            y_score = torch.cat((y_score, outputs), 0)
+            
+    return y_score.detach().cpu().numpy()
 
 def _test_model(model, evaluator, data_loader, task, criterion, device):
     """Core testing logic, adapted from train_and_eval_pytorch.py"""
@@ -296,6 +316,7 @@ def server_collect_from_clients(r, args):
         model_color = f"M{model_idx}"
         evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, warehouse)
     evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
+    evaluate_server_model(args, "ensemble", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
@@ -327,6 +348,7 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
     # Set seed for reproducibility
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
+    random.seed(args.seed)
 
     # 1. Use the provided warehouse object to reconstruct the model
     if model_color == "averaging":
@@ -348,7 +370,84 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
                 model_weights[key] = all_model_weights[0][key]
         
         logger.info("Finished averaging model weights.")
-    else:
+
+    elif model_color == "ensemble":
+        logger.info(f"Starting ensemble evaluation for {args.num_ensemble} models...")
+        
+        # Load ENSEMBLE_COLORS from fbd_settings.py
+        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+        spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
+        fbd_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fbd_module)
+        ensemble_colors_pool = getattr(fbd_module, 'ENSEMBLE_COLORS', ['M0', 'M1', 'M2', 'M3', 'M4', 'M5'])
+        
+        if not ensemble_colors_pool:
+            logger.error("ENSEMBLE_COLORS is empty. Skipping ensemble evaluation.")
+            return
+            
+        # Create the ensemble by random sampling with replacement
+        ensemble_model_colors = random.choices(ensemble_colors_pool, k=args.num_ensemble)
+        logger.info(f"Ensemble composition ({len(ensemble_model_colors)} models): {ensemble_model_colors}")
+
+        # Prepare for evaluation
+        info = INFO[dataset]
+        task = info['task']
+        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        test_evaluator = Evaluator(dataset, 'test', size=args.size)
+
+        # Get scores for each unique model in the ensemble
+        scores_cache = {}
+        unique_colors_in_ensemble = sorted(list(set(ensemble_model_colors)))
+        
+        for color in unique_colors_in_ensemble:
+            logger.info(f"Getting predictions for model {color}")
+            model_weights_single = warehouse.get_model_weights(color)
+            if not model_weights_single:
+                logger.error(f"Could not retrieve weights for model {color}. Skipping this model in ensemble.")
+                continue
+
+            model = get_pretrained_fbd_model(
+                architecture=model_name,
+                norm=args.norm, in_channels=args.in_channels, num_classes=args.num_classes,
+                use_pretrained=False
+            )
+            model.load_state_dict(model_weights_single)
+            model.to(device)
+            
+            scores_cache[color] = _get_scores(model, test_loader, task, device)
+
+        # Average the scores
+        all_y_scores = [scores_cache[color] for color in ensemble_model_colors if color in scores_cache]
+        if not all_y_scores:
+            logger.error("No valid model predictions to ensemble. Aborting evaluation.")
+            return
+
+        avg_y_score = np.mean(all_y_scores, axis=0)
+        
+        # Evaluate the averaged scores
+        auc, acc = test_evaluator.evaluate(avg_y_score, None, None)
+        test_loss = float('nan') # Loss cannot be computed from scores alone
+        test_metrics = [test_loss, auc, acc]
+        
+        logger.info(f"Ensemble evaluation complete.")
+        logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
+        print(f"Server - Ensemble: Test Loss = {test_metrics[0]:.5f}, Test AUC = {test_metrics[1]:.5f}, Test Acc = {test_metrics[2]:.5f}")
+        
+        # Since metrics are calculated and printed, we can save and return.
+        eval_results_dir = os.path.join(args.output_dir, "eval_results", f"{dataset}/{model_name}/{model_color}")
+        os.makedirs(eval_results_dir, exist_ok=True)
+        metrics_dict = {
+            "model_color": model_color, "model_name": model_name, "dataset": dataset,
+            "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2]
+        }
+        save_name = os.path.join(eval_results_dir, f"eval_metrics.json")
+        with open(save_name, 'w') as f:
+            json.dump(metrics_dict, f, indent=4)
+        logger.info(f"Metrics saved to {save_name}")
+        return
+
+    else: # This block handles single model evaluation ("M0", "M1", etc.)
         model_weights = warehouse.get_model_weights(model_color)
     
     logger.info(f"Loaded {len(model_weights)} parameters for model {model_color} from warehouse")
@@ -553,6 +652,7 @@ if __name__ == '__main__':
     parser.add_argument("--comm_dir", type=str, default="fbd_comm", help="Communication directory")
     parser.add_argument("--remove_communication", action='store_true', help="Remove communication files after processing")
     parser.add_argument("--poll_interval", type=float, default=1.0, help="Poll interval for client responses")
+    parser.add_argument("--num_ensemble", type=int, default=24, help="Number of models in the random ensemble")
 
     args = parser.parse_args()
 
