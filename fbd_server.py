@@ -7,7 +7,7 @@ import hashlib
 import logging
 import torch
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger, save_optimizer_state, build_optimizer_from_state
+from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger, save_optimizer_state_by_block, build_optimizer_with_state
 from fbd_dataset import DATASET_SPECIFIC_RULES
 from config.bloodmnist.generate_plans import main_generate_plans
 import subprocess
