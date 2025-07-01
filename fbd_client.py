@@ -186,6 +186,8 @@ def client_task(client_id, data_partition, args):
             updated_weights = {}
             trained_state_dict = model.state_dict()
             model_to_update = update_plan.get('model_to_update', {})
+            logger.info(f"Extracting weights for trainable components: {list(model_to_update.keys())}")
+            
             for component_name, info in model_to_update.items():
                 if info['status'] == 'trainable':
                     block_id = info['block_id']
@@ -196,6 +198,12 @@ def client_task(client_id, data_partition, args):
                             block_weights[param_name] = param_tensor.cpu()
                     if block_weights:
                         updated_weights[block_id] = block_weights
+                        logger.info(f"Extracted {len(block_weights)} weights for block {block_id} (component: {component_name})")
+                    else:
+                        logger.warning(f"No weights found for block {block_id} with model_part '{model_part}'")
+            
+            logger.info(f"Total blocks with updated weights: {len(updated_weights)}")
+            print(f"Client {client_id} - Round {current_round}: Sending {len(updated_weights)} updated weight blocks")
 
             # Process the data and write back a response
             response_data = {

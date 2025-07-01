@@ -249,10 +249,15 @@ def server_collect_from_clients(r, args):
                 logger.info(f"Server: Received update from client {i} for round {r}, loss: {loss:.4f}")
 
                 if updated_weights:
+                    logger.info(f"Server: Received {len(updated_weights)} weight blocks from client {i}: {list(updated_weights.keys())}")
                     warehouse.store_weights_batch(updated_weights)
                     # Save the warehouse so the evaluation function can load the latest state
                     warehouse.save_warehouse(warehouse_path)
                     logger.info(f"Server: Warehouse updated by client {i} and saved.")
+                    print(f"Server: Stored {len(updated_weights)} weight blocks from client {i}")
+                else:
+                    logger.warning(f"Server: Client {i} sent no updated weights!")
+                    print(f"Server: WARNING - Client {i} sent no updated weights!")
                 
                 # Mark as collected by renaming or deleting the file to avoid recounting
                 os.remove(filepath) 
@@ -309,6 +314,12 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     warehouse = FBDWarehouse(fbd_trace=fbd_trace)
     warehouse.load_warehouse(warehouse_path)
     model_weights = warehouse.get_model_weights(model_color)
+    
+    logger.info(f"Loaded {len(model_weights)} parameters for model {model_color} from warehouse")
+    # Check if weights look reasonable (not all zeros or same values)
+    sample_param = list(model_weights.values())[0] if model_weights else None
+    if sample_param is not None:
+        logger.info(f"Sample parameter '{list(model_weights.keys())[0]}' stats: mean={sample_param.mean().item():.6f}, std={sample_param.std().item():.6f}")
 
     model = get_pretrained_fbd_model(
         architecture=model_name,
