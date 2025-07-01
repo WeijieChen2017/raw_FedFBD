@@ -88,7 +88,14 @@ def initialize_experiment(args):
     Initializes the experiment by setting up directories, caching the dataset,
     and preparing the initial model.
     """
-    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    # Create output directory and log directory
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info("Server: Initializing experiment...")
 
     # 1. Setup cache and communication directories
@@ -158,7 +165,8 @@ def initialize_experiment(args):
 
 def server_send_to_clients(r, args):
     """Server-side logic to create files for the current round."""
-    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info(f"Server: --- Round {r} ---")
 
     # 1. Load the warehouse
@@ -211,7 +219,8 @@ def server_send_to_clients(r, args):
 
 def server_collect_from_clients(r, args):
     """Server-side logic to collect responses from clients for the current round."""
-    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info(f"Server: Collecting responses for round {r}...")
     
     # 1. Load the warehouse
@@ -261,7 +270,8 @@ def server_collect_from_clients(r, args):
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
-    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info("Server: All rounds complete. Sending shutdown signal.")
     for i in range(args.num_clients):
         filepath = os.path.join(args.comm_dir, f"last_round_client_{i}.json")
@@ -279,7 +289,8 @@ def evaluate_server_model(args, model_color, model_name, dataset):
         model_name (str): The architecture of the model (e.g., 'resnet18').
         dataset (str): The dataset to evaluate on (e.g., 'bloodmnist').
     """
-    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info(f"Starting evaluation for model {model_color} ({model_name}) on {dataset}...")
     
     # Set seed for reproducibility
@@ -335,22 +346,25 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
 
     # 5. Save results
-    output_dir = os.path.join("eval_results", f"{dataset}/{model_name}/{model_color}")
-    os.makedirs(output_dir, exist_ok=True)
+    eval_results_dir = os.path.join(args.output_dir, "eval_results", f"{dataset}/{model_name}/{model_color}")
+    os.makedirs(eval_results_dir, exist_ok=True)
     
     metrics_dict = {
         "model_color": model_color, "model_name": model_name, "dataset": dataset,
         "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2]
     }
     
-    save_name = os.path.join(output_dir, f"eval_metrics.json")
+    save_name = os.path.join(eval_results_dir, f"eval_metrics.json")
     with open(save_name, 'w') as f:
         json.dump(metrics_dict, f, indent=4)
     logger.info(f"Metrics saved to {save_name}") 
 
 def main_server(args):
     """Main server process."""
-    log_file = os.path.join("fbd_log", "server.log")
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_file = os.path.join(log_dir, "server.log")
     logger = setup_logger("Server", log_file)
     
     logger.info("FBD Server starting...")

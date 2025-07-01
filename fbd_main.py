@@ -1,9 +1,11 @@
 import multiprocessing
 import argparse
+import os
 from fbd_server import initialize_experiment, server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model
 from fbd_client import client_task
 from fbd_utils import load_config
 from fbd_dataset import load_data, partition_data
+import time
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework")
@@ -19,6 +21,7 @@ def main():
     config = load_config(args.experiment_name, args.model_flag)
     args_dict = vars(args)
     args_dict.update(vars(config))
+    output_dir = f"fbd_run/{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
     
     # 1. Initialize Experiment
     initialize_experiment(args)

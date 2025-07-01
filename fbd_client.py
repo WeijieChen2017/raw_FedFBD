@@ -95,7 +95,10 @@ def assemble_model_from_plan(model, received_weights, update_plan, fbd_trace):
 
 def client_task(client_id, data_partition, args):
     """Client process that actively polls for round-based files, processes them, and sends a response."""
-    log_file = os.path.join("fbd_log", f"client_{client_id}.log")
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_file = os.path.join(log_dir, f"client_{client_id}.log")
     logger = setup_logger(f"Client-{client_id}", log_file)
     
     logger.info("Starting...")
