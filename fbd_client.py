@@ -180,7 +180,6 @@ def client_task(client_id, data_partition, args):
             
             loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device)
             logger.info(f"Round {current_round}: Training complete. Loss: {loss:.4f}")
-            print(f"Client {client_id} - Round {current_round}: Training Loss = {loss:.4f}")
 
             # Extract updated weights based on the update plan (only trainable parts)
             updated_weights = {}
@@ -203,7 +202,7 @@ def client_task(client_id, data_partition, args):
                         logger.warning(f"No weights found for block {block_id} with model_part '{model_part}'")
             
             logger.info(f"Total blocks with updated weights: {len(updated_weights)}")
-            print(f"Client {client_id} - Round {current_round}: Sending {len(updated_weights)} updated weight blocks")
+            print(f"Client {client_id} - Round {current_round}: Training Loss = {loss:.4f} Sending {len(updated_weights)} updated weight blocks")
 
             # Process the data and write back a response
             response_data = {
