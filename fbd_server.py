@@ -89,7 +89,9 @@ def initialize_experiment(args):
     Initializes the experiment by setting up directories, caching the dataset,
     and preparing the initial model.
     """
-    # Create log directory
+    # Create output directory and log directory
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
     log_dir = os.path.join(args.output_dir, "fbd_log")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -343,6 +345,7 @@ def evaluate_server_model(args, model_color, model_name, dataset):
 
     logger.info(f"Evaluation complete for model {model_color} on {dataset}.")
     logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
+    print(f"Server - {model_color}: Test Loss = {test_metrics[0]:.5f}, Test AUC = {test_metrics[1]:.5f}, Test Acc = {test_metrics[2]:.5f}")
 
     # 5. Save results
     eval_results_dir = os.path.join(args.output_dir, "eval_results", f"{dataset}/{model_name}/{model_color}")
@@ -368,10 +371,6 @@ def main_server(args):
     
     logger.info("FBD Server starting...")
     logger.info(f"Arguments: {vars(args)}")
-
-    # Setup device
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    logger.info(f"Using device: {device}")
 
     # Setup directories
     comm_dir = getattr(args, 'comm_dir', 'fbd_comm')
@@ -403,17 +402,16 @@ def main_server(args):
         norm=args.norm,
         in_channels=args.in_channels,
         num_classes=args.num_classes,
-        device=device,
         use_pretrained=args.use_pretrained,
         logger=logger
     )
-    global_model.to(device)
-    logger.info(f"Initialized global model: {args.model_flag} on {device}")
+    logger.info(f"Initialized global model: {args.model_flag}")
 
     # Main server loop
     for round_num_str in sorted(shipping_plan.keys(), key=int):
         round_num = int(round_num_str)
         logger.info(f"\n----- Round {round_num} -----")
+        print(f"\n{'='*20} Round {round_num} {'='*20}")
         
         clients_in_round = shipping_plan[round_num_str]
         active_clients = list(clients_in_round.keys())
@@ -489,15 +487,7 @@ def main_server(args):
 
         # Update global model
         if aggregated_weights:
-            # Ensure aggregated weights are on the same device as the global model
-            device_aggregated_weights = {}
-            for key, tensor in aggregated_weights.items():
-                if isinstance(tensor, torch.Tensor):
-                    device_aggregated_weights[key] = tensor.to(device)
-                else:
-                    device_aggregated_weights[key] = tensor
-            
-            global_model.load_state_dict(device_aggregated_weights, strict=False)
+            global_model.load_state_dict(aggregated_weights, strict=False)
             logger.info("Global model updated with aggregated weights.")
         else:
             logger.warning("No weights were aggregated in this round.")
