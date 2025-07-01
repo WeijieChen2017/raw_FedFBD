@@ -160,7 +160,12 @@ def initialize_experiment(args):
     # 6. Save training configuration
     config_path = os.path.join(args.comm_dir, "train_config.json")
     logger.info(f"Server: Saving training configuration to {config_path}")
-    save_json(vars(args), config_path)
+    
+    # Create a serializable copy of the configuration by removing complex objects
+    args_to_save = vars(args).copy()
+    args_to_save.pop('warehouse', None)
+    args_to_save.pop('test_dataset', None)
+    save_json(args_to_save, config_path)
     
     # 7. Prepare test dataset for evaluations
     logger.info("Server: Preparing test dataset for evaluations...")
