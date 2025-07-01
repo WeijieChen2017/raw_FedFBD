@@ -39,7 +39,7 @@ def main():
     # print("Server: Evaluating initial models from warehouse...")
     # for i in range(6):  # Evaluate models M0 to M5
     #     model_color = f"M{i}"
-    #     evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
+    #     evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, args.warehouse)
 
     # 2. Start client processes
     processes = []
@@ -60,7 +60,7 @@ def main():
     # print("Server: Evaluating final models from warehouse...")
     # for i in range(6):  # Evaluate models M0 to M5
     #     model_color = f"M{i}"
-    #     evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
+    #     evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, args.warehouse)
 
     # 5. End Experiment
     end_experiment(args)

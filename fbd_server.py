@@ -147,14 +147,14 @@ def initialize_experiment(args):
     initial_model_path = os.path.join(args.cache_dir, f"initial_{args.model_flag}.pth")
     model_template.load_state_dict(torch.load(initial_model_path))
 
-    warehouse = FBDWarehouse(
+    args.warehouse = FBDWarehouse(
         fbd_trace=fbd_trace,
         model_template=model_template,
         log_file_path=os.path.join(args.comm_dir, "warehouse.log")
     )
     
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
-    warehouse.save_warehouse(warehouse_path)
+    args.warehouse.save_warehouse(warehouse_path)
     logger.info(f"Server: FBD Warehouse initialized and saved to {warehouse_path}")
 
     # 6. Save training configuration
@@ -183,12 +183,8 @@ def server_send_to_clients(r, args):
     logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info(f"Server: --- Round {r} ---")
 
-    # 1. Load the warehouse
-    warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
-    fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
-    warehouse = FBDWarehouse(fbd_trace=fbd_trace)
-    warehouse.load_warehouse(warehouse_path)
+    # 1. Use the global warehouse
+    warehouse = args.warehouse
 
     # 2. Load the shipping and update plans
     shipping_plan_path = os.path.join("config", args.experiment_name, "shipping_plan.json")
@@ -237,12 +233,9 @@ def server_collect_from_clients(r, args):
     logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     logger.info(f"Server: Collecting responses for round {r}...")
     
-    # 1. Load the warehouse
+    # 1. Use the global warehouse
+    warehouse = args.warehouse
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
-    fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
-    warehouse = FBDWarehouse(fbd_trace=fbd_trace)
-    warehouse.load_warehouse(warehouse_path)
 
     collected_clients = 0
     round_losses = []
@@ -285,8 +278,8 @@ def server_collect_from_clients(r, args):
     logger.info(f"Server: Evaluating all models at end of round {r}...")
     for model_idx in range(6):  # Evaluate models M0 to M5
         model_color = f"M{model_idx}"
-        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset)
-    evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset)
+        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, warehouse)
+    evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
@@ -298,7 +291,7 @@ def end_experiment(args):
         with open(filepath, 'w') as f:
             json.dump({"secret": -1}, f) 
 
-def evaluate_server_model(args, model_color, model_name, dataset, test_dataset):
+def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, warehouse):
     """
     Evaluates a model specified by its color (e.g., M0-M5) from the warehouse.
     This version integrates the evaluation logic directly, without calling an external script.
@@ -309,6 +302,7 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset):
         model_name (str): The architecture of the model (e.g., 'resnet18').
         dataset (str): The dataset to evaluate on (e.g., 'bloodmnist').
         test_dataset (data.Dataset): The test dataset for evaluation.
+        warehouse (FBDWarehouse): The global warehouse instance.
     """
     log_dir = os.path.join(args.output_dir, "fbd_log")
     logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
@@ -318,17 +312,7 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    # 1. Load the warehouse and reconstruct model
-    warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
-    if not os.path.exists(warehouse_path):
-        logger.error(f"Warehouse not found at {warehouse_path}.")
-        return
-
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
-    fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
-    warehouse = FBDWarehouse(fbd_trace=fbd_trace)
-    warehouse.load_warehouse(warehouse_path)
-
+    # 1. Use the provided warehouse object to reconstruct the model
     if model_color == "averaging":
         logger.info("Creating and evaluating an averaged model from M0-M5.")
         all_model_weights = [warehouse.get_model_weights(f"M{i}") for i in range(6)]
