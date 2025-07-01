@@ -133,7 +133,7 @@ def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_i
                 if p_id_in_state == param_id_map.get(id(p)):
                     p_obj = p
                     break
-            if p_obj:
+            if p_obj is not None:
                 break
         
         if p_obj is not None and id(p_obj) in param_to_block_map:
