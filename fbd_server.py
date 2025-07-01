@@ -89,9 +89,7 @@ def initialize_experiment(args):
     Initializes the experiment by setting up directories, caching the dataset,
     and preparing the initial model.
     """
-    # Create output directory and log directory
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+    # Create log directory
     log_dir = os.path.join(args.output_dir, "fbd_log")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)

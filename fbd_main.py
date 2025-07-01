@@ -19,9 +19,21 @@ def main():
 
     # 0. Load config and merge into args
     config = load_config(args.experiment_name, args.model_flag)
-    args_dict = vars(args)
-    args_dict.update(vars(config))
+    
+    # Properly merge config into args namespace
+    for key, value in vars(config).items():
+        setattr(args, key, value)
+    
+    # 0.5. Setup output directory structure
     output_dir = f"fbd_run/{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
+    args.output_dir = output_dir
+    args.comm_dir = os.path.join(output_dir, "fbd_comm")
+    
+    # Create output directory and subdirectories
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    
+    print(f"Output directory created: {args.output_dir}")  # Debug print
     
     # 1. Initialize Experiment
     initialize_experiment(args)
