@@ -49,6 +49,11 @@ def main():
         processes.append(process)
         process.start()
 
+    # Define path for server-side evaluation history log
+    eval_results_dir = os.path.join(output_dir, "eval_results")
+    os.makedirs(eval_results_dir, exist_ok=True)
+    history_save_path = os.path.join(eval_results_dir, "server_evaluation_history.json")
+
     # 3. Run Rounds
     server_evaluation_history = []
     for r in range(args.num_rounds):
@@ -58,6 +63,11 @@ def main():
         # Server collects responses from clients and gets eval results
         round_eval_results = server_collect_from_clients(r, args)
         server_evaluation_history.append(round_eval_results)
+
+        # Save the complete server evaluation history after each round
+        with open(history_save_path, 'w') as f:
+            json.dump(server_evaluation_history, f, indent=4)
+        print(f"Server evaluation history updated for round {r} at {history_save_path}")
 
     # 4. Evaluate server models
     # print("Server: Evaluating final models from warehouse...")
@@ -71,14 +81,6 @@ def main():
     # Wait for all client processes to finish
     for process in processes:
         process.join()
-
-    # Save the complete server evaluation history
-    eval_results_dir = os.path.join(output_dir, "eval_results")
-    os.makedirs(eval_results_dir, exist_ok=True)
-    history_save_path = os.path.join(eval_results_dir, "server_evaluation_history.json")
-    with open(history_save_path, 'w') as f:
-        json.dump(server_evaluation_history, f, indent=4)
-    print(f"Server evaluation history saved to {history_save_path}")
 
     print("Framework execution complete.")
 

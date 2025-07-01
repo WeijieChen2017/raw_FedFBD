@@ -233,6 +233,12 @@ def client_task(client_id, data_partition, args):
             torch.save(response_data, temp_filepath)
             os.rename(temp_filepath, response_filepath)
 
+            # Save the cumulative training loss history after each round
+            loss_history_path = os.path.join(args.output_dir, f"client_{client_id}_train_losses.json")
+            with open(loss_history_path, 'w') as f:
+                json.dump(train_losses, f, indent=4)
+            logger.info(f"Updated training loss history for round {current_round} at {loss_history_path}")
+
             # Conditionally clean up the goods file
             if getattr(args, 'remove_communication', False):
                 os.remove(round_filepath)
@@ -241,11 +247,5 @@ def client_task(client_id, data_partition, args):
         else:
             # Wait before polling again
             time.sleep(args.poll_interval)
-
-    # Save the training loss history
-    loss_history_path = os.path.join(args.output_dir, f"client_{client_id}_train_losses.json")
-    with open(loss_history_path, 'w') as f:
-        json.dump(train_losses, f, indent=4)
-    logger.info(f"Saved training loss history to {loss_history_path}")
 
     logger.info("Finished all tasks.") 
