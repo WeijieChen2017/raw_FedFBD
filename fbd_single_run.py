@@ -89,11 +89,26 @@ def main():
     logger.info(f"Using device: {device}")
 
     # --- 2. Data Loading ---
-    logger.info("Loading data...")
-    train_dataset, test_dataset = load_data(args)
+    logger.info("Loading data from MedMNIST...")
+    info = INFO[args.experiment_name]
+    DataClass = getattr(medmnist, info['python_class'])
+    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
+    as_rgb = dataset_rules.get("as_rgb", False)
+    
+    data_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5])
+    ])
+    
+    train_dataset = DataClass(split='train', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+    val_dataset = DataClass(split='val', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+    test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+    
     train_loader = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
+    val_loader = data.DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
-    logger.info(f"Train dataset size: {len(train_dataset)}, Test dataset size: {len(test_dataset)}")
+    
+    logger.info(f"Train samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}, Test samples: {len(test_dataset)}")
 
     # --- 3. Model Preparation ---
     logger.info(f"Preparing model '{args.model_flag}' with ImageNet weights.")
@@ -119,6 +134,9 @@ def main():
     criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     
+    val_evaluator = Evaluator(args.experiment_name, 'val', size=args.size)
+    test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+
     logger.info("Starting training...")
     for epoch in range(args.epochs):
         model.train()
@@ -146,16 +164,22 @@ def main():
         epoch_loss = running_loss / len(train_loader)
         logger.info(f"--- Epoch {epoch+1} finished. Average Loss: {epoch_loss:.4f} ---")
 
+        # Evaluate on validation and test set after each epoch
+        val_metrics = _test_model(model, val_evaluator, val_loader, task, criterion, device)
+        test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+        
+        logger.info(f"  Validation | AUC: {val_metrics[1]:.5f}, Acc: {val_metrics[2]:.5f}")
+        logger.info(f"  Test       | AUC: {test_metrics[1]:.5f}, Acc: {test_metrics[2]:.5f}")
+
     logger.info("Training finished.")
 
-    # --- 5. Evaluation ---
-    logger.info("Starting final evaluation...")
-    test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
-    test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+    # --- 5. Final Evaluation ---
+    logger.info("Starting final evaluation on test set...")
+    final_test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
     
     logger.info(f"Evaluation complete.")
-    logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
-    print(f"\nFinal Results:\n  Test Loss = {test_metrics[0]:.5f}\n  Test AUC  = {test_metrics[1]:.5f}\n  Test Acc  = {test_metrics[2]:.5f}")
+    logger.info(f"  └─ Final Test Loss: {final_test_metrics[0]:.5f}, Test AUC: {final_test_metrics[1]:.5f}, Test Acc: {final_test_metrics[2]:.5f}")
+    print(f"\nFinal Results:\n  Test Loss = {final_test_metrics[0]:.5f}\n  Test AUC  = {final_test_metrics[1]:.5f}\n  Test Acc  = {final_test_metrics[2]:.5f}")
 
     # --- 6. Save Results ---
     results_dict = {
@@ -163,9 +187,9 @@ def main():
         "dataset": args.experiment_name,
         "epochs": args.epochs,
         "lr": args.lr,
-        "test_loss": test_metrics[0], 
-        "test_auc": test_metrics[1], 
-        "test_acc": test_metrics[2]
+        "test_loss": final_test_metrics[0], 
+        "test_auc": final_test_metrics[1], 
+        "test_acc": final_test_metrics[2]
     }
     
     results_path = os.path.join(args.output_dir, "final_metrics.json")
