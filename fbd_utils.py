@@ -14,6 +14,33 @@ from argparse import Namespace
 import hashlib
 import shutil
 
+def setup_logger(name, log_file, level=logging.INFO):
+    """Function to setup as many loggers as you want"""
+    # Create fbd_log directory if it doesn't exist
+    log_dir = os.path.dirname(log_file)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler = logging.FileHandler(log_file)        
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    
+    # Clear existing handlers to avoid duplicate logs
+    if logger.hasHandlers():
+        logger.handlers.clear()
+        
+    logger.addHandler(handler)
+    
+    # Also log to console
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+
+    return logger
+
 def load_fbd_settings(fbd_file_path):
     """
     Load FBD_TRACE, FBD_INFO, and TRANSPARENT_TO_CLIENT from a Python file.

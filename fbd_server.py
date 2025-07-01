@@ -7,7 +7,7 @@ import hashlib
 import logging
 import torch
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache
+from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger
 from config.bloodmnist.generate_plans import main_generate_plans
 import subprocess
 
@@ -18,6 +18,7 @@ from torch.utils import data
 import torchvision.transforms as transforms
 import PIL
 import numpy as np
+import argparse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -102,43 +103,44 @@ def initialize_experiment(args):
     Initializes the experiment by setting up directories, caching the dataset,
     and preparing the initial model.
     """
-    logging.info("Server: Initializing experiment...")
+    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    logger.info("Server: Initializing experiment...")
 
     # 1. Setup cache and communication directories
     if not args.cache_dir:
         args.cache_dir = os.path.join(os.getcwd(), "cache")
-        logging.info(f"Cache directory not set, using default: {args.cache_dir}")
+        logger.info(f"Cache directory not set, using default: {args.cache_dir}")
     
     if not os.path.exists(args.cache_dir):
         os.makedirs(args.cache_dir)
     
     if getattr(args, 'remove_communication', False) and os.path.exists(args.comm_dir):
-        logging.info(f"Server: Clearing communication directory at {args.comm_dir}")
+        logger.info(f"Server: Clearing communication directory at {args.comm_dir}")
         shutil.rmtree(args.comm_dir)
     
     if not os.path.exists(args.comm_dir):
         os.makedirs(args.comm_dir)
-        logging.info(f"Server: Created communication directory at {args.comm_dir}")
+        logger.info(f"Server: Created communication directory at {args.comm_dir}")
 
     # 2. Handle dataset caching
-    logging.info("Server: Checking dataset cache...")
+    logger.info("Server: Checking dataset cache...")
     handle_dataset_cache(args.experiment_name, args.cache_dir)
 
     # 3. Prepare and cache the initial model
-    logging.info("Server: Preparing initial model...")
+    logger.info("Server: Preparing initial model...")
     prepare_initial_model(args)
     
     # 4. Generate FBD plans
-    logging.info("Server: Generating FBD plans...")
+    logger.info("Server: Generating FBD plans...")
     try:
         main_generate_plans()
-        logging.info("Server: FBD plans generated successfully.")
+        logger.info("Server: FBD plans generated successfully.")
     except Exception as e:
-        logging.error("Server: Failed to generate FBD plans.", exc_info=True)
+        logger.error("Server: Failed to generate FBD plans.", exc_info=True)
         raise e
         
     # 5. Initialize FBD Warehouse
-    logging.info("Server: Initializing FBD Warehouse...")
+    logger.info("Server: Initializing FBD Warehouse...")
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
 
@@ -160,18 +162,19 @@ def initialize_experiment(args):
     
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
     warehouse.save_warehouse(warehouse_path)
-    logging.info(f"Server: FBD Warehouse initialized and saved to {warehouse_path}")
+    logger.info(f"Server: FBD Warehouse initialized and saved to {warehouse_path}")
 
     # 6. Save training configuration
     config_path = os.path.join(args.comm_dir, "train_config.json")
-    logging.info(f"Server: Saving training configuration to {config_path}")
+    logger.info(f"Server: Saving training configuration to {config_path}")
     save_json(vars(args), config_path)
     
-    logging.info("Server: Experiment initialization complete.")
+    logger.info("Server: Experiment initialization complete.")
 
 def server_send_to_clients(r, args):
     """Server-side logic to create files for the current round."""
-    print(f"Server: --- Round {r} ---")
+    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    logger.info(f"Server: --- Round {r} ---")
 
     # 1. Load the warehouse
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
@@ -198,7 +201,7 @@ def server_send_to_clients(r, args):
         client_update_plan = round_update_plan.get(str(i), {})
         
         if not client_shipping_list:
-            print(f"Server: No shipping plan for client {i} in round {r}. Skipping.")
+            logger.info(f"Server: No shipping plan for client {i} in round {r}. Skipping.")
             continue
 
         # Get model weights from the warehouse
@@ -217,12 +220,14 @@ def server_send_to_clients(r, args):
         temp_filepath = f"{filepath}.tmp"
         torch.save(data_to_send, temp_filepath)
         os.rename(temp_filepath, filepath)
+        logger.info(f"Server: Sent goods for round {r} to client {i}")
 
-    print(f"Server: Sent goods for round {r} to {args.num_clients} clients.")
+    logger.info(f"Server: Sent goods for round {r} to {args.num_clients} clients.")
 
 def server_collect_from_clients(r, args):
     """Server-side logic to collect responses from clients for the current round."""
-    print(f"Server: Collecting responses for round {r}...")
+    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    logger.info(f"Server: Collecting responses for round {r}...")
     
     # 1. Load the warehouse
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
@@ -246,16 +251,16 @@ def server_collect_from_clients(r, args):
                 updated_weights = data.get("updated_weights")
                 round_losses.append(loss)
                 
-                print(f"Server: Received update from client {i} for round {r}, loss: {loss:.4f}")
+                logger.info(f"Server: Received update from client {i} for round {r}, loss: {loss:.4f}")
 
                 if updated_weights:
                     warehouse.store_weights_batch(updated_weights)
                     # Save the warehouse so the evaluation function can load the latest state
                     warehouse.save_warehouse(warehouse_path)
-                    print(f"Server: Warehouse updated by client {i} and saved.")
+                    logger.info(f"Server: Warehouse updated by client {i} and saved.")
 
                     # Evaluate all models after this client's update
-                    print(f"Server: Evaluating all models after update from client {i}...")
+                    logger.info(f"Server: Evaluating all models after update from client {i}...")
                     for model_idx in range(6):  # Evaluate models M0 to M5
                         model_color = f"M{model_idx}"
                         evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
@@ -267,11 +272,12 @@ def server_collect_from_clients(r, args):
     
     # After collecting from all clients, print summary
     avg_loss = sum(round_losses) / len(round_losses) if round_losses else 0
-    print(f"Server: All responses for round {r} collected. Average loss: {avg_loss:.4f}")
+    logger.info(f"Server: All responses for round {r} collected. Average loss: {avg_loss:.4f}")
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
-    print("Server: All rounds complete. Sending shutdown signal.")
+    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    logger.info("Server: All rounds complete. Sending shutdown signal.")
     for i in range(args.num_clients):
         filepath = os.path.join(args.comm_dir, f"last_round_client_{i}.json")
         with open(filepath, 'w') as f:
@@ -288,7 +294,8 @@ def evaluate_server_model(args, model_color, model_name, dataset):
         model_name (str): The architecture of the model (e.g., 'resnet18').
         dataset (str): The dataset to evaluate on (e.g., 'bloodmnist').
     """
-    logging.info(f"Starting evaluation for model {model_color} ({model_name}) on {dataset}...")
+    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    logger.info(f"Starting evaluation for model {model_color} ({model_name}) on {dataset}...")
     
     # Set seed for reproducibility
     torch.manual_seed(args.seed)
@@ -297,7 +304,7 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     # 1. Load the warehouse and reconstruct model
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
     if not os.path.exists(warehouse_path):
-        logging.error(f"Warehouse not found at {warehouse_path}.")
+        logger.error(f"Warehouse not found at {warehouse_path}.")
         return
 
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
@@ -339,8 +346,8 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     # 4. Run evaluation
     test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
 
-    logging.info(f"Evaluation complete for model {model_color} on {dataset}.")
-    logging.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
+    logger.info(f"Evaluation complete for model {model_color} on {dataset}.")
+    logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
 
     # 5. Save results
     output_dir = os.path.join("eval_results", f"{dataset}/{model_name}/{model_color}")
@@ -354,4 +361,123 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     save_name = os.path.join(output_dir, f"eval_metrics.json")
     with open(save_name, 'w') as f:
         json.dump(metrics_dict, f, indent=4)
-    logging.info(f"Metrics saved to {save_name}") 
+    logger.info(f"Metrics saved to {save_name}") 
+
+def main_server(args):
+    """Main server process."""
+    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    
+    logger.info("FBD Server starting...")
+
+    # Load all necessary FBD configurations
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    shipping_plan_path = os.path.join("config", args.experiment_name, "shipping_plan.json")
+    update_plan_path = os.path.join("config", args.experiment_name, "update_plan.json")
+    fbd_trace, fbd_info, model_parts = load_fbd_settings(fbd_settings_path)
+    shipping_plan = load_shipping_plan(shipping_plan_path)
+    update_plan = load_update_plan(update_plan_path)
+
+    logger.info(f"Loaded FBD config for {args.experiment_name}")
+    logger.info(f"Total rounds in plan: {len(shipping_plan)}")
+
+    # Initialize the global model
+    global_model = get_pretrained_fbd_model(
+        architecture=args.model_flag,
+        norm=args.norm,
+        in_channels=args.in_channels,
+        num_classes=args.num_classes,
+        use_pretrained=args.use_pretrained
+    )
+    logger.info(f"Initialized global model: {args.model_flag}")
+
+    # Main server loop
+    for round_num_str, clients_in_round in shipping_plan.items():
+        round_num = int(round_num_str)
+        logger.info(f"\n----- Round {round_num} -----")
+        
+        # Determine active clients for this round
+        active_clients = list(clients_in_round.keys())
+        logger.info(f"Active clients for round {round_num}: {active_clients}")
+
+        # Prepare and distribute goods to each active client
+        for client_id in active_clients:
+            # Get model weights from the warehouse
+            model_weights = fbd_info["model_weights"][client_id]
+            
+            # Prepare data packet
+            data_packet = {
+                "shipping_list": clients_in_round[client_id],
+                "update_plan": update_plan[round_num_str][client_id],
+                "model_weights": model_weights,
+                "round": round_num
+            }
+            
+            # Save the data packet for the client
+            goods_filepath = os.path.join(args.comm_dir, f"goods_round_{round_num}_client_{client_id}.pth")
+            torch.save(data_packet, goods_filepath)
+            logger.info(f"  > Dispatched goods to client {client_id}")
+
+        # Wait for and collect responses from clients
+        collected_updates = {}
+        client_stats = {}
+        
+        while len(collected_updates) < len(active_clients):
+            for client_id in active_clients:
+                if client_id not in collected_updates:
+                    response_filepath = os.path.join(args.comm_dir, f"response_round_{round_num}_client_{client_id}.pth")
+                    if os.path.exists(response_filepath):
+                        response_data = torch.load(response_filepath)
+                        
+                        # Store weights and stats
+                        collected_updates[client_id] = response_data.get("updated_weights", {})
+                        client_stats[client_id] = response_data.get("dataset_stats", {})
+                        
+                        logger.info(f"  < Received response from client {client_id}")
+                        
+                        # Conditionally remove the response file
+                        if args.remove_communication:
+                            os.remove(response_filepath)
+            
+            time.sleep(args.poll_interval)
+        
+        logger.info(f"All client responses for round {round_num} received.")
+
+        # Aggregate the collected weights
+        aggregated_weights = {}
+        for client_id, weights in collected_updates.items():
+            aggregated_weights.update(weights)
+
+        # Update the global model with aggregated weights
+        if aggregated_weights:
+            global_model.load_state_dict(aggregated_weights, strict=False)
+            logger.info("Global model updated with aggregated weights.")
+        else:
+            logger.warning("No weights were aggregated in this round.")
+
+    # Signal clients to shut down by creating a special file for each
+    for client_id in fbd_info["clients"]:
+        shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id}.json")
+        with open(shutdown_filepath, 'w') as f:
+            json.dump({"secret": -1}, f)
+        logger.info(f"Sent shutdown signal to client {client_id}.")
+
+    logger.info("FBD Server has completed all rounds.")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Federated Block Design Server")
+    parser.add_argument("--experiment_name", type=str, required=True, help="Name of the experiment")
+    parser.add_argument("--model_flag", type=str, required=True, help="Model architecture")
+    parser.add_argument("--norm", type=str, required=True, help="Normalization type")
+    parser.add_argument("--in_channels", type=int, required=True, help="Number of input channels")
+    parser.add_argument("--num_classes", type=int, required=True, help="Number of output classes")
+    parser.add_argument("--use_pretrained", type=bool, required=True, help="Use pretrained weights")
+    parser.add_argument("--size", type=int, required=True, help="Image size")
+    parser.add_argument("--batch_size", type=int, required=True, help="Batch size")
+    parser.add_argument("--seed", type=int, required=True, help="Random seed")
+    parser.add_argument("--cache_dir", type=str, help="Cache directory")
+    parser.add_argument("--comm_dir", type=str, help="Communication directory")
+    parser.add_argument("--remove_communication", type=bool, help="Remove communication files after processing")
+    parser.add_argument("--poll_interval", type=float, help="Poll interval between client responses")
+    args = parser.parse_args()
+
+    main_server(args) 

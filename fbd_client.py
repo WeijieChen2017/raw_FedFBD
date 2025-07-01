@@ -10,7 +10,7 @@ import medmnist
 from medmnist import INFO
 
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_utils import load_fbd_settings
+from fbd_utils import load_fbd_settings, setup_logger
 from fbd_dataset import get_data_loader
 
 def get_dataset_stats(data_partition):
@@ -90,11 +90,15 @@ def assemble_model_from_plan(model, received_weights, update_plan, fbd_trace):
     # A full implementation would also handle the 'model_as_regularizer' if needed.
     
     model.load_state_dict(full_state_dict, strict=False)
-    print(f"Assembled model with {len(full_state_dict)} tensors.")
+    # This print statement will be replaced by a logger call in the client_task
+    # print(f"Assembled model with {len(full_state_dict)} tensors.")
 
 def client_task(client_id, data_partition, args):
     """Client process that actively polls for round-based files, processes them, and sends a response."""
-    print(f"Client {client_id}: Starting...")
+    log_file = os.path.join("fbd_log", f"client_{client_id}.log")
+    logger = setup_logger(f"Client-{client_id}", log_file)
+    
+    logger.info("Starting...")
     current_round = 0
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -103,11 +107,11 @@ def client_task(client_id, data_partition, args):
 
     # Create the DataLoader for the client's partition
     train_loader = get_data_loader(data_partition, args.batch_size)
-    print(f"Client {client_id}: Created dataloader with {len(data_partition)} samples.")
+    logger.info(f"Created dataloader with {len(data_partition)} samples.")
 
     # Calculate and log dataset statistics
     stats = get_dataset_stats(data_partition)
-    print(f"Client {client_id}: Dataset stats: {stats}")
+    logger.info(f"Dataset stats: {stats}")
 
     # Load FBD trace for model assembly
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
@@ -120,7 +124,7 @@ def client_task(client_id, data_partition, args):
             with open(shutdown_filepath, 'r') as f:
                 data = json.load(f)
                 if data.get("secret") == -1:
-                    print(f"Client {client_id}: Shutdown signal received. Exiting.")
+                    logger.info("Shutdown signal received. Exiting.")
                     break
 
         # If no shutdown, look for the file for the current round
@@ -132,7 +136,7 @@ def client_task(client_id, data_partition, args):
             shipping_list = data_packet.get("shipping_list")
             update_plan = data_packet.get("update_plan")
             
-            print(f"Client {client_id}, Round {current_round}: Received {len(shipping_list)} model parts.")
+            logger.info(f"Round {current_round}: Received {len(shipping_list)} model parts.")
 
             # Create a base model instance
             model = get_pretrained_fbd_model(
@@ -146,6 +150,9 @@ def client_task(client_id, data_partition, args):
             # Assemble the model using the received plan and weights
             if update_plan:
                 assemble_model_from_plan(model, model_weights, update_plan, fbd_trace)
+                # Log after assembly
+                num_tensors = len(model.state_dict())
+                logger.info(f"Assembled model with {num_tensors} tensors.")
 
             # Set trainability of parameters and configure optimizer
             model.to(device)
@@ -169,7 +176,7 @@ def client_task(client_id, data_partition, args):
             optimizer = optim.Adam(trainable_params, lr=args.local_learning_rate)
             
             loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device)
-            print(f"Client {client_id}, Round {current_round}: Training complete. Loss: {loss:.4f}")
+            logger.info(f"Round {current_round}: Training complete. Loss: {loss:.4f}")
 
             # Extract updated weights based on the update plan (only trainable parts)
             updated_weights = {}
@@ -209,4 +216,4 @@ def client_task(client_id, data_partition, args):
             # Wait before polling again
             time.sleep(args.poll_interval)
 
-    print(f"Client {client_id}: Finished all tasks.") 
+    logger.info("Finished all tasks.") 
