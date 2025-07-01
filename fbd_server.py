@@ -313,11 +313,19 @@ def server_collect_from_clients(r, args):
     
     # Evaluate all models once at the end of the round
     logger.info(f"Server: Evaluating all models at end of round {r}...")
+    round_eval_results = {'round': r}
     for model_idx in range(6):  # Evaluate models M0 to M5
         model_color = f"M{model_idx}"
-        evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, warehouse)
-    evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
-    evaluate_server_model(args, "ensemble", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
+        metrics = evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, warehouse)
+        round_eval_results[model_color] = metrics
+    
+    avg_metrics = evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
+    round_eval_results["averaging"] = avg_metrics
+    
+    ensemble_metrics = evaluate_server_model(args, "ensemble", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
+    round_eval_results["ensemble"] = ensemble_metrics
+    
+    return round_eval_results
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
@@ -467,19 +475,12 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
         print(f"Server - Ensemble: Test Loss = {test_metrics[0]:.5f}, Test AUC = {test_metrics[1]:.5f}, Test Acc = {test_metrics[2]:.5f}")
         
-        # Since metrics are calculated and printed, we can save and return.
-        eval_results_dir = os.path.join(args.output_dir, "eval_results", f"{dataset}/{model_name}/{model_color}")
-        os.makedirs(eval_results_dir, exist_ok=True)
-        metrics_dict = {
+        # Return the metrics instead of saving them
+        return {
             "model_color": model_color, "model_name": model_name, "dataset": dataset,
             "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2],
             "majority_vote_ratio": majority_vote_ratio
         }
-        save_name = os.path.join(eval_results_dir, f"eval_metrics.json")
-        with open(save_name, 'w') as f:
-            json.dump(metrics_dict, f, indent=4)
-        logger.info(f"Metrics saved to {save_name}")
-        return
 
     else: # This block handles single model evaluation ("M0", "M1", etc.)
         model_weights = warehouse.get_model_weights(model_color)
@@ -517,19 +518,11 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
     logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
     print(f"Server - {model_color}: Test Loss = {test_metrics[0]:.5f}, Test AUC = {test_metrics[1]:.5f}, Test Acc = {test_metrics[2]:.5f}")
 
-    # 5. Save results
-    eval_results_dir = os.path.join(args.output_dir, "eval_results", f"{dataset}/{model_name}/{model_color}")
-    os.makedirs(eval_results_dir, exist_ok=True)
-    
-    metrics_dict = {
+    # Return the metrics instead of saving them
+    return {
         "model_color": model_color, "model_name": model_name, "dataset": dataset,
         "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2]
     }
-    
-    save_name = os.path.join(eval_results_dir, f"eval_metrics.json")
-    with open(save_name, 'w') as f:
-        json.dump(metrics_dict, f, indent=4)
-    logger.info(f"Metrics saved to {save_name}") 
 
 def main_server(args):
     """Main server process."""

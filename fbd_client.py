@@ -103,6 +103,7 @@ def client_task(client_id, data_partition, args):
     
     logger.info("Starting...")
     current_round = 0
+    train_losses = []
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     info = INFO[args.experiment_name]
@@ -189,6 +190,7 @@ def client_task(client_id, data_partition, args):
             
             loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device)
             logger.info(f"Round {current_round}: Training complete. Loss: {loss:.4f}")
+            train_losses.append(loss)
 
             # Extract updated weights based on the update plan (only trainable parts)
             updated_weights = {}
@@ -239,5 +241,11 @@ def client_task(client_id, data_partition, args):
         else:
             # Wait before polling again
             time.sleep(args.poll_interval)
+
+    # Save the training loss history
+    loss_history_path = os.path.join(args.output_dir, f"client_{client_id}_train_losses.json")
+    with open(loss_history_path, 'w') as f:
+        json.dump(train_losses, f, indent=4)
+    logger.info(f"Saved training loss history to {loss_history_path}")
 
     logger.info("Finished all tasks.") 

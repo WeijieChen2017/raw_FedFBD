@@ -1,6 +1,7 @@
 import multiprocessing
 import argparse
 import os
+import json
 from fbd_server import initialize_experiment, server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model
 from fbd_client import client_task
 from fbd_utils import load_config
@@ -49,12 +50,14 @@ def main():
         process.start()
 
     # 3. Run Rounds
+    server_evaluation_history = []
     for r in range(args.num_rounds):
         # Server sends tasks to clients
         server_send_to_clients(r, args)
         
-        # Server collects responses from clients
-        server_collect_from_clients(r, args)
+        # Server collects responses from clients and gets eval results
+        round_eval_results = server_collect_from_clients(r, args)
+        server_evaluation_history.append(round_eval_results)
 
     # 4. Evaluate server models
     # print("Server: Evaluating final models from warehouse...")
@@ -68,6 +71,14 @@ def main():
     # Wait for all client processes to finish
     for process in processes:
         process.join()
+
+    # Save the complete server evaluation history
+    eval_results_dir = os.path.join(output_dir, "eval_results")
+    os.makedirs(eval_results_dir, exist_ok=True)
+    history_save_path = os.path.join(eval_results_dir, "server_evaluation_history.json")
+    with open(history_save_path, 'w') as f:
+        json.dump(server_evaluation_history, f, indent=4)
+    print(f"Server evaluation history saved to {history_save_path}")
 
     print("Framework execution complete.")
 
