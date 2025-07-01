@@ -107,6 +107,7 @@ def main():
     test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
     
     train_loader = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)
+    train_loader_eval = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=False)
     val_loader = data.DataLoader(dataset=val_dataset, batch_size=args.batch_size, shuffle=False)
     test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
     
@@ -136,8 +137,18 @@ def main():
     criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     
+    train_evaluator = Evaluator(args.experiment_name, 'train', size=args.size)
     val_evaluator = Evaluator(args.experiment_name, 'val', size=args.size)
     test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+
+    # --- Epoch 0: Initial Evaluation ---
+    logger.info("--- Epoch 0: Initial Evaluation ---")
+    train_metrics_pre = _test_model(model, train_evaluator, train_loader_eval, task, criterion, device)
+    val_metrics_pre = _test_model(model, val_evaluator, val_loader, task, criterion, device)
+    test_metrics_pre = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+    logger.info(f"  Train      | AUC: {train_metrics_pre[1]:.5f}, Acc: {train_metrics_pre[2]:.5f}")
+    logger.info(f"  Validation | AUC: {val_metrics_pre[1]:.5f}, Acc: {val_metrics_pre[2]:.5f}")
+    logger.info(f"  Test       | AUC: {test_metrics_pre[1]:.5f}, Acc: {test_metrics_pre[2]:.5f}")
 
     logger.info("Starting training...")
     for epoch in range(args.epochs):
