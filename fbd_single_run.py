@@ -45,7 +45,7 @@ def _test_model(model, evaluator, data_loader, task, criterion, device):
 
     y_score = y_score.detach().cpu().numpy()
     # For this standalone script, we don't need to save the scores to a file.
-    auc, acc = evaluator.evaluate(y_score, save_folder=None, run_name=None) 
+    auc, acc = evaluator.evaluate(y_score, None, None) 
     test_loss = sum(total_loss) / len(total_loss)
     return [test_loss, auc, acc]
 
