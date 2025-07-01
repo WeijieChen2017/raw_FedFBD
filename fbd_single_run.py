@@ -110,7 +110,7 @@ def main():
     # Create a 1/6 subset of the training data for the actual training
     num_train = len(full_train_dataset)
     indices = list(range(num_train))
-    subset_size = num_train // 6
+    subset_size = num_train // 3
     np.random.shuffle(indices)
     subset_indices = indices[:subset_size]
     train_dataset = Subset(full_train_dataset, subset_indices)
