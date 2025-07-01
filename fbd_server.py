@@ -273,6 +273,7 @@ def server_collect_from_clients(r, args):
     for model_idx in range(6):  # Evaluate models M0 to M5
         model_color = f"M{model_idx}"
         evaluate_server_model(args, model_color, args.model_flag, args.experiment_name)
+    evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name)
 
 def end_experiment(args):
     """After all rounds, send a shutdown signal to clients."""
@@ -313,7 +314,23 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
     warehouse = FBDWarehouse(fbd_trace=fbd_trace)
     warehouse.load_warehouse(warehouse_path)
-    model_weights = warehouse.get_model_weights(model_color)
+
+    if model_color == "averaging":
+        logger.info("Creating and evaluating an averaged model from M0-M5.")
+        all_model_weights = [warehouse.get_model_weights(f"M{i}") for i in range(6)]
+        
+        if not all(w is not None and len(w) > 0 for w in all_model_weights):
+            logger.error("Could not retrieve weights for all models M0-M5. Skipping averaging.")
+            return
+
+        model_weights = {}
+        param_keys = all_model_weights[0].keys()
+        for key in param_keys:
+            model_weights[key] = torch.stack([weights[key] for weights in all_model_weights]).mean(dim=0)
+        
+        logger.info("Finished averaging model weights.")
+    else:
+        model_weights = warehouse.get_model_weights(model_color)
     
     logger.info(f"Loaded {len(model_weights)} parameters for model {model_color} from warehouse")
     # Check if weights look reasonable (not all zeros or same values)
