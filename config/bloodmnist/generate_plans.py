@@ -15,10 +15,11 @@ Output:
 """
 
 import json
+import os
 from collections import defaultdict
-from fbd_settings import (
+from .fbd_settings import (
     FBD_TRACE, FBD_INFO, MODEL_PARTS, 
-    OUTER_ROUNDS_TOTAL, MODEL_PART_ORDER
+    OUTER_ROUNDS_TOTAL, MODEL_PART_ORDER, UPDATE_SCHEDULE
 )
 
 def generate_model_to_blocks_mapping():
@@ -41,6 +42,11 @@ def generate_plans():
     """Generate shipping, request, and update plans for all rounds."""
     print("Generating FBD plans...")
     
+    # Dynamically populate model_part_to_update if it is empty
+    for stage in UPDATE_SCHEDULE:
+        if not stage.get("model_part_to_update") and stage.get("model_part_index_to_update"):
+            stage["model_part_to_update"] = [MODEL_PARTS[i] for i in stage["model_part_index_to_update"]]
+    
     # Get model-to-blocks mapping
     model_to_blocks = generate_model_to_blocks_mapping()
     
@@ -49,20 +55,30 @@ def generate_plans():
     request_plan = defaultdict(dict)
     update_plan = defaultdict(dict)
     
-    print(f"Generating plans for {OUTER_ROUNDS_TOTAL} rounds...")
+    round_to_parts_to_update = {}
+    current_round = 1
+    for stage in UPDATE_SCHEDULE:
+        parts_to_update = stage["model_part_to_update"]
+        for _ in range(stage["num_rounds"]):
+            round_to_parts_to_update[current_round] = parts_to_update
+            current_round += 1
+    
+    total_rounds = len(round_to_parts_to_update)
+    print(f"Generating plans for {total_rounds} rounds based on UPDATE_SCHEDULE...")
     
     # Generate plans for each round
-    for outer_round in range(OUTER_ROUNDS_TOTAL):
+    for outer_round in range(total_rounds):
         # Determine which micro-cycle we're in (0, 1, or 2)
-        sched_idx = outer_round % 3
+        sched_idx = outer_round % FBD_INFO["training_plan"]["rounds"]
         schedule = FBD_INFO["training_plan"]["schedule"][sched_idx]
         
         round_num = outer_round + 1  # 1-based round numbering
+        parts_to_update_this_round = round_to_parts_to_update[round_num]
         
         # Generate plans for each client in this round
         for client, active_model in schedule.items():
             # Get all models this client is involved in
-            client_models = FBD_INFO["clients"][client]
+            client_models = FBD_INFO["clients"][int(client)]
             
             # Collect all blocks from all models this client is involved in
             all_client_blocks = []
@@ -75,12 +91,12 @@ def generate_plans():
             
             # Generate update plan
             update_plan[round_num][client] = generate_update_plan(
-                client, active_model, client_models, model_to_blocks
+                client, active_model, client_models, model_to_blocks, parts_to_update_this_round
             )
     
     return shipping_plan, request_plan, update_plan
 
-def generate_update_plan(client, active_model, client_models, model_to_blocks):
+def generate_update_plan(client, active_model, client_models, model_to_blocks, parts_to_update):
     """Generate update plan for a specific client in a specific round."""
     # model_to_update: specify which blocks to update for each model part
     model_to_update = {}
@@ -89,7 +105,8 @@ def generate_update_plan(client, active_model, client_models, model_to_blocks):
     # Map each model part to its block ID for the active model
     for block_id in active_model_blocks:
         model_part = FBD_TRACE[block_id]['model_part']
-        model_to_update[model_part] = block_id
+        status = "trainable" if model_part in parts_to_update else "frozen"
+        model_to_update[model_part] = {"block_id": block_id, "status": status}
     
     # model_as_regularizer: other models this client is involved in
     regularizer_models = []
@@ -113,6 +130,8 @@ def generate_update_plan(client, active_model, client_models, model_to_blocks):
 def save_plans_to_json(shipping_plan, request_plan, update_plan):
     """Save all plans to JSON files."""
     print("Saving plans to JSON files...")
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Convert defaultdict keys to regular ints for JSON serialization
     plans = {
@@ -122,9 +141,10 @@ def save_plans_to_json(shipping_plan, request_plan, update_plan):
     }
     
     for filename, plan_data in plans.items():
-        with open(filename, "w") as f:
+        filepath = os.path.join(script_dir, filename)
+        with open(filepath, "w") as f:
             json.dump(plan_data, f, indent=2)
-        print(f"  ✓ Saved {filename}")
+        print(f"  ✓ Saved {filepath}")
 
 def print_plan_summary(shipping_plan, request_plan, update_plan):
     """Print a summary of the generated plans."""
@@ -142,15 +162,21 @@ def print_plan_summary(shipping_plan, request_plan, update_plan):
         print(f"\nExample - Round 1 assignments:")
         for client, plan in update_plan[1].items():
             active_model_blocks = list(plan["model_to_update"].values())
-            active_model_color = FBD_TRACE[active_model_blocks[0]]['color']
+            
+            # Extract block_id from the new structure
+            first_block_id = active_model_blocks[0]["block_id"]
+            active_model_color = FBD_TRACE[first_block_id]['color']
+            
             reg_models = len(plan["model_as_regularizer"])
-            print(f"  Client {client}: Train {active_model_color}, {reg_models} regularizers")
+            
+            # Count trainable parts for the summary
+            trainable_count = sum(1 for info in active_model_blocks if info["status"] == "trainable")
+            
+            print(f"  Client {client}: Train {active_model_color} ({trainable_count} parts trainable), {reg_models} regularizers")
 
-if __name__ == "__main__":
+def main_generate_plans():
+    """Main function to generate and save all FBD plans."""
     try:
-        # Import the required constants
-        from fbd_settings import MODEL_PART_ORDER
-        
         # Generate all plans
         shipping_plan, request_plan, update_plan = generate_plans()
         
@@ -161,7 +187,7 @@ if __name__ == "__main__":
         print_plan_summary(shipping_plan, request_plan, update_plan)
         
         print(f"\n✅ Successfully generated FBD plans!")
-        print("Files created:")
+        print("Files created in script directory:")
         print("  - shipping_plan.json")
         print("  - request_plan.json")
         print("  - update_plan.json")
@@ -169,3 +195,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Error generating plans: {e}")
         raise 
+
+if __name__ == "__main__":
+    main_generate_plans() 

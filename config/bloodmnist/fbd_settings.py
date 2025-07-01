@@ -7,27 +7,33 @@ MODEL_PARTS = ['in_layer', 'layer1', 'layer2', 'layer3', 'layer4', 'out_layer']
 MODEL_PART_ORDER = ['in_layer', 'layer1', 'layer2', 'layer3', 'layer4', 'out_layer']
 
 # --- REGULARIZER CONFIGURATION ---
-# REGULARIZER_PARAMS = {
-#     "type": "consistency loss",
-#     "distance_type": "L2", 
-#     "coefficient": 0.1,
-# }
-
-# Alternative regularizer (commented out):
 REGULARIZER_PARAMS = {
-    "type": "weights",
-    "distance_type": "L2",
-    "coefficient": 0.01,
+    "type": "consistency loss",
+    "distance_type": "L2", 
+    "coefficient": 0.1,
 }
 
+# Alternative regularizer (commented out):
+# REGULARIZER_PARAMS = {
+#     "type": "weights",
+#     "distance_type": "L2",
+#     "coefficient": 0.01,
+# }
+
 # --- TRAINING HYPER-PARAMETERS ---
-EPOCHS_PER_STAGE = 20
-BLOCKS_PER_STAGE = [6, 6, 6, 6, 6]  # Currently ignored - see documentation
 ENSEMBLE_SIZE = 24
 ENSEMBLE_COLORS = ['M1', 'M2']
+UPDATE_SCHEDULE = [
+    {"num_rounds": 10, "model_part_index_to_update": [0,1], "model_part_to_update": []},
+    {"num_rounds": 10, "model_part_index_to_update": [1,2], "model_part_to_update": []},
+    {"num_rounds": 10, "model_part_index_to_update": [2,3], "model_part_to_update": []},
+    {"num_rounds": 10, "model_part_index_to_update": [3,4], "model_part_to_update": []},
+    {"num_rounds": 10, "model_part_index_to_update": [4,5], "model_part_to_update": []},
+    {"num_rounds": 10, "model_part_index_to_update": [5,0], "model_part_to_update": []},
+]
 
 # --- DERIVED PARAMETERS ---
-OUTER_ROUNDS_TOTAL = EPOCHS_PER_STAGE * len(BLOCKS_PER_STAGE)  # = 100
+OUTER_ROUNDS_TOTAL = 60
 BLOCKS_PER_MODEL = len(MODEL_PARTS)  # = 6
 
 # --- BLOCK TRACE MAPPING ---
