@@ -21,6 +21,7 @@ import PIL
 import numpy as np
 import argparse
 import importlib.util
+from collections import Counter
 
 def _get_scores(model, data_loader, task, device):
     """Runs the model on the data and returns the raw scores."""
@@ -372,22 +373,27 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         logger.info("Finished averaging model weights.")
 
     elif model_color == "ensemble":
-        logger.info(f"Starting ensemble evaluation for {args.num_ensemble} models...")
+        logger.info(f"Starting block-wise ensemble evaluation for {args.num_ensemble} models...")
         
-        # Load ENSEMBLE_COLORS from fbd_settings.py
+        # Load settings from the experiment's FBD config file
         fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
         spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
         fbd_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(fbd_module)
-        ensemble_colors_pool = getattr(fbd_module, 'ENSEMBLE_COLORS', ['M0', 'M1', 'M2', 'M3', 'M4', 'M5'])
         
-        if not ensemble_colors_pool:
-            logger.error("ENSEMBLE_COLORS is empty. Skipping ensemble evaluation.")
+        ensemble_colors_pool = getattr(fbd_module, 'ENSEMBLE_COLORS', [])
+        model_parts_pool = getattr(fbd_module, 'MODEL_PARTS', [])
+        fbd_trace = getattr(fbd_module, 'FBD_TRACE', {})
+
+        if not all([ensemble_colors_pool, model_parts_pool, fbd_trace]):
+            logger.error("Ensemble settings (ENSEMBLE_COLORS, MODEL_PARTS, FBD_TRACE) are missing or empty. Skipping evaluation.")
             return
-            
-        # Create the ensemble by random sampling with replacement
-        ensemble_model_colors = random.choices(ensemble_colors_pool, k=args.num_ensemble)
-        logger.info(f"Ensemble composition ({len(ensemble_model_colors)} models): {ensemble_model_colors}")
+
+        # Create a reverse map for easy lookup: (part, color) -> block_id
+        part_color_to_block_id = {
+            (info['model_part'], info['color']): block_id
+            for block_id, info in fbd_trace.items()
+        }
 
         # Prepare for evaluation
         info = INFO[dataset]
@@ -395,37 +401,55 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         test_evaluator = Evaluator(dataset, 'test', size=args.size)
-
-        # Get scores for each unique model in the ensemble
-        scores_cache = {}
-        unique_colors_in_ensemble = sorted(list(set(ensemble_model_colors)))
         
-        for color in unique_colors_in_ensemble:
-            logger.info(f"Getting predictions for model {color}")
-            model_weights_single = warehouse.get_model_weights(color)
-            if not model_weights_single:
-                logger.error(f"Could not retrieve weights for model {color}. Skipping this model in ensemble.")
+        all_y_scores = []
+        logger.info(f"Generating {args.num_ensemble} hybrid models for the ensemble...")
+
+        for i in range(args.num_ensemble):
+            # 1. Create a random hybrid model configuration
+            hybrid_config = {part: random.choice(ensemble_colors_pool) for part in model_parts_pool}
+            logger.info(f"  Hybrid Model {i+1}/{args.num_ensemble} config: {hybrid_config}")
+            
+            # 2. Assemble weights for the hybrid model
+            hybrid_weights = {}
+            is_valid_config = True
+            for part, color in hybrid_config.items():
+                block_id = part_color_to_block_id.get((part, color))
+                if block_id is None:
+                    logger.error(f"Could not find block_id for part '{part}' and color '{color}'. Skipping this hybrid model.")
+                    is_valid_config = False
+                    break
+                
+                block_weights = warehouse.retrieve_weights(block_id)
+                if not block_weights:
+                    logger.error(f"Could not retrieve weights for block '{block_id}'. Skipping this hybrid model.")
+                    is_valid_config = False
+                    break
+                
+                hybrid_weights.update(block_weights)
+            
+            if not is_valid_config:
                 continue
 
+            # 3. Get predictions from the hybrid model
             model = get_pretrained_fbd_model(
                 architecture=model_name,
                 norm=args.norm, in_channels=args.in_channels, num_classes=args.num_classes,
                 use_pretrained=False
             )
-            model.load_state_dict(model_weights_single)
+            model.load_state_dict(hybrid_weights)
             model.to(device)
             
-            scores_cache[color] = _get_scores(model, test_loader, task, device)
+            y_score = _get_scores(model, test_loader, task, device)
+            all_y_scores.append(y_score)
 
-        # Average the scores
-        all_y_scores = [scores_cache[color] for color in ensemble_model_colors if color in scores_cache]
         if not all_y_scores:
-            logger.error("No valid model predictions to ensemble. Aborting evaluation.")
+            logger.error("No valid hybrid model predictions were generated. Aborting ensemble evaluation.")
             return
 
+        # 4. Average the scores and evaluate
         avg_y_score = np.mean(all_y_scores, axis=0)
         
-        # Evaluate the averaged scores
         auc, acc = test_evaluator.evaluate(avg_y_score, None, None)
         test_loss = float('nan') # Loss cannot be computed from scores alone
         test_metrics = [test_loss, auc, acc]
