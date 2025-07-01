@@ -21,26 +21,24 @@ def setup_logger(name, log_file, level=logging.INFO):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
+    # Configure the root logger to redirect its output
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+    
+    # Remove any existing handlers to prevent duplicate logs or console output
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+        
+    # Create a file handler for the root logger
+    file_handler = logging.FileHandler(log_file)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler = logging.FileHandler(log_file)        
-    handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
 
+    # Return a specific logger for the component
     logger = logging.getLogger(name)
     logger.setLevel(level)
     
-    # Clear existing handlers to avoid duplicate logs
-    if logger.hasHandlers():
-        logger.handlers.clear()
-        
-    logger.addHandler(handler)
-    
-    # Also log to console
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-
-    logger.propagate = False
-
     return logger
 
 def load_fbd_settings(fbd_file_path):

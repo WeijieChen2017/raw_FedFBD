@@ -252,7 +252,8 @@ def get_pretrained_fbd_model(architecture: str,
                            in_channels: int = 3, 
                            num_classes: int = 1000,
                            device: str = 'cpu',
-                           use_pretrained: bool = True) -> torch.nn.Module:
+                           use_pretrained: bool = True,
+                           logger=None) -> torch.nn.Module:
     """
     Convenience function to get FBD model with optional pretrained weights.
     
@@ -263,20 +264,52 @@ def get_pretrained_fbd_model(architecture: str,
         num_classes: Number of output classes
         device: Device to load model on
         use_pretrained: Whether to load ImageNet pretrained weights
+        logger: Logger for output
         
     Returns:
         torch.nn.Module: FBD model (with or without pretrained weights)
     """
+    if logger is None:
+        # Fallback to a basic logger if none is provided
+        logger = logging.getLogger(__name__)
+        if not logger.handlers:
+            logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
     if use_pretrained:
-        return load_fbd_model_with_imagenet_pretrained(
-            architecture, norm, in_channels, num_classes, device
+        if architecture == 'resnet18':
+            logger.info("Loading ImageNet pretrained ResNet18 weights...")
+            # Load official ResNet18 weights
+            from torchvision.models import resnet18, ResNet18_Weights
+            pretrained_model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+            
+        elif architecture == 'resnet50':
+            logger.info("Loading ImageNet pretrained ResNet50 weights...")
+            # Load official ResNet50 weights
+            from torchvision.models import resnet50, ResNet50_Weights
+            pretrained_model = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+        else:
+            raise ValueError(f"Pretrained weights not supported for architecture: {architecture}")
+        
+        # Create FBD model without pretraining
+        fbd_model = get_fbd_model(architecture, norm, in_channels, num_classes)
+        fbd_model = fbd_model.to(device)
+        
+        # Adapt weights
+        adapted_weights = adapt_pretrained_weights_to_fbd(
+            pretrained_model.state_dict(), fbd_model, num_classes, norm
         )
+        
+        # Load adapted weights
+        fbd_model.load_state_dict(adapted_weights, strict=False)
+        
+        logger.info(f"✅ Successfully loaded ImageNet pretrained {architecture.upper()} "
+                    f"into FBD model with {norm.upper()} normalization")
+        
+        return fbd_model
     else:
-        # Create model without pretrained weights
-        model = get_fbd_model(architecture, norm, in_channels, num_classes)
-        model = model.to(device)
-        logging.info(f"✅ Created {architecture.upper()} FBD model without pretrained weights")
-        return model
+        # Create FBD model without pretraining
+        logger.info(f"✅ Created {architecture.upper()} FBD model without pretrained weights")
+        return get_fbd_model(architecture, norm, in_channels, num_classes)
 
 
 # Convenience functions for specific architectures
@@ -285,7 +318,7 @@ def get_pretrained_resnet18_fbd(norm: str = 'bn',
                                num_classes: int = 1000,
                                device: str = 'cpu') -> torch.nn.Module:
     """Get ResNet18 FBD model with ImageNet pretrained weights."""
-    return load_fbd_model_with_imagenet_pretrained(
+    return get_pretrained_fbd_model(
         'resnet18', norm, in_channels, num_classes, device
     )
 
@@ -295,7 +328,7 @@ def get_pretrained_resnet50_fbd(norm: str = 'bn',
                                num_classes: int = 1000,
                                device: str = 'cpu') -> torch.nn.Module:
     """Get ResNet50 FBD model with ImageNet pretrained weights."""
-    return load_fbd_model_with_imagenet_pretrained(
+    return get_pretrained_fbd_model(
         'resnet50', norm, in_channels, num_classes, device
     )
 

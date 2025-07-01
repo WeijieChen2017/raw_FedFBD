@@ -20,21 +20,6 @@ import PIL
 import numpy as np
 import argparse
 
-# This basicConfig is for any root-level logging, but our setup_logger will override it for our specific loggers.
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-DATASET_SPECIFIC_RULES = {
-    "bloodmnist": {"as_rgb": True},
-    "breastmnist": {"as_rgb": True},
-    "octmnist": {"as_rgb": True},
-    "organcmnist": {"as_rgb": True},
-    "tissuemnist": {"as_rgb": True},
-    "pneumoniamnist": {"as_rgb": True},
-    "chestmnist": {"as_rgb": True},
-    "organamnist": {"as_rgb": True},
-    "organsmnist": {"as_rgb": True},
-}
-
 def _test_model(model, evaluator, data_loader, task, criterion, device):
     """Core testing logic, adapted from train_and_eval_pytorch.py"""
     model.eval()
@@ -372,9 +357,10 @@ def main_server(args):
     logger.info(f"Arguments: {vars(args)}")
 
     # Setup directories
-    if not os.path.exists(args.comm_dir):
-        os.makedirs(args.comm_dir)
-        logger.info(f"Created communication directory: {args.comm_dir}")
+    comm_dir = getattr(args, 'comm_dir', 'fbd_comm')
+    if not os.path.exists(comm_dir):
+        os.makedirs(comm_dir)
+        logger.info(f"Created communication directory: {comm_dir}")
 
     # Load all necessary FBD configurations
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
@@ -400,7 +386,8 @@ def main_server(args):
         norm=args.norm,
         in_channels=args.in_channels,
         num_classes=args.num_classes,
-        use_pretrained=args.use_pretrained
+        use_pretrained=args.use_pretrained,
+        logger=logger
     )
     logger.info(f"Initialized global model: {args.model_flag}")
 
@@ -422,10 +409,10 @@ def main_server(args):
 
             model_weights = {}
             for part_name in client_shipping_list:
-                # This assumes model parts are named in a way that allows extraction.
-                # A more robust solution might be needed depending on model structure.
+                # This logic needs to be robust. Assuming fbd_trace maps a shipping part name to a model part prefix
+                model_part_prefix = fbd_trace[part_name]['model_part']
                 for param_name, param in global_model.state_dict().items():
-                    if param_name.startswith(fbd_trace[part_name]['model_part']):
+                    if param_name.startswith(model_part_prefix):
                         model_weights[param_name] = param
 
             data_packet = {
@@ -435,7 +422,7 @@ def main_server(args):
                 "round": round_num
             }
             
-            goods_filepath = os.path.join(args.comm_dir, f"goods_round_{round_num}_client_{client_id}.pth")
+            goods_filepath = os.path.join(comm_dir, f"goods_round_{round_num}_client_{client_id}.pth")
             torch.save(data_packet, goods_filepath)
             logger.info(f"  > Dispatched goods to client {client_id}")
 
@@ -443,16 +430,16 @@ def main_server(args):
         collected_updates = {}
         client_stats = {}
         
-        # Simple polling mechanism; might need timeout in a real scenario
         start_time = time.time()
+        timeout = getattr(args, 'poll_timeout', 300)
         while len(collected_updates) < len(active_clients):
-            if time.time() - start_time > 300: # 5 minute timeout
-                logger.error("Timeout waiting for client responses.")
+            if time.time() - start_time > timeout:
+                logger.error(f"Timeout waiting for client responses in round {round_num}.")
                 break
 
             for client_id in active_clients:
                 if client_id not in collected_updates:
-                    response_filepath = os.path.join(args.comm_dir, f"response_round_{round_num}_client_{client_id}.pth")
+                    response_filepath = os.path.join(comm_dir, f"response_round_{round_num}_client_{client_id}.pth")
                     if os.path.exists(response_filepath):
                         try:
                             response_data = torch.load(response_filepath)
@@ -460,13 +447,14 @@ def main_server(args):
                             collected_updates[client_id] = response_data.get("updated_weights", {})
                             client_stats[client_id] = response_data.get("dataset_stats", {})
                             
-                            logger.info(f"  < Received response from client {client_id} (Loss: {response_data.get('train_loss', 'N/A'):.4f})")
+                            loss = response_data.get('train_loss', 'N/A')
+                            loss_str = f"{loss:.4f}" if isinstance(loss, float) else loss
+                            logger.info(f"  < Received response from client {client_id} (Loss: {loss_str})")
                             
-                            if args.remove_communication:
+                            if getattr(args, 'remove_communication', False):
                                 os.remove(response_filepath)
                         except Exception as e:
                             logger.error(f"Error processing response from client {client_id}: {e}")
-                            # Mark as collected to avoid retrying a bad file
                             collected_updates[client_id] = {}
 
 
@@ -474,13 +462,13 @@ def main_server(args):
         
         logger.info(f"All client responses for round {round_num} received.")
 
-        # Aggregate the collected weights
+        # Aggregate weights
         aggregated_weights = {}
         for client_id, weights in collected_updates.items():
             if weights:
                 aggregated_weights.update(weights)
 
-        # Update the global model
+        # Update global model
         if aggregated_weights:
             global_model.load_state_dict(aggregated_weights, strict=False)
             logger.info("Global model updated with aggregated weights.")
@@ -489,11 +477,12 @@ def main_server(args):
 
     # Signal clients to shut down
     num_clients = len(fbd_info.get("clients", []))
-    for client_id_idx in range(num_clients):
-        shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id_idx}.json")
+    for i in range(num_clients):
+        client_id_str = str(i) # Assuming client IDs are '0', '1', ...
+        shutdown_filepath = os.path.join(comm_dir, f"last_round_client_{client_id_str}.json")
         with open(shutdown_filepath, 'w') as f:
             json.dump({"secret": -1}, f)
-        logger.info(f"Sent shutdown signal to client {client_id_idx}.")
+        logger.info(f"Sent shutdown signal to client {client_id_str}.")
 
     logger.info("FBD Server has completed all rounds.")
 
@@ -505,14 +494,14 @@ if __name__ == '__main__':
     parser.add_argument("--norm", type=str, required=True, help="Normalization type")
     parser.add_argument("--in_channels", type=int, required=True, help="Number of input channels")
     parser.add_argument("--num_classes", type=int, required=True, help="Number of output classes")
-    parser.add_argument("--use_pretrained", type=bool, required=True, help="Use pretrained weights")
-    parser.add_argument("--size", type=int, required=True, help="Image size")
-    parser.add_argument("--batch_size", type=int, required=True, help="Batch size")
-    parser.add_argument("--seed", type=int, required=True, help="Random seed")
-    parser.add_argument("--cache_dir", type=str, help="Cache directory")
-    parser.add_argument("--comm_dir", type=str, help="Communication directory")
-    parser.add_argument("--remove_communication", type=bool, help="Remove communication files after processing")
-    parser.add_argument("--poll_interval", type=float, help="Poll interval between client responses")
+    parser.add_argument("--use_pretrained", action='store_true', help="Use pretrained weights")
+    parser.add_argument("--size", type=int, default=224, help="Image size")
+    parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--comm_dir", type=str, default="fbd_comm", help="Communication directory")
+    parser.add_argument("--remove_communication", action='store_true', help="Remove communication files after processing")
+    parser.add_argument("--poll_interval", type=float, default=1.0, help="Poll interval for client responses")
+
     args = parser.parse_args()
 
     main_server(args) 

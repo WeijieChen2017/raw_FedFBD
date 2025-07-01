@@ -9,6 +9,8 @@ import logging
 MODEL_PARTS_RESNET18 = ['in_layer', 'layer1', 'layer2', 'layer3', 'layer4', 'out_layer']
 MODEL_PARTS_RESNET50 = ['in_layer', 'layer1', 'layer2', 'layer3', 'layer4', 'out_layer']
 
+# Basic logging config as a fallback
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -919,7 +921,8 @@ def get_pretrained_fbd_model(architecture: str, norm: str, in_channels: int, num
     model = get_fbd_model(architecture, norm, 3, num_classes)
     
     if use_pretrained:
-        logging.info(f"Loading ImageNet pretrained {architecture.upper()} weights...")
+        logger = logging.getLogger(__name__)
+        logger.info(f"Loading ImageNet pretrained {architecture.upper()} weights...")
         
         # This part assumes torchvision handles the download and caching.
         # The state_dict is loaded into the 3-channel model.
@@ -930,21 +933,22 @@ def get_pretrained_fbd_model(architecture: str, norm: str, in_channels: int, num
         
         # Adapt the first convolutional layer for the new number of input channels
         if in_channels != 3:
-            logging.info(f"Adapting first layer for {in_channels} input channels (ImageNet uses 3)")
+            logger.info(f"Adapting first layer for {in_channels} input channels (ImageNet uses 3)")
             original_weights = model.in_layer[0].weight.clone()
             new_conv = nn.Conv2d(in_channels, 64, kernel_size=3, stride=1, padding=1, bias=False)
             new_weights = original_weights.mean(dim=1, keepdim=True).repeat(1, in_channels, 1, 1)
             new_conv.weight.data = new_weights
             model.in_layer[0] = new_conv
-            logging.info(f"Converted first layer from 3 to {in_channels} channel by averaging RGB channels")
+            logger.info(f"Converted first layer from 3 to {in_channels} channel by averaging RGB channels")
 
     # If not using pretrained, just build the model with the correct number of channels
     else:
         model = get_fbd_model(architecture, norm, in_channels, num_classes)
-        logging.info(f"✅ Created {architecture.upper()} FBD model without pretrained weights")
+        logger = logging.getLogger(__name__)
+        logger.info(f"✅ Created {architecture.upper()} FBD model without pretrained weights")
         return model
 
-    logging.info(f"✅ Successfully loaded ImageNet pretrained {architecture.upper()} into FBD model with {norm.upper()} normalization")
+    logger.info(f"✅ Successfully loaded ImageNet pretrained {architecture.upper()} into FBD model with {norm.upper()} normalization")
     return model
 
 def extract_model_parts(model, part_map):
