@@ -345,7 +345,7 @@ def evaluate_server_model(args, model_color, model_name, dataset):
     )
     model.load_state_dict(model_weights)
     
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
     # 2. Prepare dataset and dataloader
