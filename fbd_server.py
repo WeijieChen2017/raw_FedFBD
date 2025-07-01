@@ -20,7 +20,7 @@ import PIL
 import numpy as np
 import argparse
 
-# Configure logging
+# This basicConfig is for any root-level logging, but our setup_logger will override it for our specific loggers.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 DATASET_SPECIFIC_RULES = {
@@ -365,17 +365,31 @@ def evaluate_server_model(args, model_color, model_name, dataset):
 
 def main_server(args):
     """Main server process."""
-    logger = setup_logger("Server", os.path.join("fbd_log", "server.log"))
+    log_file = os.path.join("fbd_log", "server.log")
+    logger = setup_logger("Server", log_file)
     
     logger.info("FBD Server starting...")
+    logger.info(f"Arguments: {vars(args)}")
+
+    # Setup directories
+    if not os.path.exists(args.comm_dir):
+        os.makedirs(args.comm_dir)
+        logger.info(f"Created communication directory: {args.comm_dir}")
 
     # Load all necessary FBD configurations
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
     shipping_plan_path = os.path.join("config", args.experiment_name, "shipping_plan.json")
     update_plan_path = os.path.join("config", args.experiment_name, "update_plan.json")
-    fbd_trace, fbd_info, model_parts = load_fbd_settings(fbd_settings_path)
-    shipping_plan = load_shipping_plan(shipping_plan_path)
-    update_plan = load_update_plan(update_plan_path)
+    
+    try:
+        fbd_trace, fbd_info, model_parts = load_fbd_settings(fbd_settings_path)
+        with open(shipping_plan_path, 'r') as f:
+            shipping_plan = json.load(f)
+        with open(update_plan_path, 'r') as f:
+            update_plan = json.load(f)
+    except FileNotFoundError as e:
+        logger.error(f"Failed to load required plan file: {e}. Please run generate_plans.py.")
+        return
 
     logger.info(f"Loaded FBD config for {args.experiment_name}")
     logger.info(f"Total rounds in plan: {len(shipping_plan)}")
@@ -391,28 +405,36 @@ def main_server(args):
     logger.info(f"Initialized global model: {args.model_flag}")
 
     # Main server loop
-    for round_num_str, clients_in_round in shipping_plan.items():
+    for round_num_str in sorted(shipping_plan.keys(), key=int):
         round_num = int(round_num_str)
         logger.info(f"\n----- Round {round_num} -----")
         
-        # Determine active clients for this round
+        clients_in_round = shipping_plan[round_num_str]
         active_clients = list(clients_in_round.keys())
         logger.info(f"Active clients for round {round_num}: {active_clients}")
 
-        # Prepare and distribute goods to each active client
+        # Distribute goods to each active client
         for client_id in active_clients:
-            # Get model weights from the warehouse
-            model_weights = fbd_info["model_weights"][client_id]
-            
-            # Prepare data packet
+            client_shipping_list = clients_in_round.get(client_id, [])
+            if not client_shipping_list:
+                logger.warning(f"No shipping list for client {client_id} in round {round_num}.")
+                continue
+
+            model_weights = {}
+            for part_name in client_shipping_list:
+                # This assumes model parts are named in a way that allows extraction.
+                # A more robust solution might be needed depending on model structure.
+                for param_name, param in global_model.state_dict().items():
+                    if param_name.startswith(fbd_trace[part_name]['model_part']):
+                        model_weights[param_name] = param
+
             data_packet = {
-                "shipping_list": clients_in_round[client_id],
-                "update_plan": update_plan[round_num_str][client_id],
+                "shipping_list": client_shipping_list,
+                "update_plan": update_plan[round_num_str].get(client_id, {}),
                 "model_weights": model_weights,
                 "round": round_num
             }
             
-            # Save the data packet for the client
             goods_filepath = os.path.join(args.comm_dir, f"goods_round_{round_num}_client_{client_id}.pth")
             torch.save(data_packet, goods_filepath)
             logger.info(f"  > Dispatched goods to client {client_id}")
@@ -421,23 +443,33 @@ def main_server(args):
         collected_updates = {}
         client_stats = {}
         
+        # Simple polling mechanism; might need timeout in a real scenario
+        start_time = time.time()
         while len(collected_updates) < len(active_clients):
+            if time.time() - start_time > 300: # 5 minute timeout
+                logger.error("Timeout waiting for client responses.")
+                break
+
             for client_id in active_clients:
                 if client_id not in collected_updates:
                     response_filepath = os.path.join(args.comm_dir, f"response_round_{round_num}_client_{client_id}.pth")
                     if os.path.exists(response_filepath):
-                        response_data = torch.load(response_filepath)
-                        
-                        # Store weights and stats
-                        collected_updates[client_id] = response_data.get("updated_weights", {})
-                        client_stats[client_id] = response_data.get("dataset_stats", {})
-                        
-                        logger.info(f"  < Received response from client {client_id}")
-                        
-                        # Conditionally remove the response file
-                        if args.remove_communication:
-                            os.remove(response_filepath)
-            
+                        try:
+                            response_data = torch.load(response_filepath)
+                            
+                            collected_updates[client_id] = response_data.get("updated_weights", {})
+                            client_stats[client_id] = response_data.get("dataset_stats", {})
+                            
+                            logger.info(f"  < Received response from client {client_id} (Loss: {response_data.get('train_loss', 'N/A'):.4f})")
+                            
+                            if args.remove_communication:
+                                os.remove(response_filepath)
+                        except Exception as e:
+                            logger.error(f"Error processing response from client {client_id}: {e}")
+                            # Mark as collected to avoid retrying a bad file
+                            collected_updates[client_id] = {}
+
+
             time.sleep(args.poll_interval)
         
         logger.info(f"All client responses for round {round_num} received.")
@@ -445,23 +477,26 @@ def main_server(args):
         # Aggregate the collected weights
         aggregated_weights = {}
         for client_id, weights in collected_updates.items():
-            aggregated_weights.update(weights)
+            if weights:
+                aggregated_weights.update(weights)
 
-        # Update the global model with aggregated weights
+        # Update the global model
         if aggregated_weights:
             global_model.load_state_dict(aggregated_weights, strict=False)
             logger.info("Global model updated with aggregated weights.")
         else:
             logger.warning("No weights were aggregated in this round.")
 
-    # Signal clients to shut down by creating a special file for each
-    for client_id in fbd_info["clients"]:
-        shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id}.json")
+    # Signal clients to shut down
+    num_clients = len(fbd_info.get("clients", []))
+    for client_id_idx in range(num_clients):
+        shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id_idx}.json")
         with open(shutdown_filepath, 'w') as f:
             json.dump({"secret": -1}, f)
-        logger.info(f"Sent shutdown signal to client {client_id}.")
+        logger.info(f"Sent shutdown signal to client {client_id_idx}.")
 
     logger.info("FBD Server has completed all rounds.")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Federated Block Design Server")

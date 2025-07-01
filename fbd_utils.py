@@ -39,6 +39,8 @@ def setup_logger(name, log_file, level=logging.INFO):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
+    logger.propagate = False
+
     return logger
 
 def load_fbd_settings(fbd_file_path):
