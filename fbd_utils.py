@@ -111,28 +111,25 @@ def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_i
 
     full_state = optimizer.state_dict()['state']
     
-    # Map parameter IDs from the optimizer state to their full names
-    param_id_to_name_map = {}
-    for name, p in model.named_parameters():
-        if p.requires_grad:
-            # The keys in `full_state` are the indices of the parameters in the optimizer's param_groups
-            for i, group in enumerate(optimizer.param_groups):
-                try:
-                    # Find the index of our parameter `p` within the group
-                    param_index_in_group = group['params'].index(p)
-                    # The actual key in the state dict is a global index across all groups
-                    param_global_index = sum(len(optimizer.param_groups[j]['params']) for j in range(i)) + param_index_in_group
-                    param_id_to_name_map[param_global_index] = name
-                    break
-                except ValueError:
-                    continue # Param not in this group
+    # Create a reverse map from parameter object ID to its full name for efficient lookup.
+    param_id_to_name_map = {id(p): name for name, p in model.named_parameters()}
+
+    # Map the optimizer's internal parameter indices (which are the keys in full_state) to their full names.
+    optim_idx_to_param_name_map = {}
+    current_param_idx = 0
+    for group in optimizer.param_groups:
+        for p in group['params']:
+            param_name = param_id_to_name_map.get(id(p))
+            if param_name:
+                 optim_idx_to_param_name_map[current_param_idx] = param_name
+            current_param_idx += 1
 
     partitioned_state = defaultdict(dict)
     for block_id in trainable_block_ids:
         model_part_prefix = fbd_trace[block_id]['model_part']
-        for param_global_index, param_name in param_id_to_name_map.items():
-            if param_name.startswith(model_part_prefix) and param_global_index in full_state:
-                state_values = full_state[param_global_index]
+        for param_idx, param_name in optim_idx_to_param_name_map.items():
+            if param_name.startswith(model_part_prefix) and param_idx in full_state:
+                state_values = full_state[param_idx]
                 cloned_state_vals = {}
                 for k, v in state_values.items():
                     if isinstance(v, torch.Tensor):
