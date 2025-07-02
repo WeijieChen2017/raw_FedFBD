@@ -169,7 +169,7 @@ def client_task(client_id, data_partition, args):
             logger.info("Test dataset prepared.")
 
             # Load the data packet from the server
-            data_packet = torch.load(round_filepath)
+            data_packet = torch.load(round_filepath, weights_only=False)
             model_weights = data_packet.get("model_weights")
             shipping_list = data_packet.get("shipping_list")
             update_plan = data_packet.get("update_plan")

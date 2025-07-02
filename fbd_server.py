@@ -303,7 +303,7 @@ def server_collect_from_clients(r, args):
             filepath = os.path.join(args.comm_dir, f"response_round_{r}_client_{i}.pth")
             if os.path.exists(filepath):
                 try:
-                    data = torch.load(filepath)
+                    data = torch.load(filepath, weights_only=False)
                     
                     # Process the client's update
                     loss = data.get("train_loss")
@@ -778,7 +778,7 @@ def main_server(args):
                     response_filepath = os.path.join(comm_dir, f"response_round_{round_num}_client_{client_id}.pth")
                     if os.path.exists(response_filepath):
                         try:
-                            response_data = torch.load(response_filepath)
+                            response_data = torch.load(response_filepath, weights_only=False)
                             
                             collected_updates[client_id] = response_data.get("updated_weights", {})
                             client_stats[client_id] = response_data.get("dataset_stats", {})
