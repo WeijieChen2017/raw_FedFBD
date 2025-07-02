@@ -16,7 +16,7 @@
     "local_learning_rate": 0.0005,
     "local_epochs": 1,
     "centralized_learning_rate": 0.0001,
-    "remove_communication": true,
+    "remove_communication": false,
     "training_save_dir": "fbd_results"
   },
   {
@@ -36,7 +36,7 @@
     "local_learning_rate": 0.0005,
     "local_epochs": 1,
     "centralized_learning_rate": 0.00001,
-    "remove_communication": true,
+    "remove_communication": false,
     "training_save_dir": "fbd_results"
   }
 ]
