@@ -11,6 +11,7 @@ from collections import defaultdict
 from argparse import Namespace
 import hashlib
 import shutil
+import importlib
 
 def setup_logger(name, log_file, level=logging.INFO):
     """Function to setup as many loggers as you want"""
