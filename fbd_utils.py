@@ -171,8 +171,13 @@ def build_optimizer_with_state(model, optimizer_states, trainable_params, device
     # 3. If there's state to load, map it correctly to the new optimizer
     if optimizer_states:
         # The optimizer's state_dict maps integer param IDs to their state.
-        # We need to map the trainable parameters to their corresponding IDs in the new optimizer.
-        param_to_id_map = {id(p): i for i, group in enumerate(optimizer.param_groups) for p in group['params']}
+        # We need to build a map from the parameter's object ID to its new index in this specific optimizer.
+        param_to_id_map = {}
+        current_idx = 0
+        for group in optimizer.param_groups:
+            for p in group['params']:
+                param_to_id_map[id(p)] = current_idx
+                current_idx += 1
         
         # This will be the new state we load into the optimizer
         new_state_dict = defaultdict(dict)
