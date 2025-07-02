@@ -9,6 +9,7 @@ import torch
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger, save_optimizer_state_by_block, build_optimizer_with_state
 from fbd_dataset import DATASET_SPECIFIC_RULES
+from config.bloodmnist.generate_plans import main_generate_plans
 import subprocess
 
 import medmnist
@@ -143,17 +144,13 @@ def initialize_experiment(args):
     logger.info("Server: Preparing initial model...")
     prepare_initial_model(args)
     
-    # 4. Generate FBD plans by calling the external script
+    # 4. Generate FBD plans
     logger.info("Server: Generating FBD plans...")
     try:
-        subprocess.run(
-            ["python", "fbd_generate_plan.py", "--experiment_name", args.experiment_name],
-            check=True, capture_output=True, text=True
-        )
+        main_generate_plans()
         logger.info("Server: FBD plans generated successfully.")
-    except subprocess.CalledProcessError as e:
-        logger.error("Server: Failed to generate FBD plans.")
-        logger.error(f"Stderr: {e.stderr}")
+    except Exception as e:
+        logger.error("Server: Failed to generate FBD plans.", exc_info=True)
         raise e
         
     # 4.5 Archive configuration files
@@ -181,7 +178,7 @@ def initialize_experiment(args):
 
     # 5. Initialize FBD Warehouse
     logger.info("Server: Initializing FBD Warehouse...")
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
 
     model_template = get_pretrained_fbd_model(
@@ -364,7 +361,7 @@ def final_ensemble_test(args):
     logger.info("Server: Starting final ensemble test.")
 
     # 1. Load settings for the final test
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
     try:
         spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
         fbd_module = importlib.util.module_from_spec(spec)
@@ -372,10 +369,10 @@ def final_ensemble_test(args):
         final_test_colors = getattr(fbd_module, 'FINAL_TEST_COLORS', [])
         final_test_batch_size = getattr(fbd_module, 'FINAL_TEST_SIZE', 128)
         if not final_test_colors:
-            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.json. Skipping final test.")
+            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.py. Skipping final test.")
             return None, None, None
     except FileNotFoundError:
-        logger.warning(f"fbd_settings.json not found at {fbd_settings_path}. Skipping final test.")
+        logger.warning(f"fbd_settings.py not found at {fbd_settings_path}. Skipping final test.")
         return None, None, None
     
     # 2. Prepare data and models
@@ -516,13 +513,14 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         logger.info(f"Starting block-wise ensemble evaluation for {args.num_ensemble} models...")
         
         # Load settings from the experiment's FBD config file
-        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
-        with open(fbd_settings_path, 'r') as f:
-            fbd_settings = json.load(f)
+        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+        spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
+        fbd_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fbd_module)
         
-        ensemble_colors_pool = fbd_settings.get('ENSEMBLE_COLORS', [])
-        model_parts_pool = fbd_settings.get('MODEL_PARTS', [])
-        fbd_trace = fbd_settings.get('FBD_TRACE', {})
+        ensemble_colors_pool = getattr(fbd_module, 'ENSEMBLE_COLORS', [])
+        model_parts_pool = getattr(fbd_module, 'MODEL_PARTS', [])
+        fbd_trace = getattr(fbd_module, 'FBD_TRACE', {})
 
         if not all([ensemble_colors_pool, model_parts_pool, fbd_trace]):
             logger.error("Ensemble settings (ENSEMBLE_COLORS, MODEL_PARTS, FBD_TRACE) are missing or empty. Skipping evaluation.")
@@ -589,28 +587,47 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         # Calculate Majority Vote Ratio
         true_labels = test_dataset.labels.flatten()
         member_predictions = np.argmax(np.array(all_y_scores), axis=2) # Shape: (num_ensemble, num_samples)
-        correct_votes = (member_predictions == true_labels)
-        majority_vote_ratio = np.sum(correct_votes) / correct_votes.size
         
-        logger.info(f"Ensemble Majority Vote Ratio: {majority_vote_ratio:.5f} ({np.sum(correct_votes)}/{correct_votes.size} correct individual votes)")
-        print(f"Server - Ensemble: Majority Vote Ratio = {majority_vote_ratio:.5f}")
+        # Calculate Majority Vote accuracy and Mean Member Accuracy
+        num_correct_majority_vote = 0
+        # The comparison below is likely buggy, but we calculate it for diagnostics.
+        num_correct_individual_votes = np.sum(member_predictions == true_labels.reshape(1, -1))
+
+        # Iterate through each sample to find the majority vote
+        for i in range(member_predictions.shape[1]): # Iterate over samples
+            sample_votes = member_predictions[:, i] # All votes for the i-th sample
+            vote_counts = Counter(sample_votes)
+            majority_class, _ = vote_counts.most_common(1)[0]
+            
+            if majority_class == true_labels[i]:
+                num_correct_majority_vote += 1
+        
+        num_samples = len(true_labels)
+        majority_vote_accuracy = num_correct_majority_vote / num_samples if num_samples > 0 else 0
+        
+        total_individual_votes = member_predictions.size
+        mean_member_accuracy = num_correct_individual_votes / total_individual_votes if total_individual_votes > 0 else 0
+
+        logger.info(f"Ensemble Majority Vote Accuracy: {majority_vote_accuracy:.5f}")
+        logger.info(f"Ensemble Mean Member Accuracy: {mean_member_accuracy:.5f} ({num_correct_individual_votes}/{total_individual_votes} correct individual votes)")
+        print(f"Server - Ensemble: Majority Vote Acc = {majority_vote_accuracy:.5f}, Mean Member Acc = {mean_member_accuracy:.5f}")
 
         # 4. Average the scores and evaluate
         avg_y_score = np.mean(all_y_scores, axis=0)
         
         auc, acc = test_evaluator.evaluate(avg_y_score, None, None)
         test_loss = float('nan') # Loss cannot be computed from scores alone
-        test_metrics = [test_loss, auc, acc]
         
         logger.info(f"Ensemble evaluation complete.")
-        logger.info(f"  └─ Test Loss: {test_metrics[0]:.5f}, Test AUC: {test_metrics[1]:.5f}, Test Acc: {test_metrics[2]:.5f}")
-        print(f"Server - Ensemble: Test Loss = {test_metrics[0]:.5f}, Test AUC = {test_metrics[1]:.5f}, Test Acc = {test_metrics[2]:.5f}")
+        logger.info(f"  └─ Test Loss: {test_loss:.5f}, Test AUC (from avg scores): {auc:.5f}, Test Acc (from avg scores): {acc:.5f}")
+        print(f"Server - Ensemble: Test Loss = {test_loss:.5f}, Test AUC = {auc:.5f}, Test Acc = {acc:.5f}")
         
         # Return the metrics instead of saving them
         return {
             "model_color": model_color, "model_name": model_name, "dataset": dataset,
-            "test_loss": test_metrics[0], "test_auc": test_metrics[1], "test_acc": test_metrics[2],
-            "majority_vote_ratio": majority_vote_ratio
+            "test_loss": test_loss, "test_auc": auc, "test_acc": acc,
+            "majority_vote_accuracy": majority_vote_accuracy,
+            "mean_member_accuracy": mean_member_accuracy
         }
 
     else: # This block handles single model evaluation ("M0", "M1", etc.)
@@ -673,13 +690,12 @@ def main_server(args):
         logger.info(f"Created communication directory: {comm_dir}")
 
     # Load all necessary FBD configurations
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
     shipping_plan_path = os.path.join("config", args.experiment_name, "shipping_plan.json")
     update_plan_path = os.path.join("config", args.experiment_name, "update_plan.json")
     
     try:
-        with open(fbd_settings_path, 'r') as f:
-            fbd_settings = json.load(f)
+        fbd_trace, fbd_info, model_parts = load_fbd_settings(fbd_settings_path)
         with open(shipping_plan_path, 'r') as f:
             shipping_plan = json.load(f)
         with open(update_plan_path, 'r') as f:
@@ -722,7 +738,7 @@ def main_server(args):
             model_weights = {}
             for part_name in client_shipping_list:
                 # This logic needs to be robust. Assuming fbd_trace maps a shipping part name to a model part prefix
-                model_part_prefix = fbd_settings[part_name]['model_part']
+                model_part_prefix = fbd_trace[part_name]['model_part']
                 for param_name, param in global_model.state_dict().items():
                     if param_name.startswith(model_part_prefix):
                         model_weights[param_name] = param
@@ -786,7 +802,7 @@ def main_server(args):
             logger.warning("No weights were aggregated in this round.")
 
     # Signal clients to shut down
-    num_clients = len(fbd_settings.get("clients", []))
+    num_clients = len(fbd_info.get("clients", []))
     for i in range(num_clients):
         client_id_str = str(i) # Assuming client IDs are '0', '1', ...
         shutdown_filepath = os.path.join(comm_dir, f"last_round_client_{client_id_str}.json")
