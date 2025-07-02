@@ -9,7 +9,6 @@ import torch
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger, save_optimizer_state_by_block, build_optimizer_with_state
 from fbd_dataset import DATASET_SPECIFIC_RULES
-from config.bloodmnist.generate_plans import main_generate_plans
 import subprocess
 
 import medmnist
@@ -144,13 +143,17 @@ def initialize_experiment(args):
     logger.info("Server: Preparing initial model...")
     prepare_initial_model(args)
     
-    # 4. Generate FBD plans
+    # 4. Generate FBD plans by calling the external script
     logger.info("Server: Generating FBD plans...")
     try:
-        main_generate_plans()
+        subprocess.run(
+            ["python", "fbd_generate_plan.py", "--experiment_name", args.experiment_name],
+            check=True, capture_output=True, text=True
+        )
         logger.info("Server: FBD plans generated successfully.")
-    except Exception as e:
-        logger.error("Server: Failed to generate FBD plans.", exc_info=True)
+    except subprocess.CalledProcessError as e:
+        logger.error("Server: Failed to generate FBD plans.")
+        logger.error(f"Stderr: {e.stderr}")
         raise e
         
     # 4.5 Archive configuration files
