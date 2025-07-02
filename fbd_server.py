@@ -9,7 +9,6 @@ import torch
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_utils import save_json, load_fbd_settings, FBDWarehouse, handle_dataset_cache, handle_weights_cache, setup_logger, save_optimizer_state_by_block, build_optimizer_with_state
 from fbd_dataset import DATASET_SPECIFIC_RULES
-from config.bloodmnist.generate_plans import main_generate_plans
 import subprocess
 
 import medmnist
@@ -144,13 +143,17 @@ def initialize_experiment(args):
     logger.info("Server: Preparing initial model...")
     prepare_initial_model(args)
     
-    # 4. Generate FBD plans
+    # 4. Generate FBD plans by calling the external script
     logger.info("Server: Generating FBD plans...")
     try:
-        main_generate_plans()
+        subprocess.run(
+            ["python", "fbd_generate_plan.py", "--experiment_name", args.experiment_name],
+            check=True, capture_output=True, text=True
+        )
         logger.info("Server: FBD plans generated successfully.")
-    except Exception as e:
-        logger.error("Server: Failed to generate FBD plans.", exc_info=True)
+    except subprocess.CalledProcessError as e:
+        logger.error("Server: Failed to generate FBD plans.")
+        logger.error(f"Stderr: {e.stderr}")
         raise e
         
     # 4.5 Archive configuration files
@@ -178,7 +181,7 @@ def initialize_experiment(args):
 
     # 5. Initialize FBD Warehouse
     logger.info("Server: Initializing FBD Warehouse...")
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
 
     model_template = get_pretrained_fbd_model(
@@ -361,7 +364,7 @@ def final_ensemble_test(args):
     logger.info("Server: Starting final ensemble test.")
 
     # 1. Load settings for the final test
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     try:
         spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
         fbd_module = importlib.util.module_from_spec(spec)
@@ -369,10 +372,10 @@ def final_ensemble_test(args):
         final_test_colors = getattr(fbd_module, 'FINAL_TEST_COLORS', [])
         final_test_batch_size = getattr(fbd_module, 'FINAL_TEST_SIZE', 128)
         if not final_test_colors:
-            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.py. Skipping final test.")
+            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.json. Skipping final test.")
             return None, None, None
     except FileNotFoundError:
-        logger.warning(f"fbd_settings.py not found at {fbd_settings_path}. Skipping final test.")
+        logger.warning(f"fbd_settings.json not found at {fbd_settings_path}. Skipping final test.")
         return None, None, None
     
     # 2. Prepare data and models
@@ -513,14 +516,13 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         logger.info(f"Starting block-wise ensemble evaluation for {args.num_ensemble} models...")
         
         # Load settings from the experiment's FBD config file
-        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
-        spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
-        fbd_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(fbd_module)
+        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+        with open(fbd_settings_path, 'r') as f:
+            fbd_settings = json.load(f)
         
-        ensemble_colors_pool = getattr(fbd_module, 'ENSEMBLE_COLORS', [])
-        model_parts_pool = getattr(fbd_module, 'MODEL_PARTS', [])
-        fbd_trace = getattr(fbd_module, 'FBD_TRACE', {})
+        ensemble_colors_pool = fbd_settings.get('ENSEMBLE_COLORS', [])
+        model_parts_pool = fbd_settings.get('MODEL_PARTS', [])
+        fbd_trace = fbd_settings.get('FBD_TRACE', {})
 
         if not all([ensemble_colors_pool, model_parts_pool, fbd_trace]):
             logger.error("Ensemble settings (ENSEMBLE_COLORS, MODEL_PARTS, FBD_TRACE) are missing or empty. Skipping evaluation.")
@@ -671,12 +673,13 @@ def main_server(args):
         logger.info(f"Created communication directory: {comm_dir}")
 
     # Load all necessary FBD configurations
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     shipping_plan_path = os.path.join("config", args.experiment_name, "shipping_plan.json")
     update_plan_path = os.path.join("config", args.experiment_name, "update_plan.json")
     
     try:
-        fbd_trace, fbd_info, model_parts = load_fbd_settings(fbd_settings_path)
+        with open(fbd_settings_path, 'r') as f:
+            fbd_settings = json.load(f)
         with open(shipping_plan_path, 'r') as f:
             shipping_plan = json.load(f)
         with open(update_plan_path, 'r') as f:
@@ -719,7 +722,7 @@ def main_server(args):
             model_weights = {}
             for part_name in client_shipping_list:
                 # This logic needs to be robust. Assuming fbd_trace maps a shipping part name to a model part prefix
-                model_part_prefix = fbd_trace[part_name]['model_part']
+                model_part_prefix = fbd_settings[part_name]['model_part']
                 for param_name, param in global_model.state_dict().items():
                     if param_name.startswith(model_part_prefix):
                         model_weights[param_name] = param
@@ -783,7 +786,7 @@ def main_server(args):
             logger.warning("No weights were aggregated in this round.")
 
     # Signal clients to shut down
-    num_clients = len(fbd_info.get("clients", []))
+    num_clients = len(fbd_settings.get("clients", []))
     for i in range(num_clients):
         client_id_str = str(i) # Assuming client IDs are '0', '1', ...
         shutdown_filepath = os.path.join(comm_dir, f"last_round_client_{client_id_str}.json")

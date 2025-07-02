@@ -118,7 +118,7 @@ def client_task(client_id, data_partition, args):
     logger.info(f"Dataset stats: {stats}")
 
     # Load FBD trace for model assembly
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
 
     while True:
