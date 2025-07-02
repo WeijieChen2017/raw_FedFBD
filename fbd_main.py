@@ -103,10 +103,10 @@ def main():
         process.join()
 
     # 6. Generate and save plots
-    print("Generating plots for the experiment...")
-    generate_plots(args.output_dir)
+    # print("Generating plots for the experiment...")
+    # generate_plots(args.output_dir)
 
-    print("Framework execution complete.")
+    # print("Framework execution complete.")
 
     # 7. Move the temporary run folder to its final destination
     try:

@@ -462,7 +462,7 @@ def end_experiment(args):
     logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
     
     # Run final ensemble test before shutting down
-    final_ensemble_test(args)
+    # final_ensemble_test(args)
 
     logger.info("Server: All rounds complete. Sending shutdown signal.")
     for i in range(args.num_clients):
