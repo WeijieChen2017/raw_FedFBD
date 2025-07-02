@@ -1,23 +1,21 @@
-# Core ML and Data Handling
-numpy==2.0.2
-pandas==2.2.2
-scipy==1.15.3
-scikit-learn==1.6.1
+# Core ML and Data Handling (compatible with AzureML/ResponsibleAI)
+numpy<=1.23.5,>=1.17.2
+pandas==1.5.3
+scikit-learn<=1.5.1,>=1.0.0
+scipy<=1.11.0,>=1.0.0
 
-# PyTorch
-# Note: The original install was from a specific CUDA URL.
-# This version is for the CPU or a matching CUDA version.
-torch==2.6.0
-torchvision==0.21.0
-torchaudio==2.6.0
+# PyTorch (use a version compatible with these packages and AzureML)
+torch==2.2.2
+torchvision==0.17.2
+torchaudio==2.2.2
 
 # MedMNIST Dataset
 medmnist==3.0.2
 
 # Image and Plotting
-Pillow==11.2.1
-matplotlib==3.10.0
-seaborn==0.13.2
+Pillow==9.5.0
+matplotlib==3.7.1
+seaborn==0.12.2
 
 # Utilities
 tqdm==4.67.1 
