@@ -137,24 +137,6 @@ def client_task(client_id, data_partition, args):
     train_loader = get_data_loader(data_partition, args.batch_size)
     logger.info(f"Created dataloader with {len(data_partition)} samples.")
 
-    # Calculate and log dataset statistics
-    stats = get_dataset_stats(data_partition)
-    logger.info(f"Dataset stats: {stats}")
-
-    # Prepare test dataset for evaluations
-    logger.info("Preparing test dataset for evaluations...")
-    DataClass = getattr(medmnist, info['python_class'])
-    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
-    as_rgb = dataset_rules.get("as_rgb", False)
-    data_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[.5], std=[.5])
-    ])
-    test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
-    test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
-    test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
-    logger.info("Test dataset prepared.")
-
     while True:
         # First, check for the shutdown signal
         shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id}.json")
@@ -168,6 +150,24 @@ def client_task(client_id, data_partition, args):
         # If no shutdown, look for the file for the current round
         round_filepath = os.path.join(args.comm_dir, f"goods_round_{current_round}_client_{client_id}.pth")
         if os.path.exists(round_filepath):
+            # Calculate and log dataset statistics
+            stats = get_dataset_stats(data_partition)
+            logger.info(f"Dataset stats: {stats}")
+
+            # Prepare test dataset for evaluations
+            logger.info("Preparing test dataset for evaluations...")
+            DataClass = getattr(medmnist, info['python_class'])
+            dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
+            as_rgb = dataset_rules.get("as_rgb", False)
+            data_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[.5], std=[.5])
+            ])
+            test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+            test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+            test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+            logger.info("Test dataset prepared.")
+
             # Load the data packet from the server
             data_packet = torch.load(round_filepath)
             model_weights = data_packet.get("model_weights")
@@ -293,7 +293,10 @@ def client_task(client_id, data_partition, args):
                 os.remove(round_filepath)
 
             # --- Memory Cleanup ---
-            
+            del model, optimizer, data_packet, model_weights, updated_weights, updated_optimizer_states
+            del test_dataset, test_loader, test_evaluator
+            torch.cuda.empty_cache()
+
             current_round += 1
         else:
             # Wait before polling again
