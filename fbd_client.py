@@ -7,11 +7,43 @@ from collections import Counter
 import torch.nn as nn
 import torch.optim as optim
 import medmnist
-from medmnist import INFO
+from medmnist import INFO, Evaluator
+import torch.utils.data as data
+import torchvision.transforms as transforms
 
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_utils import load_fbd_settings, setup_logger, save_optimizer_state_by_block, build_optimizer_with_state
-from fbd_dataset import get_data_loader
+from fbd_dataset import get_data_loader, DATASET_SPECIFIC_RULES
+
+def _test_model(model, evaluator, data_loader, task, criterion, device):
+    """Core testing logic, adapted from fbd_server.py"""
+    model.eval()
+    total_loss = []
+    y_score = torch.tensor([]).to(device)
+
+    with torch.no_grad():
+        for inputs, targets in data_loader:
+            outputs = model(inputs.to(device))
+            
+            if task == 'multi-label, binary-class':
+                targets = targets.to(torch.float32).to(device)
+                loss = criterion(outputs, targets)
+                m = nn.Sigmoid()
+                outputs = m(outputs).to(device)
+            else:
+                targets = torch.squeeze(targets, 1).long().to(device)
+                loss = criterion(outputs, targets)
+                m = nn.Softmax(dim=1)
+                outputs = m(outputs).to(device)
+                targets = targets.float().resize_(len(targets), 1)
+
+            total_loss.append(loss.item())
+            y_score = torch.cat((y_score, outputs), 0)
+
+    y_score = y_score.detach().cpu().numpy()
+    auc, acc = evaluator.evaluate(y_score, None, None)
+    test_loss = sum(total_loss) / len(total_loss) if total_loss else 0
+    return [test_loss, auc, acc]
 
 def get_dataset_stats(data_partition):
     """Calculates and returns statistics for a given data partition."""
@@ -109,6 +141,20 @@ def client_task(client_id, data_partition, args):
     stats = get_dataset_stats(data_partition)
     logger.info(f"Dataset stats: {stats}")
 
+    # Prepare test dataset for evaluations
+    logger.info("Preparing test dataset for evaluations...")
+    DataClass = getattr(medmnist, info['python_class'])
+    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
+    as_rgb = dataset_rules.get("as_rgb", False)
+    data_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5])
+    ])
+    test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+    test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+    test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+    logger.info("Test dataset prepared.")
+
     while True:
         # First, check for the shutdown signal
         shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id}.json")
@@ -187,6 +233,11 @@ def client_task(client_id, data_partition, args):
             logger.info(f"Round {current_round}: Training complete. Loss: {loss:.4f}")
             train_losses.append(loss)
 
+            # Evaluate the model on the test set
+            test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+            test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
+            logger.info(f"Round {current_round}: Test Loss: {test_loss:.4f}, Test AUC: {test_auc:.4f}, Test Acc: {test_acc:.4f}")
+
             # Extract updated weights based on the update plan (only trainable parts)
             updated_weights = {}
             trained_state_dict = model.state_dict()
@@ -211,13 +262,16 @@ def client_task(client_id, data_partition, args):
             logger.info(f"Extracted optimizer states for {len(updated_optimizer_states)} trainable blocks.")
 
             logger.info(f"Total blocks with updated weights: {len(updated_weights)}")
-            print(f"Client {client_id} - Round {current_round}: Training Loss = {loss:.4f} Sending {len(updated_weights)} updated weight blocks")
+            print(f"Client {client_id} - Round {current_round}: Train Loss = {loss:.4f}, Test AUC = {test_auc:.4f}, Test Acc = {test_acc:.4f}. Sending {len(updated_weights)} updated weight blocks")
 
             # Process the data and write back a response
             response_data = {
                 "client_id": client_id, 
                 "round": current_round, 
                 "train_loss": loss,
+                "test_loss": test_loss,
+                "test_auc": test_auc,
+                "test_acc": test_acc,
                 "updated_weights": updated_weights,
                 "updated_optimizer_states": updated_optimizer_states,
                 "dataset_stats": stats
