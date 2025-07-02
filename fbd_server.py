@@ -350,10 +350,116 @@ def server_collect_from_clients(r, args):
     
     return round_eval_results
 
-def end_experiment(args):
-    """After all rounds, send a shutdown signal to clients."""
+def final_ensemble_test(args):
+    """
+    Assembles a final ensemble of models, evaluates them on the test set,
+    and computes correctness (z), confidence (c), and standard deviation (s)
+    metrics based on a majority vote.
+    """
     log_dir = os.path.join(args.output_dir, "fbd_log")
     logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
+    logger.info("Server: Starting final ensemble test.")
+
+    # 1. Load settings for the final test
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    try:
+        spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
+        fbd_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fbd_module)
+        final_test_colors = getattr(fbd_module, 'FINAL_TEST_COLORS', [])
+        final_test_batch_size = getattr(fbd_module, 'FINAL_TEST_SIZE', 128)
+        if not final_test_colors:
+            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.py. Skipping final test.")
+            return None, None, None
+    except FileNotFoundError:
+        logger.warning(f"fbd_settings.py not found at {fbd_settings_path}. Skipping final test.")
+        return None, None, None
+    
+    # 2. Prepare data and models
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    info = INFO[args.experiment_name]
+    task = info['task']
+    test_loader = data.DataLoader(dataset=args.test_dataset, batch_size=final_test_batch_size, shuffle=False)
+    warehouse = args.warehouse
+
+    # 3. Get predictions from each model in the ensemble
+    logger.info(f"Gathering predictions from {len(final_test_colors)} models: {final_test_colors}")
+    all_model_scores = []
+    for model_color in final_test_colors:
+        model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        ).to(device)
+        
+        model_weights = warehouse.get_model_weights(model_color)
+        if not model_weights:
+            logger.warning(f"No weights found in warehouse for model {model_color}. Skipping.")
+            continue
+            
+        model.load_state_dict(model_weights)
+        scores = _get_scores(model, test_loader, task, device)
+        all_model_scores.append(scores)
+
+    if not all_model_scores:
+        logger.error("Failed to gather any model predictions. Aborting final test.")
+        return None, None, None
+
+    # 4. Calculate final metrics via majority vote
+    votes = np.stack([np.argmax(scores, axis=1) for scores in all_model_scores], axis=1)
+    
+    true_labels = args.test_dataset.labels.squeeze()
+    num_samples = len(true_labels)
+    num_models = votes.shape[1]
+    num_classes = args.num_classes
+
+    z_scores, c_scores, s_scores = [], [], []
+
+    logger.info("Calculating z, c, and s scores for each test sample...")
+    for i in range(num_samples):
+        sample_votes = votes[i, :]
+        vote_counts = Counter(sample_votes)
+        
+        majority_class, majority_count = vote_counts.most_common(1)[0]
+        
+        z = 1 if majority_class == true_labels[i] else 0
+        c = majority_count / num_models
+        
+        vote_distribution = np.zeros(num_classes)
+        for class_idx, count in vote_counts.items():
+            vote_distribution[class_idx] = count
+        s = np.std(vote_distribution)
+        
+        z_scores.append(z)
+        c_scores.append(c)
+        s_scores.append(s)
+
+    # 5. Save results
+    results = {
+        'z_correctness': z_scores,
+        'c_confidence': c_scores,
+        's_std_dev': s_scores,
+        'mean_correctness': np.mean(z_scores),
+        'mean_confidence': np.mean(c_scores),
+        'mean_std_dev': np.mean(s_scores)
+    }
+    
+    results_path = os.path.join(args.output_dir, "final_test_metrics.json")
+    save_json(results, results_path)
+    logger.info(f"Final test metrics saved to {results_path}")
+
+    return z_scores, c_scores, s_scores
+
+def end_experiment(args):
+    """After all rounds, run final tests and send a shutdown signal to clients."""
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    logger = setup_logger("Server", os.path.join(log_dir, "server.log"))
+    
+    # Run final ensemble test before shutting down
+    final_ensemble_test(args)
+
     logger.info("Server: All rounds complete. Sending shutdown signal.")
     for i in range(args.num_clients):
         filepath = os.path.join(args.comm_dir, f"last_round_client_{i}.json")

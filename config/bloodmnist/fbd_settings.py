@@ -23,13 +23,15 @@ REGULARIZER_PARAMS = {
 # --- TRAINING HYPER-PARAMETERS ---
 ENSEMBLE_SIZE = 24
 ENSEMBLE_COLORS = ['M1', 'M2']
+FINAL_TEST_COLORS = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5']
+FINAL_TEST_SIZE = 128
 UPDATE_SCHEDULE = [
-    {"num_rounds": 5, "model_part_index_to_update": [0,1], "model_part_to_update": []},
-    {"num_rounds": 5, "model_part_index_to_update": [1,2], "model_part_to_update": []},
-    {"num_rounds": 5, "model_part_index_to_update": [2,3], "model_part_to_update": []},
-    {"num_rounds": 5, "model_part_index_to_update": [3,4], "model_part_to_update": []},
-    {"num_rounds": 5, "model_part_index_to_update": [4,5], "model_part_to_update": []},
-    {"num_rounds": 5, "model_part_index_to_update": [5], "model_part_to_update": []},
+    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
 ]
 
 # --- DERIVED PARAMETERS ---

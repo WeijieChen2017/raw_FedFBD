@@ -3,6 +3,7 @@ import json
 import time
 import torch
 import numpy as np
+import gc
 from collections import Counter
 import torch.nn as nn
 import torch.optim as optim
@@ -242,6 +243,17 @@ def client_task(client_id, data_partition, args):
             # Conditionally clean up the goods file
             if getattr(args, 'remove_communication', False):
                 os.remove(round_filepath)
+
+            # --- Memory Cleanup ---
+            del model
+            del optimizer
+            del data_packet
+            del model_weights
+            del response_data
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            gc.collect()
+            logger.info(f"Round {current_round}: Memory cleaned up.")
             
             current_round += 1
         else:
