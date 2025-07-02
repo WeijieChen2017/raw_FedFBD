@@ -8,6 +8,7 @@ from fbd_utils import load_config
 from fbd_dataset import load_data, partition_data
 from fbd_plot import generate_plots
 import time
+import shutil
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework")
@@ -24,10 +25,17 @@ def main():
     args_dict = vars(args)
     args_dict.update(vars(config))
 
-    # Define the output directory for logs and results based on config.
-    # The communication directory remains at the fixed path defined by the --comm_dir argument.
-    output_dir = f"{args.training_save_dir}/{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
-    args.output_dir = output_dir
+    # Define temporary and final output directories. The experiment runs in a temporary location
+    # and is moved to the final destination only upon successful completion.
+    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
+    
+    # Clean up the temporary directory from any previous failed runs
+    if os.path.exists(temp_output_dir):
+        shutil.rmtree(temp_output_dir)
+    os.makedirs(temp_output_dir)
+
+    args.output_dir = temp_output_dir
     
     # 1. Initialize Experiment
     initialize_experiment(args)
@@ -53,7 +61,7 @@ def main():
         process.start()
 
     # Define path for server-side evaluation history log
-    eval_results_dir = os.path.join(output_dir, "eval_results")
+    eval_results_dir = os.path.join(temp_output_dir, "eval_results")
     os.makedirs(eval_results_dir, exist_ok=True)
     history_save_path = os.path.join(eval_results_dir, "server_evaluation_history.json")
 
@@ -90,6 +98,13 @@ def main():
     generate_plots(args.output_dir)
 
     print("Framework execution complete.")
+
+    # 7. Move the temporary run folder to its final destination
+    try:
+        shutil.move(temp_output_dir, final_output_dir)
+        print(f"Experiment results saved to: {final_output_dir}")
+    except Exception as e:
+        print(f"Error moving results to final destination: {e}")
 
 if __name__ == "__main__":
     main()
