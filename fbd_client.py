@@ -142,8 +142,8 @@ def client_task(client_id, data_partition, args):
         shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id}.json")
         if os.path.exists(shutdown_filepath):
             with open(shutdown_filepath, 'r') as f:
-                data = json.load(f)
-                if data.get("secret") == -1:
+                shutdown_data = json.load(f)
+                if shutdown_data.get("secret") == -1:
                     logger.info("Shutdown signal received. Exiting.")
                     break
 
