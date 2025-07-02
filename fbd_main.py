@@ -22,9 +22,11 @@ def main():
     config = load_config(args.experiment_name, args.model_flag)
     args_dict = vars(args)
     args_dict.update(vars(config))
-    output_dir = f"fbd_run/{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
+
+    # Define the output directory for logs and results based on config.
+    # The communication directory remains at the fixed path defined by the --comm_dir argument.
+    output_dir = f"{args.training_save_dir}/{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
     args.output_dir = output_dir
-    args.comm_dir = os.path.join(output_dir, "fbd_comm")
     
     # 1. Initialize Experiment
     initialize_experiment(args)
