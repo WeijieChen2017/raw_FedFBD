@@ -181,8 +181,8 @@ def client_task(client_id, data_partition, args):
             block_id_to_model_part = {}
             if update_plan:
                 model_to_update_plan = update_plan.get('model_to_update', {})
-                for model_part, info in model_to_update_plan.items():
-                    block_id_to_model_part[info['block_id']] = model_part
+                for model_part, component_info in model_to_update_plan.items():
+                    block_id_to_model_part[component_info['block_id']] = model_part
 
             # Create a base model instance
             model = get_pretrained_fbd_model(
@@ -210,9 +210,9 @@ def client_task(client_id, data_partition, args):
             # Unfreeze parameters of trainable parts
             model_to_update = update_plan.get('model_to_update', {})
             trainable_block_ids = []
-            for component_name, info in model_to_update.items():
-                if info['status'] == 'trainable':
-                    trainable_block_ids.append(info['block_id'])
+            for component_name, component_info in model_to_update.items():
+                if component_info['status'] == 'trainable':
+                    trainable_block_ids.append(component_info['block_id'])
                     for name, param in model.named_parameters():
                         if name.startswith(component_name):
                             param.requires_grad = True
@@ -243,9 +243,9 @@ def client_task(client_id, data_partition, args):
             trained_state_dict = model.state_dict()
             logger.info(f"Extracting weights for trainable components: {list(model_to_update.keys())}")
             
-            for component_name, info in model_to_update.items():
-                if info['status'] == 'trainable':
-                    block_id = info['block_id']
+            for component_name, component_info in model_to_update.items():
+                if component_info['status'] == 'trainable':
+                    block_id = component_info['block_id']
                     model_part = component_name
                     block_weights = {}
                     for param_name, param_tensor in trained_state_dict.items():
