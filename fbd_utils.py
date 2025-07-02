@@ -101,56 +101,49 @@ def load_request_plan(request_plan_path):
 def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_ids):
     """
     Extracts optimizer state and partitions it by FBD block ID for trainable blocks.
+    The state for each parameter is keyed by its full name (e.g., 'layer1.0.conv1.weight').
     """
-    # 1. Save hyper-parameters from the first parameter group
     param_groups_info = []
     if optimizer.param_groups:
         group = optimizer.param_groups[0]
         info = {k: v for k, v in group.items() if k != 'params'}
         param_groups_info.append(info)
 
-    # 2. Save state partitioned by block_id
     full_state = optimizer.state_dict()['state']
-    block_states = {}
+    
+    # Map parameter IDs from the optimizer state to their full names
+    param_id_to_name_map = {}
+    for name, p in model.named_parameters():
+        if p.requires_grad:
+            # The keys in `full_state` are the indices of the parameters in the optimizer's param_groups
+            for i, group in enumerate(optimizer.param_groups):
+                try:
+                    # Find the index of our parameter `p` within the group
+                    param_index_in_group = group['params'].index(p)
+                    # The actual key in the state dict is a global index across all groups
+                    param_global_index = sum(len(optimizer.param_groups[j]['params']) for j in range(i)) + param_index_in_group
+                    param_id_to_name_map[param_global_index] = name
+                    break
+                except ValueError:
+                    continue # Param not in this group
 
-    param_to_block_map = {}
+    partitioned_state = defaultdict(dict)
     for block_id in trainable_block_ids:
         model_part_prefix = fbd_trace[block_id]['model_part']
-        # Find all parameters belonging to this model part
-        for p_name, p in model.named_parameters():
-            if p_name.startswith(model_part_prefix):
-                param_to_block_map[id(p)] = block_id
-    
-    # Partition the state based on the map
-    partitioned_state = {block_id: {} for block_id in trainable_block_ids}
-    param_id_map = {id(p): i for i, group in enumerate(optimizer.param_groups) for p in group['params']}
-
-    for p_id_in_state, state_vals in full_state.items():
-        # Find the parameter this state belongs to
-        p_obj = None
-        for group in optimizer.param_groups:
-            for p in group['params']:
-                if p_id_in_state == param_id_map.get(id(p)):
-                    p_obj = p
-                    break
-            if p_obj is not None:
-                break
-        
-        if p_obj is not None and id(p_obj) in param_to_block_map:
-            block_id = param_to_block_map[id(p_obj)]
-            # Detach and clone state tensors
-            cloned_state_vals = {}
-            for k, v in state_vals.items():
-                if isinstance(v, torch.Tensor):
-                    cloned_state_vals[k] = v.detach().cpu().clone()
-                else:
-                    cloned_state_vals[k] = v
-            partitioned_state[block_id][p_id_in_state] = cloned_state_vals
-            
-    # 3. Combine hyper-parameters and partitioned state for each block
+        for param_global_index, param_name in param_id_to_name_map.items():
+            if param_name.startswith(model_part_prefix) and param_global_index in full_state:
+                state_values = full_state[param_global_index]
+                cloned_state_vals = {}
+                for k, v in state_values.items():
+                    if isinstance(v, torch.Tensor):
+                        cloned_state_vals[k] = v.detach().cpu().clone()
+                    else:
+                        cloned_state_vals[k] = v
+                partitioned_state[block_id][param_name] = cloned_state_vals
+                
     final_block_states = {}
     for block_id, state_data in partitioned_state.items():
-        if state_data: # Only save if there is state for this block
+        if state_data:
             final_block_states[block_id] = {
                 'param_groups': param_groups_info,
                 'state': state_data
@@ -160,20 +153,17 @@ def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_i
 
 def build_optimizer_with_state(model, optimizer_states, trainable_params, device, default_lr=0.001):
     """
-    Builds an Adam optimizer from a dictionary of states per block.
+    Builds an Adam optimizer and correctly loads state for a specific set of trainable parameters.
     """
-    # 1. Aggregate states from all blocks
-    combined_state = {}
+    # 1. Determine hyper-parameters from the first available state block
     param_groups_info = None
-    
     if optimizer_states:
         for block_id, state_data in optimizer_states.items():
-            if state_data and 'state' in state_data:
-                combined_state.update(state_data['state'])
-            if param_groups_info is None and state_data and 'param_groups' in state_data:
+            if state_data and 'param_groups' in state_data:
                 param_groups_info = state_data['param_groups']
+                break
     
-    # 2. Create optimizer
+    # 2. Create a new optimizer with only the trainable parameters
     if param_groups_info:
         # Use hyper-parameters from the saved state
         optimizer = torch.optim.Adam(trainable_params, **param_groups_info[0])
@@ -181,37 +171,39 @@ def build_optimizer_with_state(model, optimizer_states, trainable_params, device
         # Fallback to default if no state was provided
         optimizer = torch.optim.Adam(trainable_params, lr=default_lr)
         
-    # 3. Load aggregated state
-    if combined_state:
-        # The state keys from the server are strings, but optimizer.load_state_dict
-        # might have int keys. We need to match based on parameter objects.
+    # 3. If there's state to load, map it correctly to the new optimizer
+    if optimizer_states:
+        # The optimizer's state_dict maps integer param IDs to their state.
+        # We need to map the trainable parameters to their corresponding IDs in the new optimizer.
+        param_to_id_map = {id(p): i for i, group in enumerate(optimizer.param_groups) for p in group['params']}
         
-        # Map parameter objects to their state from the server
-        param_map = {p: i for i, group in enumerate(optimizer.param_groups) for p in group['params']}
-        
-        # The optimizer state dict that we will load
-        final_state_dict = optimizer.state_dict()
-        
-        # The combined state from the server needs to be mapped to the new optimizer's params
-        # This is complex because parameter IDs change across processes.
-        # A simpler approach is to load the state dict directly, assuming the structure matches.
-        # This might fail if param indices don't align.
-        
-        # Let's try a direct load first. The keys in combined_state are param indices
-        # from the previous optimizer. This won't work directly.
-        
-        # A robust solution requires mapping old params to new params.
-        # Given the client only trains a subset, let's just re-initialize the optimizer
-        # and load the state for the params that we can identify.
-        
-        # The state from server is already on CPU. Move to target device.
-        for param_idx, state_values in combined_state.items():
-            for k, v in state_values.items():
-                if isinstance(v, torch.Tensor):
-                    state_values[k] = v.to(device)
+        # This will be the new state we load into the optimizer
+        new_state_dict = defaultdict(dict)
 
-        final_state_dict['state'] = combined_state
-        optimizer.load_state_dict(final_state_dict)
+        # Create a reverse map from parameter name to parameter object for easy lookup
+        name_to_param_map = {name: p for name, p in model.named_parameters() if p.requires_grad}
+
+        for block_id, state_data in optimizer_states.items():
+            if not state_data or 'state' not in state_data:
+                continue
+            
+            # The state_data['state'] is a dict mapping OLD param names to their state
+            for param_name, state_values in state_data['state'].items():
+                if param_name in name_to_param_map:
+                    param_obj = name_to_param_map[param_name]
+                    param_id = param_to_id_map.get(id(param_obj))
+                    
+                    if param_id is not None:
+                        # Move state tensors to the correct device
+                        for k, v in state_values.items():
+                            if isinstance(v, torch.Tensor):
+                                state_values[k] = v.to(device)
+                        new_state_dict[param_id] = state_values
+
+        if new_state_dict:
+            final_optim_state = optimizer.state_dict()
+            final_optim_state['state'] = new_state_dict
+            optimizer.load_state_dict(final_optim_state)
 
     return optimizer
 
