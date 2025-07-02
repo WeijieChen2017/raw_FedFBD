@@ -80,9 +80,28 @@ def prepare_initial_model(args):
     """
     model_path = os.path.join(args.cache_dir, f"initial_{args.model_flag}.pth")
     
+    # Check if existing checkpoint has correct number of classes
     if os.path.exists(model_path):
-        logging.info(f"Initial model found in cache: {model_path}")
-        return
+        try:
+            # Load the checkpoint to check its structure
+            checkpoint = torch.load(model_path, map_location='cpu')
+            
+            # Check if the output layer has the correct number of classes
+            if 'out_layer.weight' in checkpoint:
+                checkpoint_classes = checkpoint['out_layer.weight'].shape[0]
+                if checkpoint_classes == args.num_classes:
+                    logging.info(f"Initial model found in cache with correct classes ({checkpoint_classes}): {model_path}")
+                    return
+                else:
+                    logging.warning(f"Existing checkpoint has {checkpoint_classes} classes but current config expects {args.num_classes}. Deleting old checkpoint.")
+                    os.remove(model_path)
+            else:
+                logging.warning("Existing checkpoint doesn't have out_layer.weight. Deleting old checkpoint.")
+                os.remove(model_path)
+        except Exception as e:
+            logging.warning(f"Error checking existing checkpoint: {e}. Deleting old checkpoint.")
+            if os.path.exists(model_path):
+                os.remove(model_path)
 
     logging.info(f"Preparing initial model '{args.model_flag}' with ImageNet weights.")
     
