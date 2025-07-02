@@ -181,7 +181,7 @@ def initialize_experiment(args):
 
     # 5. Initialize FBD Warehouse
     logger.info("Server: Initializing FBD Warehouse...")
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
 
     model_template = get_pretrained_fbd_model(
@@ -364,18 +364,18 @@ def final_ensemble_test(args):
     logger.info("Server: Starting final ensemble test.")
 
     # 1. Load settings for the final test
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     try:
-        spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
-        fbd_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(fbd_module)
-        final_test_colors = getattr(fbd_module, 'FINAL_TEST_COLORS', [])
-        final_test_batch_size = getattr(fbd_module, 'FINAL_TEST_SIZE', 128)
+        with open(fbd_settings_path, 'r') as f:
+            fbd_settings = json.load(f)
+        
+        final_test_colors = fbd_settings.get('FINAL_TEST_COLORS', [])
+        final_test_batch_size = fbd_settings.get('FINAL_TEST_SIZE', 128)
         if not final_test_colors:
-            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.py. Skipping final test.")
+            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.json. Skipping final test.")
             return None, None, None
     except FileNotFoundError:
-        logger.warning(f"fbd_settings.py not found at {fbd_settings_path}. Skipping final test.")
+        logger.warning(f"fbd_settings.json not found at {fbd_settings_path}. Skipping final test.")
         return None, None, None
     
     # 2. Prepare data and models
@@ -516,14 +516,13 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
         logger.info(f"Starting block-wise ensemble evaluation for {args.num_ensemble} models...")
         
         # Load settings from the experiment's FBD config file
-        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
-        spec = importlib.util.spec_from_file_location("fbd_settings", fbd_settings_path)
-        fbd_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(fbd_module)
+        fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+        with open(fbd_settings_path, 'r') as f:
+            fbd_settings = json.load(f)
         
-        ensemble_colors_pool = getattr(fbd_module, 'ENSEMBLE_COLORS', [])
-        model_parts_pool = getattr(fbd_module, 'MODEL_PARTS', [])
-        fbd_trace = getattr(fbd_module, 'FBD_TRACE', {})
+        ensemble_colors_pool = fbd_settings.get('ENSEMBLE_COLORS', [])
+        model_parts_pool = fbd_settings.get('MODEL_PARTS', [])
+        fbd_trace = fbd_settings.get('FBD_TRACE', {})
 
         if not all([ensemble_colors_pool, model_parts_pool, fbd_trace]):
             logger.error("Ensemble settings (ENSEMBLE_COLORS, MODEL_PARTS, FBD_TRACE) are missing or empty. Skipping evaluation.")
@@ -693,12 +692,16 @@ def main_server(args):
         logger.info(f"Created communication directory: {comm_dir}")
 
     # Load all necessary FBD configurations
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
     shipping_plan_path = os.path.join("config", args.experiment_name, "shipping_plan.json")
     update_plan_path = os.path.join("config", args.experiment_name, "update_plan.json")
     
     try:
-        fbd_trace, fbd_info, model_parts = load_fbd_settings(fbd_settings_path)
+        with open(fbd_settings_path, 'r') as f:
+            fbd_settings = json.load(f)
+        fbd_trace = fbd_settings.get("FBD_TRACE", {})
+        fbd_info = fbd_settings.get("FBD_INFO", {})
+
         with open(shipping_plan_path, 'r') as f:
             shipping_plan = json.load(f)
         with open(update_plan_path, 'r') as f:
@@ -741,10 +744,11 @@ def main_server(args):
             model_weights = {}
             for part_name in client_shipping_list:
                 # This logic needs to be robust. Assuming fbd_trace maps a shipping part name to a model part prefix
-                model_part_prefix = fbd_trace[part_name]['model_part']
-                for param_name, param in global_model.state_dict().items():
-                    if param_name.startswith(model_part_prefix):
-                        model_weights[param_name] = param
+                model_part_prefix = fbd_trace.get(part_name, {}).get('model_part')
+                if model_part_prefix:
+                    for param_name, param in global_model.state_dict().items():
+                        if param_name.startswith(model_part_prefix):
+                            model_weights[param_name] = param
 
             data_packet = {
                 "shipping_list": client_shipping_list,
