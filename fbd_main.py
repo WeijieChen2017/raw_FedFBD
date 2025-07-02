@@ -6,6 +6,7 @@ from fbd_server import initialize_experiment, server_send_to_clients, server_col
 from fbd_client import client_task
 from fbd_utils import load_config
 from fbd_dataset import load_data, partition_data
+from fbd_plot import generate_plots
 import time
 
 def main():
@@ -83,6 +84,10 @@ def main():
     # Wait for all client processes to finish
     for process in processes:
         process.join()
+
+    # 6. Generate and save plots
+    print("Generating plots for the experiment...")
+    generate_plots(args.output_dir)
 
     print("Framework execution complete.")
 

@@ -153,6 +153,29 @@ def initialize_experiment(args):
         logger.error("Server: Failed to generate FBD plans.", exc_info=True)
         raise e
         
+    # 4.5 Archive configuration files
+    logger.info("Server: Archiving configuration files...")
+    config_archive_dir = os.path.join(args.output_dir, "configs")
+    os.makedirs(config_archive_dir, exist_ok=True)
+    
+    source_config_dir = os.path.join("config", args.experiment_name)
+    files_to_copy = [
+        "config.json",
+        "fbd_settings.py",
+        "shipping_plan.json",
+        "update_plan.json",
+        "request_plan.json"
+    ]
+    
+    for file_name in files_to_copy:
+        source_path = os.path.join(source_config_dir, file_name)
+        destination_path = os.path.join(config_archive_dir, file_name)
+        if os.path.exists(source_path):
+            shutil.copy(source_path, destination_path)
+            logger.info(f"Copied {file_name} to {config_archive_dir}")
+        else:
+            logger.warning(f"Config file not found, skipping: {source_path}")
+
     # 5. Initialize FBD Warehouse
     logger.info("Server: Initializing FBD Warehouse...")
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.py")
