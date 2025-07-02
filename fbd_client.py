@@ -65,7 +65,7 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device):
 
     return total_loss / epochs if epochs > 0 else 0
 
-def assemble_model_from_plan(model, received_weights, update_plan, fbd_trace):
+def assemble_model_from_plan(model, received_weights, update_plan):
     """
     Assembles a model by loading weights according to a specific update plan.
     
@@ -73,25 +73,17 @@ def assemble_model_from_plan(model, received_weights, update_plan, fbd_trace):
         model (torch.nn.Module): The base model to load weights into.
         received_weights (dict): A dictionary of all weights received from the server.
         update_plan (dict): The specific plan for this client, detailing how to use the weights.
-        fbd_trace (dict): The global FBD trace to map block IDs to model parts.
     """
     full_state_dict = {}
     
-    # Process the model to be updated
     if 'model_to_update' in update_plan:
         for component_name, info in update_plan['model_to_update'].items():
-            block_id = info['block_id']
-            model_part = fbd_trace[block_id]['model_part']
+            # component_name is the model_part, e.g., 'layer1'
             for param_name, param_value in received_weights.items():
-                if param_name.startswith(model_part):
+                if param_name.startswith(component_name):
                     full_state_dict[param_name] = param_value
     
-    # This example only assembles the 'model_to_update'.
-    # A full implementation would also handle the 'model_as_regularizer' if needed.
-    
     model.load_state_dict(full_state_dict, strict=False)
-    # This print statement will be replaced by a logger call in the client_task
-    # print(f"Assembled model with {len(full_state_dict)} tensors.")
 
 def client_task(client_id, data_partition, args):
     """Client process that actively polls for round-based files, processes them, and sends a response."""
@@ -117,10 +109,6 @@ def client_task(client_id, data_partition, args):
     stats = get_dataset_stats(data_partition)
     logger.info(f"Dataset stats: {stats}")
 
-    # Load FBD trace for model assembly
-    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
-    fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
-
     while True:
         # First, check for the shutdown signal
         shutdown_filepath = os.path.join(args.comm_dir, f"last_round_client_{client_id}.json")
@@ -143,6 +131,13 @@ def client_task(client_id, data_partition, args):
             
             logger.info(f"Round {current_round}: Received {len(shipping_list)} model parts.")
 
+            # Build a local map from block_id to model_part from the update_plan
+            block_id_to_model_part = {}
+            if update_plan:
+                model_to_update_plan = update_plan.get('model_to_update', {})
+                for model_part, info in model_to_update_plan.items():
+                    block_id_to_model_part[info['block_id']] = model_part
+
             # Create a base model instance
             model = get_pretrained_fbd_model(
                 architecture=args.model_flag,
@@ -154,7 +149,7 @@ def client_task(client_id, data_partition, args):
 
             # Assemble the model using the received plan and weights
             if update_plan:
-                assemble_model_from_plan(model, model_weights, update_plan, fbd_trace)
+                assemble_model_from_plan(model, model_weights, update_plan)
                 # Log after assembly
                 num_tensors = len(model.state_dict())
                 logger.info(f"Assembled model with {num_tensors} tensors.")
@@ -200,7 +195,7 @@ def client_task(client_id, data_partition, args):
             for component_name, info in model_to_update.items():
                 if info['status'] == 'trainable':
                     block_id = info['block_id']
-                    model_part = fbd_trace[block_id]['model_part']
+                    model_part = component_name
                     block_weights = {}
                     for param_name, param_tensor in trained_state_dict.items():
                         if param_name.startswith(model_part + '.'):
@@ -212,7 +207,7 @@ def client_task(client_id, data_partition, args):
                         logger.warning(f"No weights found for block {block_id} with model_part '{model_part}'")
             
             # Extract updated optimizer state for trainable blocks
-            updated_optimizer_states = save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_ids)
+            updated_optimizer_states = save_optimizer_state_by_block(optimizer, model, block_id_to_model_part, trainable_block_ids)
             logger.info(f"Extracted optimizer states for {len(updated_optimizer_states)} trainable blocks.")
 
             logger.info(f"Total blocks with updated weights: {len(updated_weights)}")

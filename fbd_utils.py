@@ -11,7 +11,6 @@ from collections import defaultdict
 from argparse import Namespace
 import hashlib
 import shutil
-import importlib
 
 def setup_logger(name, log_file, level=logging.INFO):
     """Function to setup as many loggers as you want"""
@@ -108,7 +107,7 @@ def load_request_plan(request_plan_path):
     # Convert string keys to integers for round numbers
     return {int(round_num): clients for round_num, clients in request_plan.items()}
 
-def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_ids):
+def save_optimizer_state_by_block(optimizer, model, block_id_to_model_part_map, trainable_block_ids):
     """
     Extracts optimizer state and partitions it by FBD block ID for trainable blocks.
     The state for each parameter is keyed by its full name (e.g., 'layer1.0.conv1.weight').
@@ -136,7 +135,9 @@ def save_optimizer_state_by_block(optimizer, model, fbd_trace, trainable_block_i
 
     partitioned_state = defaultdict(dict)
     for block_id in trainable_block_ids:
-        model_part_prefix = fbd_trace[block_id]['model_part']
+        model_part_prefix = block_id_to_model_part_map.get(block_id)
+        if not model_part_prefix:
+            continue
         for param_idx, param_name in optim_idx_to_param_name_map.items():
             if param_name.startswith(model_part_prefix) and param_idx in full_state:
                 state_values = full_state[param_idx]
