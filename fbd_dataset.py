@@ -18,7 +18,6 @@ MEDMNIST_DIR = os.path.expanduser("/root/.medmnist")
 
 # From fbd_server.py
 DATASET_SPECIFIC_RULES = {
-    "bloodmnist": {"as_rgb": True},
     "breastmnist": {"as_rgb": True},
     "octmnist": {"as_rgb": True},
     "organcmnist": {"as_rgb": True},

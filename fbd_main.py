@@ -10,6 +10,13 @@ from fbd_plot import generate_plots
 import time
 import shutil
 
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    message=r".*weights_only=False.*"
+)
+
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework")
     parser.add_argument("--experiment_name", type=str, default="bloodmnist", help="Name of the experiment.")
