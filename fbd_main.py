@@ -9,6 +9,8 @@ from fbd_dataset import load_data, partition_data
 from fbd_plot import generate_plots
 import time
 import shutil
+import medmnist
+from medmnist import INFO
 
 import warnings
 warnings.filterwarnings(
@@ -27,10 +29,36 @@ def main():
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     args = parser.parse_args()
 
-    # 0. Load config and merge into args
-    config = load_config(args.experiment_name, args.model_flag)
-    args_dict = vars(args)
-    args_dict.update(vars(config))
+    # 0. Load configuration from medmnist INFO instead of config.json
+    if args.experiment_name not in INFO:
+        raise ValueError(f"Dataset {args.experiment_name} is not supported by medmnist.")
+    
+    info = INFO[args.experiment_name]
+    args.task = info['task']
+    args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
+    args.num_classes = len(info['label'])
+    
+    # Load additional configuration from config.json for non-dataset parameters
+    try:
+        config = load_config(args.experiment_name, args.model_flag)
+        args_dict = vars(args)
+        # Only update non-dataset-specific parameters
+        for key, value in vars(config).items():
+            if key not in ['num_classes', 'task', 'n_channels']:
+                args_dict[key] = value
+    except Exception as e:
+        print(f"Warning: Could not load config.json, using defaults: {e}")
+        # Set defaults for required parameters
+        args.num_clients = 6
+        args.num_rounds = 30
+        args.batch_size = 128
+        args.local_learning_rate = 0.001
+        args.local_epochs = 1
+        args.size = 28
+        args.num_ensemble = 24
+        args.seed = 42
+        args.remove_communication = False
+        args.training_save_dir = "fbd_results"
 
     # Define temporary and final output directories. The experiment runs in a temporary location
     # and is moved to the final destination only upon successful completion.
