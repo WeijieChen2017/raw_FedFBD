@@ -3,8 +3,6 @@ FBD Logic for Function Block Diversification
 """
 import json
 import copy
-import importlib.util
-import sys
 import os
 import torch
 import torch.nn as nn
@@ -41,30 +39,41 @@ def setup_logger(name, log_file, level=logging.INFO):
     
     return logger
 
-def load_fbd_settings(fbd_file_path):
+def get_fbd_config(experiment_name, config_dir='config'):
+    config_path = os.path.join(config_dir, experiment_name, 'config.json')
+    with open(config_path, 'r') as f:
+        return json.load(f)
+
+def save_json(data, filepath):
+    """Saves a dictionary to a JSON file."""
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=4)
+
+def load_fbd_settings(settings_path):
     """
-    Load FBD_TRACE, FBD_INFO, and TRANSPARENT_TO_CLIENT from a Python file.
-    
+    Loads FBD settings from a JSON file.
+
     Args:
-        fbd_file_path (str): Path to the FBD settings file (e.g., 'fbd_record/bloodmnist_plan_1.py')
-        
+        settings_path (str): The full path to the fbd_settings.json file.
+
     Returns:
-        tuple: (FBD_TRACE, FBD_INFO, TRANSPARENT_TO_CLIENT) loaded from the file
+        A tuple containing (fbd_trace, fbd_info, model_parts).
     """
-    # Convert relative path to absolute path
-    abs_path = os.path.abspath(fbd_file_path)
-    
-    # Load the module
-    spec = importlib.util.spec_from_file_location("fbd_settings", abs_path)
-    fbd_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(fbd_module)
-    
-    # Extract the settings
-    fbd_trace = getattr(fbd_module, 'FBD_TRACE', {})
-    fbd_info = getattr(fbd_module, 'FBD_INFO', {})
-    transparent_to_client = getattr(fbd_module, 'TRANSPARENT_TO_CLIENT', True)  # Default to True for backward compatibility
-    
-    return fbd_trace, fbd_info, transparent_to_client
+    try:
+        with open(settings_path, 'r') as f:
+            settings = json.load(f)
+        
+        fbd_trace = settings.get('FBD_TRACE', {})
+        fbd_info = settings.get('FBD_INFO', {})
+        model_parts = settings.get('MODEL_PARTS', [])
+        
+        return fbd_trace, fbd_info, model_parts
+    except FileNotFoundError:
+        logging.error(f"FBD settings file not found at {settings_path}")
+        raise
+    except json.JSONDecodeError:
+        logging.error(f"Could not decode JSON from {settings_path}")
+        raise
 
 def load_shipping_plan(shipping_plan_path):
     """
@@ -226,6 +235,7 @@ class FBDWarehouse:
         """
         self.fbd_trace = fbd_trace
         self.warehouse = {}  # Dictionary storing weights by block ID
+        self.optimizer_states = {}
         
         # Set up warehouse logging
         self._setup_warehouse_logger(log_file_path)
@@ -560,7 +570,8 @@ class FBDWarehouse:
         """
         torch.save({
             'warehouse': self.warehouse,
-            'fbd_trace': self.fbd_trace
+            'fbd_trace': self.fbd_trace,
+            'optimizer_states': self.optimizer_states
         }, filepath)
     
     def load_warehouse(self, filepath):
@@ -573,6 +584,7 @@ class FBDWarehouse:
         checkpoint = torch.load(filepath, map_location='cpu')
         self.warehouse = checkpoint['warehouse']
         self.fbd_trace = checkpoint['fbd_trace']
+        self.optimizer_states = checkpoint['optimizer_states']
 
 def generate_client_model_palettes(num_clients, fbd_file_path):
     """
@@ -634,100 +646,72 @@ def load_config(data_flag: str, model_flag: str) -> Namespace:
     
     raise ValueError(f"Configuration for model {model_flag} not found in {config_path}")
 
-def save_json(data: dict, filepath: str):
-    """
-    Saves a dictionary to a JSON file.
-
-    Args:
-        data (dict): The dictionary to save.
-        filepath (str): The path to the output JSON file.
-    """
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=4)
-
 def handle_dataset_cache(dataset_name: str, cache_dir: str):
     """
-    Manages the MedMNIST dataset cache.
-    It checks for a dataset in a local cache directory and copies it to the
-    `~/.medmnist/` directory for use by the training scripts. If the dataset
-
-    is downloaded, it's copied back to the cache.
+    Checks if the specified dataset is cached and downloads it if not.
+    Uses medmnist to handle the download and caching logic.
     """
-    MEDMNIST_DIR = os.path.expanduser("~/.medmnist")
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-        logging.info(f"Created cache directory: {cache_dir}")
-    if not os.path.exists(MEDMNIST_DIR):
-        os.makedirs(MEDMNIST_DIR)
-        logging.info(f"Created MedMNIST directory: {MEDMNIST_DIR}")
+    from medmnist import INFO
+    
+    if dataset_name not in INFO:
+        raise ValueError(f"Dataset {dataset_name} is not supported by medmnist.")
         
-    source_npz_path = os.path.join(cache_dir, f"{dataset_name}.npz")
-    dest_npz_path = os.path.join(MEDMNIST_DIR, f"{dataset_name}.npz")
+    info = INFO[dataset_name]
+    DataClass = getattr(importlib.import_module('medmnist'), info['python_class'])
 
-    # Before execution, check if the dataset is in the cache
-    if os.path.exists(source_npz_path):
-        if not os.path.exists(dest_npz_path) or \
-           hashlib.md5(open(source_npz_path, 'rb').read()).hexdigest() != \
-           hashlib.md5(open(dest_npz_path, 'rb').read()).hexdigest():
-            logging.info(f"Copying cached '{dataset_name}' to {MEDMNIST_DIR}")
-            shutil.copy(source_npz_path, dest_npz_path)
-        else:
-            logging.info(f"Dataset '{dataset_name}' already exists and is up to date in {MEDMNIST_DIR}")
-    else:
-        logging.info(f"Dataset '{dataset_name}' not found in cache. It will be downloaded.")
-
-    # After execution, the training script is assumed to have downloaded the data if it was missing.
-    # We copy it back to our cache for future runs.
-    if os.path.exists(dest_npz_path) and not os.path.exists(source_npz_path):
-        logging.info(f"Caching downloaded '{dataset_name}' to {cache_dir}")
-        shutil.copy(dest_npz_path, source_npz_path)
-
+    # The download happens automatically upon instantiation if the data is not found in the root dir.
+    # We point the root to our designated cache directory.
+    DataClass(split='train', download=True, root=cache_dir)
+    DataClass(split='val', download=True, root=cache_dir)
+    DataClass(split='test', download=True, root=cache_dir)
+    
+    logging.info(f"Dataset '{dataset_name}' is cached and ready in '{cache_dir}'.")
+    
 def handle_weights_cache(model_name: str, cache_dir: str):
     """
-    Manages caching of pretrained model weights.
-    It syncs weights between a local project cache and the default torch hub cache.
+    Manages caching of pretrained model weights from torchvision.
+    If weights are not in the cache, it downloads them and then copies them to the cache.
+    If they are in the cache, it sets the torch hub directory to the cache to use them.
+    
+    Returns a function that can be called to sync weights back to the cache if they were downloaded.
     """
-    try:
-        from torchvision.models import ResNet18_Weights, ResNet50_Weights
-    except ImportError:
-        logging.warning("torchvision not found, cannot manage weights cache.")
-        return
-
-    model_weights_map = {
-        "resnet18": ResNet18_Weights.IMAGENET1K_V1,
-        "resnet50": ResNet50_Weights.IMAGENET1K_V1,
-    }
-
-    if model_name not in model_weights_map:
-        logging.warning(f"No pretrained weights mapping for '{model_name}'. Skipping cache handling.")
-        return
-
-    weights = model_weights_map[model_name]
-    weights_filename = os.path.basename(weights.url)
+    torch_hub_dir = os.path.join(cache_dir, 'torch_hub')
+    os.environ['TORCH_HOME'] = torch_hub_dir
     
-    # Define paths
-    hub_dir = os.path.expanduser("~/.cache/torch/hub/checkpoints")
-    source_path = os.path.join(cache_dir, "torch_hub", "checkpoints", weights_filename)
-    dest_path = os.path.join(hub_dir, weights_filename)
-
-    # Ensure directories exist
-    os.makedirs(os.path.dirname(source_path), exist_ok=True)
-    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    model_weights_dir = os.path.join(torch_hub_dir, 'checkpoints')
     
-    # Sync from local cache to hub cache
-    if os.path.exists(source_path) and not os.path.exists(dest_path):
-        logging.info(f"Copying cached weights '{weights_filename}' to torch hub.")
-        shutil.copy(source_path, dest_path)
+    # Construct the expected filename for the resnet18 weights
+    # Note: This could be fragile if torchvision changes its naming scheme.
+    if model_name == 'resnet18':
+        # Hash is from the official torchvision resnet18 model URL.
+        expected_filename = 'resnet18-f37072fd.pth' 
+    else:
+        # This function can be extended to support other models by adding their expected filenames
+        logging.warning(f"Weight caching not yet configured for model '{model_name}'. Weights will be downloaded to default torch hub location.")
+        return None
 
-    # After model loading, sync from hub cache to local cache
-    # This part is tricky as it should be called after the download.
-    # The calling function should handle this. For now, we add a function to call post-download
+    expected_filepath = os.path.join(model_weights_dir, expected_filename)
     
+    sync_back_needed = not os.path.exists(expected_filepath)
+    
+    if sync_back_needed:
+        logging.info(f"Pretrained weights for '{model_name}' not found in cache. They will be downloaded.")
+        # Temporarily unset TORCH_HOME to allow download to the default location
+        # This is a workaround for some environments where direct download to a custom path fails.
+        del os.environ['TORCH_HOME']
+    else:
+        logging.info(f"Found pretrained weights for '{model_name}' in cache: {expected_filepath}")
+
     def sync_weights_to_local_cache():
-        if os.path.exists(dest_path) and not os.path.exists(source_path):
-            logging.info(f"Caching downloaded weights '{weights_filename}' to local project cache.")
-            shutil.copy(dest_path, source_path)
-            
-    # The initial sync is done. The caller should use the returned function
-    # after the potential download.
-    return sync_weights_to_local_cache 
+        # This function will be called *after* the model has been downloaded.
+        default_torch_hub = torch.hub.get_dir()
+        default_weights_path = os.path.join(default_torch_hub, 'checkpoints', expected_filename)
+        
+        if os.path.exists(default_weights_path):
+            logging.info(f"Syncing downloaded weights to local cache: {expected_filepath}")
+            os.makedirs(model_weights_dir, exist_ok=True)
+            shutil.copy(default_weights_path, expected_filepath)
+        else:
+            logging.warning("Could not find downloaded weights in default torch hub to sync back.")
+
+    return sync_weights_to_local_cache if sync_back_needed else None 
