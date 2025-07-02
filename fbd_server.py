@@ -302,36 +302,39 @@ def server_collect_from_clients(r, args):
         for i in range(args.num_clients):
             filepath = os.path.join(args.comm_dir, f"response_round_{r}_client_{i}.pth")
             if os.path.exists(filepath):
-                data = torch.load(filepath)
-                
-                # Process the client's update
-                loss = data.get("train_loss")
-                updated_weights = data.get("updated_weights")
-                updated_optimizer_states = data.get("updated_optimizer_states")
-                round_losses.append(loss)
-                
-                logger.info(f"Server: Received update from client {i} for round {r}, loss: {loss:.4f}")
+                try:
+                    data = torch.load(filepath)
+                    
+                    # Process the client's update
+                    loss = data.get("train_loss")
+                    updated_weights = data.get("updated_weights")
+                    updated_optimizer_states = data.get("updated_optimizer_states")
+                    round_losses.append(loss)
+                    
+                    logger.info(f"Server: Received update from client {i} for round {r}, loss: {loss:.4f}")
 
-                if updated_weights:
-                    logger.info(f"Server: Received {len(updated_weights)} weight blocks from client {i}: {list(updated_weights.keys())}")
-                    warehouse.store_weights_batch(updated_weights)
-                    print(f"Server: Stored {len(updated_weights)} weight blocks from client {i}")
-                else:
-                    logger.warning(f"Server: Client {i} sent no updated weights!")
-                    print(f"Server: WARNING - Client {i} sent no updated weights!")
-                
-                if updated_optimizer_states:
-                    logger.info(f"Server: Received {len(updated_optimizer_states)} optimizer states from client {i}.")
-                    warehouse.store_optimizer_state_batch(updated_optimizer_states)
-                
-                if updated_weights or updated_optimizer_states:
-                    # Save the warehouse so the evaluation function can load the latest state
-                    warehouse.save_warehouse(warehouse_path)
-                    logger.info(f"Server: Warehouse updated by client {i} and saved.")
-                
-                # Mark as collected by renaming or deleting the file to avoid recounting
-                os.remove(filepath) 
-                collected_clients += 1
+                    if updated_weights:
+                        logger.info(f"Server: Received {len(updated_weights)} weight blocks from client {i}: {list(updated_weights.keys())}")
+                        warehouse.store_weights_batch(updated_weights)
+                        print(f"Server: Stored {len(updated_weights)} weight blocks from client {i}")
+                    else:
+                        logger.warning(f"Server: Client {i} sent no updated weights!")
+                        print(f"Server: WARNING - Client {i} sent no updated weights!")
+                    
+                    if updated_optimizer_states:
+                        logger.info(f"Server: Received {len(updated_optimizer_states)} optimizer states from client {i}.")
+                        warehouse.store_optimizer_state_batch(updated_optimizer_states)
+                    
+                    if updated_weights or updated_optimizer_states:
+                        # Save the warehouse so the evaluation function can load the latest state
+                        warehouse.save_warehouse(warehouse_path)
+                        logger.info(f"Server: Warehouse updated by client {i} and saved.")
+                    
+                    # Mark as collected by renaming or deleting the file to avoid recounting
+                    os.remove(filepath) 
+                    collected_clients += 1
+                except Exception as e:
+                    logger.warning(f"Server: Failed to load response from client {i}. File may be locked. Will retry. Error: {e}")
         time.sleep(args.poll_interval)
     
     # After collecting from all clients, print summary
