@@ -23,7 +23,7 @@ def main():
     parser.add_argument("--model_flag", type=str, default="resnet18", help="Model flag.")
     parser.add_argument("--comm_dir", type=str, default="fbd_comm", help="Directory for communication files.")
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
-    parser.add_argument("--poll_interval", type=float, default=0.5, help="Polling interval in seconds for file checks.")
+    parser.add_argument("--poll_interval", type=float, default=1.0, help="Polling interval in seconds for file checks.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     args = parser.parse_args()
 
