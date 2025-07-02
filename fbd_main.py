@@ -35,6 +35,8 @@ def main():
     # Define temporary and final output directories. The experiment runs in a temporary location
     # and is moved to the final destination only upon successful completion.
     temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
+    args.comm_dir = os.path.join(temp_output_dir, "fbd_comm")
+    os.makedirs(args.comm_dir, exist_ok=True)
     final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
     
     # Clean up the temporary directory from any previous failed runs
