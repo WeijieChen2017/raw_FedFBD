@@ -21,6 +21,7 @@ import numpy as np
 import argparse
 import importlib.util
 from collections import Counter
+from scipy.stats import mode
 
 def _get_scores(model, data_loader, task, device):
     """Runs the model on the data and returns the raw scores."""
@@ -586,32 +587,29 @@ def evaluate_server_model(args, model_color, model_name, dataset, test_dataset, 
             logger.error("No valid hybrid model predictions were generated. Aborting ensemble evaluation.")
             return
 
-        # Calculate Majority Vote Ratio
-        true_labels = test_dataset.labels.flatten()
-        member_predictions = np.argmax(np.array(all_y_scores), axis=2) # Shape: (num_ensemble, num_samples)
-        
-        # Calculate Majority Vote accuracy and Mean Member Accuracy
-        num_correct_majority_vote = 0
-        # The comparison below is likely buggy, but we calculate it for diagnostics.
-        num_correct_individual_votes = np.sum(member_predictions == true_labels.reshape(1, -1))
+        # Calculate Majority Vote Accuracy
+        true_labels = test_dataset.labels.flatten() # Shape (num_samples,)
+        # member_predictions shape: (num_ensemble, num_samples)
+        member_predictions = np.argmax(np.array(all_y_scores), axis=2)
 
-        # Iterate through each sample to find the majority vote
-        for i in range(member_predictions.shape[1]): # Iterate over samples
-            sample_votes = member_predictions[:, i] # All votes for the i-th sample
-            vote_counts = Counter(sample_votes)
-            majority_class, _ = vote_counts.most_common(1)[0]
-            
-            if majority_class == true_labels[i]:
-                num_correct_majority_vote += 1
-        
+        # Transpose to get (num_samples, num_ensemble) as suggested
+        votes_by_sample = member_predictions.T
+
+        # Calculate majority vote accuracy using scipy.stats.mode
+        # The result includes the mode and the count; we only need the mode.
+        majority_votes, _ = mode(votes_by_sample, axis=1, keepdims=False)
+
+        num_correct_majority = np.sum(majority_votes == true_labels)
         num_samples = len(true_labels)
-        majority_vote_accuracy = num_correct_majority_vote / num_samples if num_samples > 0 else 0
-        
+        majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
+
+        # Also calculate mean member accuracy for diagnostics
+        num_correct_individual = np.sum(member_predictions == true_labels.reshape(1, -1))
         total_individual_votes = member_predictions.size
-        mean_member_accuracy = num_correct_individual_votes / total_individual_votes if total_individual_votes > 0 else 0
+        mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
 
         logger.info(f"Ensemble Majority Vote Accuracy: {majority_vote_accuracy:.5f}")
-        logger.info(f"Ensemble Mean Member Accuracy: {mean_member_accuracy:.5f} ({num_correct_individual_votes}/{total_individual_votes} correct individual votes)")
+        logger.info(f"Ensemble Mean Member Accuracy: {mean_member_accuracy:.5f} ({num_correct_individual}/{total_individual_votes} correct individual votes)")
         print(f"Server - Ensemble: Majority Vote Acc = {majority_vote_accuracy:.5f}, Mean Member Acc = {mean_member_accuracy:.5f}")
 
         # 4. Average the scores and evaluate
