@@ -269,9 +269,22 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
             
             # Calculate mean member accuracy for diagnostics
-            num_correct_individual = np.sum(member_predictions == true_labels.reshape(1, -1))
-            total_individual_votes = member_predictions.size
-            mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
+            print(f"Debug - member_predictions final shape: {member_predictions.shape}")
+            print(f"Debug - true_labels shape: {true_labels.shape}")
+            
+            # Fix broadcasting issue: member_predictions is (num_models, num_samples), true_labels is (num_samples,)
+            # We need to reshape true_labels to (1, num_samples) to broadcast correctly
+            true_labels_reshaped = true_labels.reshape(1, -1)
+            print(f"Debug - true_labels_reshaped shape: {true_labels_reshaped.shape}")
+            
+            # Ensure shapes are compatible for broadcasting
+            if member_predictions.shape[1] != true_labels_reshaped.shape[1]:
+                print(f"Warning: Shape mismatch - member_predictions: {member_predictions.shape}, true_labels: {true_labels_reshaped.shape}")
+                mean_member_accuracy = 0.0
+            else:
+                num_correct_individual = np.sum(member_predictions == true_labels_reshaped)
+                total_individual_votes = member_predictions.size
+                mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
 
             print(f"Ensemble complete: {total_ensemble_members} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Mean Confidence: {mean_confidence:.3f}")
 
