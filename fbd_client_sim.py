@@ -108,13 +108,84 @@ def assemble_model_from_plan(model, received_weights, update_plan):
     model.load_state_dict(full_state_dict, strict=False)
 
 def build_optimizer_with_state(model, optimizer_states, trainable_params, device, default_lr=0.001):
-    """Build optimizer with state if available - simplified for simulation"""
+    """Build optimizer with state if available"""
     optimizer = optim.Adam(trainable_params, lr=default_lr)
+    
+    if not optimizer_states:
+        return optimizer
+    
+    # Create a mapping from parameter to its position in optimizer.param_groups
+    param_to_index = {}
+    param_index = 0
+    for group in optimizer.param_groups:
+        for param in group['params']:
+            param_to_index[param] = param_index
+            param_index += 1
+    
+    # Create a mapping from parameter name to parameter object
+    name_to_param = dict(model.named_parameters())
+    
+    # Load optimizer states from all relevant blocks
+    for block_id, block_state in optimizer_states.items():
+        if 'state' not in block_state:
+            continue
+            
+        for param_name, param_state in block_state['state'].items():
+            if param_name in name_to_param:
+                param = name_to_param[param_name]
+                if param in param_to_index:
+                    param_idx = param_to_index[param]
+                    
+                    # Initialize optimizer state for this parameter
+                    optimizer.state[param] = {}
+                    
+                    # Load momentum/Adam states
+                    for state_key, state_value in param_state.items():
+                        if isinstance(state_value, torch.Tensor):
+                            optimizer.state[param][state_key] = state_value.to(device)
+                        else:
+                            optimizer.state[param][state_key] = state_value
+    
     return optimizer
 
-def save_optimizer_state_by_block(optimizer, model, trainable_block_ids):
-    """Save optimizer state by block - simplified for simulation"""
-    return {}
+def save_optimizer_state_by_request_plan(optimizer, model, client_request_list, fbd_trace):
+    """Save optimizer state according to request_plan"""
+    optimizer_states = {}
+    
+    # Create mapping from parameter name to parameter object
+    name_to_param = dict(model.named_parameters())
+    
+    # Save optimizer states for blocks in the request list
+    for block_id in client_request_list:
+        if block_id in fbd_trace:
+            model_part = fbd_trace[block_id]['model_part']
+            block_states = {
+                'param_groups': [],
+                'state': {}
+            }
+            
+            # Save optimizer hyperparameters
+            for group in optimizer.param_groups:
+                group_info = {key: value for key, value in group.items() if key != 'params'}
+                block_states['param_groups'].append(group_info)
+            
+            # Save parameter states for this block
+            for param_name, param in name_to_param.items():
+                if param_name.startswith(model_part) and param in optimizer.state:
+                    param_state = {}
+                    for state_key, state_value in optimizer.state[param].items():
+                        if isinstance(state_value, torch.Tensor):
+                            param_state[state_key] = state_value.cpu().clone()
+                        else:
+                            param_state[state_key] = state_value
+                    
+                    if param_state:
+                        block_states['state'][param_name] = param_state
+            
+            if block_states['state']:
+                optimizer_states[block_id] = block_states
+    
+    return optimizer_states
 
 def simulate_client_task(client_id, data_partition, args, round_num, global_warehouse, client_shipping_list, client_update_plan):
     """Simulated client task that processes one round"""
@@ -126,6 +197,13 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
     with open(fbd_settings_path, 'r') as f:
         fbd_settings = json.load(f)
+    
+    # Load request plan to determine what blocks to send back
+    request_plan_path = f"config/{args.experiment_name}/request_plan.json"
+    with open(request_plan_path, 'r') as f:
+        request_plans = json.load(f)
+    
+    client_request_list = request_plans.get(str(round_num + 1), {}).get(str(client_id), [])
     
     # Get the assigned model color for this client and round
     training_schedule = fbd_settings.get('FBD_INFO', {}).get('training_plan', {}).get('schedule', {})
@@ -156,7 +234,15 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     
     # Get model weights and optimizer states from the warehouse
     model_weights = global_warehouse.get_shipping_weights(client_shipping_list)
-    optimizer_states = global_warehouse.get_shipping_optimizer_states(client_shipping_list)
+    all_optimizer_states = global_warehouse.get_shipping_optimizer_states(client_shipping_list)
+    
+    # Filter optimizer states to only include blocks for the assigned model color
+    fbd_trace = fbd_settings.get('FBD_TRACE', {})
+    assigned_model_blocks = [block_id for block_id, info in fbd_trace.items() 
+                           if info.get('color') == assigned_model_color]
+    
+    optimizer_states = {block_id: state for block_id, state in all_optimizer_states.items() 
+                       if block_id in assigned_model_blocks}
     
     # Build a local map from block_id to model_part from the update_plan
     block_id_to_model_part = {}
@@ -186,11 +272,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     # Freeze all parameters by default
     for param in model.parameters():
         param.requires_grad = False
-    
-    # Filter blocks to only train those belonging to the assigned model color
-    fbd_trace = fbd_settings.get('FBD_TRACE', {})
-    assigned_model_blocks = [block_id for block_id, info in fbd_trace.items() 
-                           if info.get('color') == assigned_model_color]
     
     # Unfreeze parameters of trainable parts that belong to the assigned model color
     model_to_update = client_update_plan.get('model_to_update', {})
@@ -225,23 +306,29 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
     test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
     
-    # Extract updated weights based on the update plan (only trainable parts for assigned model color)
+    # Extract updated weights based on the request_plan (send back specific block IDs)
     updated_weights = {}
     trained_state_dict = model.state_dict()
     
     # Combined comprehensive output line
     print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
     
-    for component_name, component_info in model_to_update.items():
-        if (component_info['status'] == 'trainable' and 
-            component_info['block_id'] in assigned_model_blocks):
-            block_id = component_info['block_id']
+    # Send back weights according to request_plan (organized by block IDs)
+    for block_id in client_request_list:
+        if block_id in fbd_trace:
+            model_part = fbd_trace[block_id]['model_part']
+            block_weights = {}
+            
+            # Extract parameters for this specific block
             for param_name, param_tensor in trained_state_dict.items():
-                if param_name.startswith(component_name):
-                    updated_weights[param_name] = param_tensor.detach().clone()
+                if param_name.startswith(model_part):
+                    block_weights[param_name] = param_tensor.detach().clone()
+            
+            if block_weights:
+                updated_weights[block_id] = block_weights
     
-    # Save optimizer states for trainable components
-    updated_optimizer_states = save_optimizer_state_by_block(optimizer, model, trainable_block_ids)
+    # Save optimizer states according to request_plan
+    updated_optimizer_states = save_optimizer_state_by_request_plan(optimizer, model, client_request_list, fbd_trace)
     
     # Return client response
     return {

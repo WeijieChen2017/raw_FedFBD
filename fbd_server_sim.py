@@ -393,9 +393,9 @@ def collect_and_evaluate_round(round_num, args, warehouse, client_responses):
         
         if updated_weights:
             warehouse.store_weights_batch(updated_weights)
-            # Debug: Check which blocks/colors are being updated
-            block_ids = [k for k in updated_weights.keys() if 'weight' in k][:3]  # Show first 3 weight keys
-            print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}, stored {len(updated_weights)} weight blocks (e.g., {block_ids})")
+            # Debug: Check which block IDs are being updated
+            block_ids = list(updated_weights.keys())[:3]  # Show first 3 block IDs
+            print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}, stored {len(updated_weights)} blocks (e.g., {block_ids})")
         else:
             print(f"Server: WARNING - Client {client_id} sent no updated weights!")
         
