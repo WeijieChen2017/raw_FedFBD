@@ -214,24 +214,63 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 return {"test_loss": metrics[0], "test_auc": metrics[1], "test_acc": metrics[2]}
 
             # Calculate ensemble metrics using majority voting
-            true_labels = test_dataset.labels.flatten()
             all_y_scores_array = np.array(all_y_scores)
             
             # Handle different task types
-            if task == 'binary-class':
+            if task == 'multi-label, binary-class':
+                # For multi-label, we need to handle each label independently
+                # all_y_scores shape: (num_models, num_samples, num_classes)
+                # true_labels shape: (num_samples, num_classes)
+                true_labels = test_dataset.labels.squeeze()
+                if len(true_labels.shape) == 1:
+                    true_labels = true_labels.reshape(-1, 1)
+                
+                # Convert sigmoid outputs to binary predictions for each label
+                member_predictions = (all_y_scores_array > 0.5).astype(int)
+                # Shape: (num_models, num_samples, num_classes)
+                
+                # Calculate majority vote for each label independently
+                # Mean across models, then threshold at 0.5
+                ensemble_predictions = np.mean(member_predictions, axis=0) > 0.5
+                # Shape: (num_samples, num_classes)
+                
+                # Calculate accuracy (exact match - all labels must match)
+                exact_match = np.all(ensemble_predictions == true_labels, axis=1)
+                num_correct_majority = np.sum(exact_match)
+                num_samples = len(true_labels)
+                majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
+                
+                # Also calculate Hamming accuracy (per-label accuracy)
+                hamming_accuracy = np.mean(ensemble_predictions == true_labels)
+                
+                mean_member_accuracy = hamming_accuracy  # Use Hamming accuracy for multi-label
+                
+            elif task == 'binary-class':
                 # For binary classification, scores are shape (num_models, num_samples, 1)
+                true_labels = test_dataset.labels.flatten()
                 # Convert sigmoid outputs to binary predictions
                 member_predictions = (all_y_scores_array.squeeze(axis=2) > 0.5).astype(int)
             else:
                 # For multi-class, scores are shape (num_models, num_samples, num_classes)
+                true_labels = test_dataset.labels.flatten()
                 member_predictions = np.argmax(all_y_scores_array, axis=2)
             
-            votes_by_sample = member_predictions.T  # Shape: (num_samples, num_ensemble_members)
-            
-            # Calculate majority vote for each sample and voting confidence
-            majority_votes = []
-            vote_confidences = []
-            total_ensemble_members = votes_by_sample.shape[1]
+            # Skip single-label voting logic for multi-label tasks
+            if task == 'multi-label, binary-class':
+                # Multi-label metrics were already calculated above
+                mean_confidence = 0.0
+                min_confidence = 0.0
+                max_confidence = 0.0
+                high_confidence_samples = 0
+                medium_confidence_samples = 0
+                low_confidence_samples = 0
+            else:
+                votes_by_sample = member_predictions.T  # Shape: (num_samples, num_ensemble_members)
+                
+                # Calculate majority vote for each sample and voting confidence
+                majority_votes = []
+                vote_confidences = []
+                total_ensemble_members = votes_by_sample.shape[1]
             
             for sample_idx in range(votes_by_sample.shape[0]):
                 sample_votes = votes_by_sample[sample_idx]
@@ -269,24 +308,29 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
             
             # Calculate mean member accuracy for diagnostics
-            print(f"Debug - member_predictions final shape: {member_predictions.shape}")
-            print(f"Debug - true_labels shape: {true_labels.shape}")
-            
-            # Fix broadcasting issue: member_predictions is (num_models, num_samples), true_labels is (num_samples,)
-            # We need to reshape true_labels to (1, num_samples) to broadcast correctly
-            true_labels_reshaped = true_labels.reshape(1, -1)
-            print(f"Debug - true_labels_reshaped shape: {true_labels_reshaped.shape}")
+            if task != 'multi-label, binary-class':
+                print(f"Debug - member_predictions final shape: {member_predictions.shape}")
+                print(f"Debug - true_labels shape: {true_labels.shape}")
+                
+                # Fix broadcasting issue: member_predictions is (num_models, num_samples), true_labels is (num_samples,)
+                # We need to reshape true_labels to (1, num_samples) to broadcast correctly
+                true_labels_reshaped = true_labels.reshape(1, -1)
+                print(f"Debug - true_labels_reshaped shape: {true_labels_reshaped.shape}")
             
             # Ensure shapes are compatible for broadcasting
-            if member_predictions.shape[1] != true_labels_reshaped.shape[1]:
-                print(f"Warning: Shape mismatch - member_predictions: {member_predictions.shape}, true_labels: {true_labels_reshaped.shape}")
-                mean_member_accuracy = 0.0
-            else:
-                num_correct_individual = np.sum(member_predictions == true_labels_reshaped)
-                total_individual_votes = member_predictions.size
-                mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
+            if task != 'multi-label, binary-class':
+                if member_predictions.shape[1] != true_labels_reshaped.shape[1]:
+                    print(f"Warning: Shape mismatch - member_predictions: {member_predictions.shape}, true_labels: {true_labels_reshaped.shape}")
+                    mean_member_accuracy = 0.0
+                else:
+                    num_correct_individual = np.sum(member_predictions == true_labels_reshaped)
+                    total_individual_votes = member_predictions.size
+                    mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
 
-            print(f"Ensemble complete: {total_ensemble_members} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Mean Confidence: {mean_confidence:.3f}")
+            if task == 'multi-label, binary-class':
+                print(f"Ensemble complete: {len(all_y_scores)} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Hamming Acc: {hamming_accuracy:.4f}")
+            else:
+                print(f"Ensemble complete: {total_ensemble_members} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Mean Confidence: {mean_confidence:.3f}")
 
             # Average the scores and evaluate (for loss and AUC metrics)
             averaged_scores = np.mean(all_y_scores, axis=0)
