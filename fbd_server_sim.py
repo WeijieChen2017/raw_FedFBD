@@ -279,7 +279,10 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             model_weights = warehouse.get_model_weights(model_color)
             if model_weights:
                 model.load_state_dict(model_weights)
-                print(f"  Evaluating {model_color}: loaded {len(model_weights)} parameters")
+                # Debug: Check a sample weight to see if models are actually different
+                sample_param = next(iter(model_weights.values()))
+                param_sum = float(sample_param.sum()) if hasattr(sample_param, 'sum') else 0
+                print(f"  Evaluating {model_color}: loaded {len(model_weights)} parameters, sample param sum: {param_sum:.6f}")
             else:
                 print(f"  Warning: No weights found for {model_color}")
                 return {"test_loss": 0.0, "test_auc": 0.0, "test_acc": 0.0}
@@ -389,7 +392,9 @@ def collect_and_evaluate_round(round_num, args, warehouse, client_responses):
         
         if updated_weights:
             warehouse.store_weights_batch(updated_weights)
-            print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}, stored {len(updated_weights)} weight blocks")
+            # Debug: Check which blocks/colors are being updated
+            block_ids = [k for k in updated_weights.keys() if 'weight' in k][:3]  # Show first 3 weight keys
+            print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}, stored {len(updated_weights)} weight blocks (e.g., {block_ids})")
         else:
             print(f"Server: WARNING - Client {client_id} sent no updated weights!")
         
