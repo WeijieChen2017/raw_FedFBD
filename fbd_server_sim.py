@@ -11,6 +11,25 @@ from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_utils import load_fbd_settings, FBDWarehouse
 from fbd_dataset import DATASET_SPECIFIC_RULES
 
+def _get_scores(model, data_loader, task, device):
+    """Runs the model on the data and returns the raw scores."""
+    model.eval()
+    y_score = torch.tensor([]).to(device)
+    with torch.no_grad():
+        for inputs, _ in data_loader:
+            outputs = model(inputs.to(device))
+            
+            if task == 'multi-label, binary-class':
+                m = nn.Sigmoid()
+                outputs = m(outputs)
+            else:
+                m = nn.Softmax(dim=1)
+                outputs = m(outputs)
+            
+            y_score = torch.cat((y_score, outputs), 0)
+            
+    return y_score.detach().cpu().numpy()
+
 def _test_model(model, evaluator, data_loader, task, criterion, device):
     """Core testing logic for server-side model evaluation"""
     model.eval()
@@ -76,7 +95,20 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 # Average the weights
                 averaged_weights = {}
                 for key in all_model_weights[0].keys():
-                    averaged_weights[key] = torch.stack([weights[key] for weights in all_model_weights]).mean(dim=0)
+                    # Get all tensors for this key
+                    tensors = [weights[key] for weights in all_model_weights]
+                    
+                    # Check if all tensors have the same dtype and are floating point
+                    first_tensor = tensors[0]
+                    if all(t.dtype == first_tensor.dtype for t in tensors) and first_tensor.dtype.is_floating_point:
+                        # Safe to average floating point tensors
+                        averaged_weights[key] = torch.stack(tensors).mean(dim=0)
+                    else:
+                        # For non-floating point tensors (like indices) or mixed dtypes, use the first model's weights
+                        averaged_weights[key] = first_tensor.clone()
+                        if not first_tensor.dtype.is_floating_point:
+                            print(f"Warning: Cannot average non-floating point tensor '{key}' (dtype: {first_tensor.dtype}). Using first model's weights.")
+                
                 model.load_state_dict(averaged_weights)
             else:
                 # Fallback to M0 if averaging fails
@@ -84,9 +116,170 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 model.load_state_dict(model_weights)
                 
         elif model_color == "ensemble":
-            # For ensemble, use M0 as placeholder (simplified)
-            model_weights = warehouse.get_model_weights("M0")
-            model.load_state_dict(model_weights)
+            # Implement block-wise ensemble evaluation
+            print(f"Starting block-wise ensemble evaluation for {args.num_ensemble} models...")
+            
+            # Load settings from the experiment's FBD config file
+            fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+            with open(fbd_settings_path, 'r') as f:
+                fbd_settings = json.load(f)
+            
+            ensemble_colors_pool = fbd_settings.get('ENSEMBLE_COLORS', [])
+            model_parts_pool = fbd_settings.get('MODEL_PARTS', [])
+            fbd_trace = fbd_settings.get('FBD_TRACE', {})
+
+            if not all([ensemble_colors_pool, model_parts_pool, fbd_trace]):
+                print("Ensemble settings missing. Falling back to M0.")
+                model_weights = warehouse.get_model_weights("M0")
+                model.load_state_dict(model_weights)
+                model.to(device)
+                metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+                return {"test_loss": metrics[0], "test_auc": metrics[1], "test_acc": metrics[2]}
+
+            # Create a reverse map for easy lookup: (part, color) -> block_id
+            part_color_to_block_id = {
+                (info['model_part'], info['color']): block_id
+                for block_id, info in fbd_trace.items()
+            }
+
+            # Generate ensemble predictions
+            import random
+            from scipy.stats import mode
+            import numpy as np
+            
+            all_y_scores = []
+            print(f"Generating {args.num_ensemble} hybrid models for the ensemble...")
+
+            for i in range(args.num_ensemble):
+                # Create a random hybrid model configuration
+                hybrid_config = {part: random.choice(ensemble_colors_pool) for part in model_parts_pool}
+                print(f"  Hybrid Model {i+1}/{args.num_ensemble} config: {hybrid_config}")
+                
+                # Assemble weights for the hybrid model
+                hybrid_weights = {}
+                is_valid_config = True
+                for part, color in hybrid_config.items():
+                    block_id = part_color_to_block_id.get((part, color))
+                    if block_id is None:
+                        print(f"Could not find block_id for part '{part}' and color '{color}'. Skipping this hybrid model.")
+                        is_valid_config = False
+                        break
+                    
+                    block_weights = warehouse.retrieve_weights(block_id)
+                    if not block_weights:
+                        print(f"Could not retrieve weights for block '{block_id}'. Skipping this hybrid model.")
+                        is_valid_config = False
+                        break
+                    
+                    hybrid_weights.update(block_weights)
+                
+                if not is_valid_config:
+                    continue
+                
+                # Create and evaluate hybrid model
+                hybrid_model = get_pretrained_fbd_model(
+                    architecture=args.model_flag,
+                    norm=args.norm, 
+                    in_channels=args.in_channels, 
+                    num_classes=args.num_classes,
+                    use_pretrained=False
+                )
+                hybrid_model.load_state_dict(hybrid_weights)
+                hybrid_model.to(device)
+                
+                # Get scores from hybrid model
+                y_score = _get_scores(hybrid_model, test_loader, task, device)
+                all_y_scores.append(y_score)
+
+            if not all_y_scores:
+                print("No valid hybrid model predictions were generated. Falling back to M0.")
+                model_weights = warehouse.get_model_weights("M0")
+                model.load_state_dict(model_weights)
+                model.to(device)
+                metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+                return {"test_loss": metrics[0], "test_auc": metrics[1], "test_acc": metrics[2]}
+
+            # Calculate ensemble metrics using majority voting
+            true_labels = test_dataset.labels.flatten()
+            member_predictions = np.argmax(np.array(all_y_scores), axis=2)
+            votes_by_sample = member_predictions.T  # Shape: (num_samples, num_ensemble_members)
+            
+            # Calculate majority vote for each sample and voting confidence
+            majority_votes = []
+            vote_confidences = []
+            total_ensemble_members = votes_by_sample.shape[1]
+            
+            for sample_idx in range(votes_by_sample.shape[0]):
+                sample_votes = votes_by_sample[sample_idx]
+                
+                # Count votes for each class
+                unique_votes, vote_counts = np.unique(sample_votes, return_counts=True)
+                
+                # Find the majority vote (class with most votes)
+                majority_class_idx = np.argmax(vote_counts)
+                majority_class = unique_votes[majority_class_idx]
+                majority_count = vote_counts[majority_class_idx]
+                
+                majority_votes.append(majority_class)
+                
+                # Calculate confidence as ratio of majority votes to total votes
+                confidence = majority_count / total_ensemble_members
+                vote_confidences.append(confidence)
+            
+            majority_votes = np.array(majority_votes)
+            vote_confidences = np.array(vote_confidences)
+            
+            # Calculate accuracy
+            num_correct_majority = np.sum(majority_votes == true_labels)
+            num_samples = len(true_labels)
+            majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
+            
+            # Calculate voting statistics
+            mean_confidence = np.mean(vote_confidences)
+            min_confidence = np.min(vote_confidences)
+            max_confidence = np.max(vote_confidences)
+            
+            # Count samples by confidence level
+            high_confidence_samples = np.sum(vote_confidences >= 0.8)  # 80%+ agreement
+            medium_confidence_samples = np.sum((vote_confidences >= 0.6) & (vote_confidences < 0.8))  # 60-80% agreement
+            low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
+            
+            # Calculate mean member accuracy for diagnostics
+            num_correct_individual = np.sum(member_predictions == true_labels.reshape(1, -1))
+            total_individual_votes = member_predictions.size
+            mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
+
+            print(f"Ensemble Evaluation ({total_ensemble_members} members):")
+            print(f"  Majority Vote Accuracy: {majority_vote_accuracy:.5f}")
+            print(f"  Mean Member Accuracy: {mean_member_accuracy:.5f}")
+            print(f"  Vote Confidence - Mean: {mean_confidence:.3f}, Range: [{min_confidence:.3f}, {max_confidence:.3f}]")
+            print(f"  Confidence Distribution - High (≥80%): {high_confidence_samples}/{num_samples}, Medium (60-80%): {medium_confidence_samples}/{num_samples}, Low (<60%): {low_confidence_samples}/{num_samples}")
+            
+            # Additional: Show some example voting patterns for debugging
+            if num_samples >= 5:
+                print(f"  Sample Voting Examples (first 5 samples):")
+                for i in range(min(5, num_samples)):
+                    sample_votes = votes_by_sample[i]
+                    unique_votes, vote_counts = np.unique(sample_votes, return_counts=True)
+                    vote_summary = ", ".join([f"Class {cls}: {count}/{total_ensemble_members}" for cls, count in zip(unique_votes, vote_counts)])
+                    majority_class = majority_votes[i]
+                    confidence = vote_confidences[i]
+                    true_label = true_labels[i]
+                    correct = "✓" if majority_class == true_label else "✗"
+                    print(f"    Sample {i}: [{vote_summary}] → Majority: Class {majority_class} ({confidence:.1%}) {correct} (True: Class {true_label})")
+
+            # Average the scores and evaluate (for loss and AUC metrics)
+            averaged_scores = np.mean(all_y_scores, axis=0)
+            
+            # Create evaluator and calculate metrics
+            auc, _ = test_evaluator.evaluate(averaged_scores, None, None)
+            
+            # For ensemble, we'll use majority vote accuracy and averaged AUC
+            return {
+                "test_loss": 0.0,  # Loss not meaningful for ensemble 
+                "test_auc": auc,
+                "test_acc": majority_vote_accuracy
+            }
         else:
             # Get weights for specific model color (M0, M1, M2, etc.)
             model_weights = warehouse.get_model_weights(model_color)
@@ -216,19 +409,37 @@ def collect_and_evaluate_round(round_num, args, warehouse, client_responses):
     print(f"Server: Evaluating all models at end of round {round_num}...")
     round_eval_results = {'round': round_num}
     
+    # Store results for summary output
+    model_results = []
+    
     # Evaluate individual models M0 to M5
     for model_idx in range(6):
         model_color = f"M{model_idx}"
         metrics = evaluate_server_model(args, model_color, args.model_flag, args.experiment_name, args.test_dataset, warehouse)
         round_eval_results[model_color] = metrics
+        auc = metrics.get("test_auc", 0.0)
+        acc = metrics.get("test_acc", 0.0)
+        model_results.append(f"{model_color}: AUC={auc:.4f}, ACC={acc:.4f}")
     
     # Evaluate averaged model
     avg_metrics = evaluate_server_model(args, "averaging", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
     round_eval_results["averaging"] = avg_metrics
+    auc = avg_metrics.get("test_auc", 0.0)
+    acc = avg_metrics.get("test_acc", 0.0)
+    model_results.append(f"Averaging: AUC={auc:.4f}, ACC={acc:.4f}")
     
     # Evaluate ensemble model
     ensemble_metrics = evaluate_server_model(args, "ensemble", args.model_flag, args.experiment_name, args.test_dataset, warehouse)
     round_eval_results["ensemble"] = ensemble_metrics
+    auc = ensemble_metrics.get("test_auc", 0.0)
+    acc = ensemble_metrics.get("test_acc", 0.0)
+    model_results.append(f"Ensemble: AUC={auc:.4f}, ACC={acc:.4f}")
+    
+    # Print summary
+    print(f"\n🔍 Round {round_num} Evaluation:")
+    for result in model_results:
+        print(f"  {result}")
+    print()
     
     return round_eval_results
 
