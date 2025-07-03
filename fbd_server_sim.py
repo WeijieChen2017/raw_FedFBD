@@ -122,16 +122,17 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 
         elif model_color == "ensemble":
             # Implement block-wise ensemble evaluation
-            print(f"Starting block-wise ensemble evaluation for {args.num_ensemble} models...")
-            
             # Load settings from the experiment's FBD config file
             fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
             with open(fbd_settings_path, 'r') as f:
                 fbd_settings = json.load(f)
             
+            ensemble_size = fbd_settings.get('ENSEMBLE_SIZE', args.num_ensemble)
             ensemble_colors_pool = fbd_settings.get('ENSEMBLE_COLORS', [])
             model_parts_pool = fbd_settings.get('MODEL_PARTS', [])
             fbd_trace = fbd_settings.get('FBD_TRACE', {})
+            
+            print(f"Starting block-wise ensemble evaluation for {ensemble_size} models...")
 
             if not all([ensemble_colors_pool, model_parts_pool, fbd_trace]):
                 print("Ensemble settings missing. Falling back to M0.")
@@ -154,13 +155,13 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             from tqdm import tqdm
             
             all_y_scores = []
-            print(f"Generating {args.num_ensemble} hybrid models for ensemble evaluation...")
+            print(f"Generating {ensemble_size} hybrid models for ensemble evaluation...")
             
             # Temporarily suppress model creation logging during ensemble generation
             model_logger_level = logging.getLogger('fbd_model_ckpt').level
             logging.getLogger('fbd_model_ckpt').setLevel(logging.ERROR)
 
-            for i in tqdm(range(args.num_ensemble), desc="Generating hybrid models"):
+            for i in tqdm(range(ensemble_size), desc="Generating hybrid models"):
                 # Create a random hybrid model configuration
                 hybrid_config = {part: random.choice(ensemble_colors_pool) for part in model_parts_pool}
                 

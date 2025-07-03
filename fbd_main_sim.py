@@ -159,28 +159,12 @@ def main():
     args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     args.num_classes = len(info['label'])
     
-    # Load additional configuration from config.json
-    try:
-        config = load_config(args.experiment_name, args.model_flag)
-        args_dict = vars(args)
-        for key, value in vars(config).items():
-            if key not in ['num_classes', 'task', 'n_channels']:
-                args_dict[key] = value
-    except Exception as e:
-        print(f"Warning: Could not load config.json, using defaults: {e}")
-        # Set defaults for required parameters
-        args.num_clients = 6
-        args.num_rounds = 30
-        args.batch_size = 128
-        args.local_learning_rate = 0.001
-        args.local_epochs = 1
-        args.size = 28
-        args.num_ensemble = 24
-        args.seed = 42
-        args.remove_communication = False
-        args.training_save_dir = "fbd_results"
-        args.norm = "bn"  # Batch normalization
-        args.in_channels = 3  # RGB images
+    # Load additional configuration from config.json (required)
+    config = load_config(args.experiment_name, args.model_flag)
+    args_dict = vars(args)
+    for key, value in vars(config).items():
+        if key not in ['num_classes', 'task', 'n_channels']:
+            args_dict[key] = value
     
     # Set output directory for simulation
     args.output_dir = f"fbd_sim_{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
