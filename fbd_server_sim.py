@@ -271,44 +271,43 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 majority_votes = []
                 vote_confidences = []
                 total_ensemble_members = votes_by_sample.shape[1]
-            
-            for sample_idx in range(votes_by_sample.shape[0]):
-                sample_votes = votes_by_sample[sample_idx]
                 
-                # Count votes for each class
-                unique_votes, vote_counts = np.unique(sample_votes, return_counts=True)
+                for sample_idx in range(votes_by_sample.shape[0]):
+                    sample_votes = votes_by_sample[sample_idx]
+                    
+                    # Count votes for each class
+                    unique_votes, vote_counts = np.unique(sample_votes, return_counts=True)
+                    
+                    # Find the majority vote (class with most votes)
+                    majority_class_idx = np.argmax(vote_counts)
+                    majority_class = unique_votes[majority_class_idx]
+                    majority_count = vote_counts[majority_class_idx]
+                    
+                    majority_votes.append(majority_class)
+                    
+                    # Calculate confidence as ratio of majority votes to total votes
+                    confidence = majority_count / total_ensemble_members
+                    vote_confidences.append(confidence)
                 
-                # Find the majority vote (class with most votes)
-                majority_class_idx = np.argmax(vote_counts)
-                majority_class = unique_votes[majority_class_idx]
-                majority_count = vote_counts[majority_class_idx]
+                majority_votes = np.array(majority_votes)
+                vote_confidences = np.array(vote_confidences)
                 
-                majority_votes.append(majority_class)
+                # Calculate accuracy
+                num_correct_majority = np.sum(majority_votes == true_labels)
+                num_samples = len(true_labels)
+                majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
                 
-                # Calculate confidence as ratio of majority votes to total votes
-                confidence = majority_count / total_ensemble_members
-                vote_confidences.append(confidence)
-            
-            majority_votes = np.array(majority_votes)
-            vote_confidences = np.array(vote_confidences)
-            
-            # Calculate accuracy
-            num_correct_majority = np.sum(majority_votes == true_labels)
-            num_samples = len(true_labels)
-            majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
-            
-            # Calculate voting statistics
-            mean_confidence = np.mean(vote_confidences)
-            min_confidence = np.min(vote_confidences)
-            max_confidence = np.max(vote_confidences)
-            
-            # Count samples by confidence level
-            high_confidence_samples = np.sum(vote_confidences >= 0.8)  # 80%+ agreement
-            medium_confidence_samples = np.sum((vote_confidences >= 0.6) & (vote_confidences < 0.8))  # 60-80% agreement
-            low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
-            
-            # Calculate mean member accuracy for diagnostics
-            if task != 'multi-label, binary-class':
+                # Calculate voting statistics
+                mean_confidence = np.mean(vote_confidences)
+                min_confidence = np.min(vote_confidences)
+                max_confidence = np.max(vote_confidences)
+                
+                # Count samples by confidence level
+                high_confidence_samples = np.sum(vote_confidences >= 0.8)  # 80%+ agreement
+                medium_confidence_samples = np.sum((vote_confidences >= 0.6) & (vote_confidences < 0.8))  # 60-80% agreement
+                low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
+                
+                # Calculate mean member accuracy for diagnostics
                 print(f"Debug - member_predictions final shape: {member_predictions.shape}")
                 print(f"Debug - true_labels shape: {true_labels.shape}")
                 
@@ -316,9 +315,8 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 # We need to reshape true_labels to (1, num_samples) to broadcast correctly
                 true_labels_reshaped = true_labels.reshape(1, -1)
                 print(f"Debug - true_labels_reshaped shape: {true_labels_reshaped.shape}")
-            
-            # Ensure shapes are compatible for broadcasting
-            if task != 'multi-label, binary-class':
+                
+                # Ensure shapes are compatible for broadcasting
                 if member_predictions.shape[1] != true_labels_reshaped.shape[1]:
                     print(f"Warning: Shape mismatch - member_predictions: {member_predictions.shape}, true_labels: {true_labels_reshaped.shape}")
                     mean_member_accuracy = 0.0
