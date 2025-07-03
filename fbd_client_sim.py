@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import medmnist
+import logging
 from medmnist import INFO, Evaluator
 import torch.utils.data as data
 import torchvision.transforms as transforms
@@ -9,6 +10,9 @@ from collections import Counter
 
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_dataset import get_data_loader, DATASET_SPECIFIC_RULES
+
+# Suppress logging from fbd_model_ckpt to reduce noise
+logging.getLogger('fbd_model_ckpt').setLevel(logging.WARNING)
 
 def _test_model(model, evaluator, data_loader, task, criterion, device):
     """Core testing logic for client-side model evaluation"""
@@ -196,12 +200,13 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     
     # Train the model
     loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device)
-    print(f"Client {client_id} Round {round_num}: Training complete. Loss: {loss:.4f}")
     
     # Evaluate the model on the test set
     test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
     test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
-    print(f"Client {client_id} Round {round_num}: Test Loss: {test_loss:.4f}, Test AUC: {test_auc:.4f}, Test Acc: {test_acc:.4f}")
+    
+    # Combined training and test results output
+    print(f"Client {client_id} Round {round_num}: Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f}")
     
     # Extract updated weights based on the update plan (only trainable parts)
     updated_weights = {}

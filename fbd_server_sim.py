@@ -6,10 +6,14 @@ import medmnist
 from medmnist import INFO, Evaluator
 import torch.utils.data as data
 import torchvision.transforms as transforms
+import logging
 
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_utils import load_fbd_settings, FBDWarehouse
 from fbd_dataset import DATASET_SPECIFIC_RULES
+
+# Suppress logging from fbd_model_ckpt to reduce noise
+logging.getLogger('fbd_model_ckpt').setLevel(logging.WARNING)
 
 def _get_scores(model, data_loader, task, device):
     """Runs the model on the data and returns the raw scores."""
@@ -106,7 +110,8 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                     else:
                         # For non-floating point tensors (like indices) or mixed dtypes, use the first model's weights
                         averaged_weights[key] = first_tensor.clone()
-                        if not first_tensor.dtype.is_floating_point:
+                        # Only warn for unexpected non-floating point tensors (skip common BatchNorm counters)
+                        if not first_tensor.dtype.is_floating_point and not key.endswith('num_batches_tracked'):
                             print(f"Warning: Cannot average non-floating point tensor '{key}' (dtype: {first_tensor.dtype}). Using first model's weights.")
                 
                 model.load_state_dict(averaged_weights)
@@ -148,12 +153,15 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             import numpy as np
             
             all_y_scores = []
-            print(f"Generating {args.num_ensemble} hybrid models for the ensemble...")
+            print(f"Generating {args.num_ensemble} hybrid models for ensemble evaluation...")
+            
+            # Temporarily suppress model creation logging during ensemble generation
+            model_logger_level = logging.getLogger('fbd_model_ckpt').level
+            logging.getLogger('fbd_model_ckpt').setLevel(logging.ERROR)
 
             for i in range(args.num_ensemble):
                 # Create a random hybrid model configuration
                 hybrid_config = {part: random.choice(ensemble_colors_pool) for part in model_parts_pool}
-                print(f"  Hybrid Model {i+1}/{args.num_ensemble} config: {hybrid_config}")
                 
                 # Assemble weights for the hybrid model
                 hybrid_weights = {}
@@ -191,6 +199,9 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 y_score = _get_scores(hybrid_model, test_loader, task, device)
                 all_y_scores.append(y_score)
 
+            # Restore original logging level
+            logging.getLogger('fbd_model_ckpt').setLevel(model_logger_level)
+            
             if not all_y_scores:
                 print("No valid hybrid model predictions were generated. Falling back to M0.")
                 model_weights = warehouse.get_model_weights("M0")
@@ -249,24 +260,7 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             total_individual_votes = member_predictions.size
             mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
 
-            print(f"Ensemble Evaluation ({total_ensemble_members} members):")
-            print(f"  Majority Vote Accuracy: {majority_vote_accuracy:.5f}")
-            print(f"  Mean Member Accuracy: {mean_member_accuracy:.5f}")
-            print(f"  Vote Confidence - Mean: {mean_confidence:.3f}, Range: [{min_confidence:.3f}, {max_confidence:.3f}]")
-            print(f"  Confidence Distribution - High (≥80%): {high_confidence_samples}/{num_samples}, Medium (60-80%): {medium_confidence_samples}/{num_samples}, Low (<60%): {low_confidence_samples}/{num_samples}")
-            
-            # Additional: Show some example voting patterns for debugging
-            if num_samples >= 5:
-                print(f"  Sample Voting Examples (first 5 samples):")
-                for i in range(min(5, num_samples)):
-                    sample_votes = votes_by_sample[i]
-                    unique_votes, vote_counts = np.unique(sample_votes, return_counts=True)
-                    vote_summary = ", ".join([f"Class {cls}: {count}/{total_ensemble_members}" for cls, count in zip(unique_votes, vote_counts)])
-                    majority_class = majority_votes[i]
-                    confidence = vote_confidences[i]
-                    true_label = true_labels[i]
-                    correct = "✓" if majority_class == true_label else "✗"
-                    print(f"    Sample {i}: [{vote_summary}] → Majority: Class {majority_class} ({confidence:.1%}) {correct} (True: Class {true_label})")
+            print(f"Ensemble complete: {total_ensemble_members} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Mean Confidence: {mean_confidence:.3f}")
 
             # Average the scores and evaluate (for loss and AUC metrics)
             averaged_scores = np.mean(all_y_scores, axis=0)
@@ -388,17 +382,13 @@ def collect_and_evaluate_round(round_num, args, warehouse, client_responses):
         updated_optimizer_states = response.get("updated_optimizer_states")
         round_losses.append(loss)
         
-        print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}")
-        
         if updated_weights:
-            print(f"Server: Received {len(updated_weights)} weight blocks from client {client_id}: {list(updated_weights.keys())}")
             warehouse.store_weights_batch(updated_weights)
-            print(f"Server: Stored {len(updated_weights)} weight blocks from client {client_id}")
+            print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}, stored {len(updated_weights)} weight blocks")
         else:
             print(f"Server: WARNING - Client {client_id} sent no updated weights!")
         
         if updated_optimizer_states:
-            print(f"Server: Received {len(updated_optimizer_states)} optimizer states from client {client_id}.")
             warehouse.store_optimizer_state_batch(updated_optimizer_states)
     
     # Print summary
