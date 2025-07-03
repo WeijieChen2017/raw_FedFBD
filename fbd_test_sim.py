@@ -45,15 +45,28 @@ def perform_final_ensemble_prediction(args):
     Returns:
         pandas.DataFrame: Table with columns 'sample_id', 'c_i', 'z_i', 'true_label', 'predicted_label'
     """
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_dir, exist_ok=True)
+    
     # Setup logging
-    logger = setup_logger("FBD_Test", "fbd_test_sim.log")
+    log_file = os.path.join(args.output_dir, "fbd_test_sim.log")
+    logger = setup_logger("FBD_Test", log_file)
     logger.info("Starting final ensemble prediction...")
     
-    # Load warehouse
+    # Load warehouse - check for both standard and round-specific names
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
     if not os.path.exists(warehouse_path):
-        logger.error(f"Warehouse file not found: {warehouse_path}")
-        raise FileNotFoundError(f"Warehouse file not found: {warehouse_path}")
+        # Look for warehouse files with round numbers
+        import glob
+        warehouse_pattern = os.path.join(args.comm_dir, "fbd_warehouse_round_*.pth")
+        warehouse_files = glob.glob(warehouse_pattern)
+        if warehouse_files:
+            # Use the latest round warehouse file
+            warehouse_path = max(warehouse_files, key=lambda x: int(x.split('_round_')[1].split('.')[0]))
+            logger.info(f"Using warehouse file: {warehouse_path}")
+        else:
+            logger.error(f"No warehouse file found in {args.comm_dir}")
+            raise FileNotFoundError(f"No warehouse file found in {args.comm_dir}")
     
     # Load FBD settings
     fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
