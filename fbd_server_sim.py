@@ -436,10 +436,17 @@ def prepare_test_dataset(args):
     DataClass = getattr(medmnist, info['python_class'])
     # Use as_rgb setting from config instead of hardcoded rules
     as_rgb = getattr(args, 'as_rgb', False)
-    data_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[.5], std=[.5])
-    ])
+    # Use 3-channel normalization when in_channels=3 (for ResNet)
+    if args.in_channels == 3:
+        data_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5, .5, .5], std=[.5, .5, .5])
+        ])
+    else:
+        data_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])
+        ])
     test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
     print("Server: Test dataset prepared.")
     return test_dataset

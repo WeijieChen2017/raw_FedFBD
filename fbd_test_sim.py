@@ -108,10 +108,17 @@ def perform_final_ensemble_prediction(args):
     dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
     as_rgb = dataset_rules.get("as_rgb", False)
     
-    data_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[.5], std=[.5])
-    ])
+    # Use 3-channel normalization when in_channels=3 (for ResNet)
+    if args.in_channels == 3:
+        data_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5, .5, .5], std=[.5, .5, .5])
+        ])
+    else:
+        data_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])
+        ])
     
     test_dataset = DataClass(
         split='test', 
@@ -140,6 +147,7 @@ def perform_final_ensemble_prediction(args):
     logger.info("Gathering predictions from ensemble models...")
     all_model_scores = []
     
+    # First, add individual color models
     for model_color in final_test_colors:
         logger.info(f"Processing model {model_color}...")
         
@@ -160,6 +168,46 @@ def perform_final_ensemble_prediction(args):
         scores = _get_scores(model, test_loader, task, device)
         all_model_scores.append(scores)
         logger.info(f"Got predictions from {model_color}, shape: {scores.shape}")
+    
+    # Add the averaging model
+    logger.info("Creating and evaluating averaged model from all colors...")
+    all_color_models = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5']  # All possible colors
+    all_model_weights = []
+    
+    for color in all_color_models:
+        weights = warehouse.get_model_weights(color)
+        if weights:
+            all_model_weights.append(weights)
+        else:
+            logger.warning(f"No weights found for color {color} in averaging")
+    
+    if len(all_model_weights) > 0:
+        # Average the weights
+        averaged_weights = {}
+        param_keys = all_model_weights[0].keys()
+        
+        for key in param_keys:
+            if all_model_weights[0][key].is_floating_point():
+                # Average floating point parameters
+                averaged_weights[key] = torch.stack([w[key] for w in all_model_weights]).mean(dim=0)
+            else:
+                # For non-floating point tensors (e.g., BatchNorm counters), use first model
+                averaged_weights[key] = all_model_weights[0][key]
+        
+        # Create averaged model and get predictions
+        averaged_model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        ).to(device)
+        
+        averaged_model.load_state_dict(averaged_weights)
+        averaged_scores = _get_scores(averaged_model, test_loader, task, device)
+        all_model_scores.append(averaged_scores)
+        logger.info(f"Got predictions from averaged model, shape: {averaged_scores.shape}")
+        logger.info(f"Averaged {len(all_model_weights)} models: {[f'M{i}' for i in range(len(all_model_weights))]}")
 
     if not all_model_scores:
         logger.error("No valid model predictions gathered. Aborting.")
@@ -260,14 +308,28 @@ def main():
         
         # Save detailed results to JSON
         results_json_path = os.path.join(args.output_dir, "final_ensemble_results.json")
+        
+        # Convert DataFrame to dict and ensure all values are JSON serializable
+        per_sample_results = []
+        for _, row in results_df.iterrows():
+            per_sample_results.append({
+                'sample_id': int(row['sample_id']),
+                'c_i': float(row['c_i']),
+                'z_i': int(row['z_i']),
+                'true_label': int(row['true_label']),
+                'predicted_label': int(row['predicted_label']),
+                'majority_count': int(row['majority_count']),
+                'total_votes': int(row['total_votes'])
+            })
+        
         results_dict = {
             'summary': {
                 'overall_accuracy': float(results_df['z_i'].mean()),
                 'mean_confidence': float(results_df['c_i'].mean()),
                 'num_samples': len(results_df),
-                'num_models': results_df['total_votes'].iloc[0] if len(results_df) > 0 else 0
+                'num_models': int(results_df['total_votes'].iloc[0]) if len(results_df) > 0 else 0
             },
-            'per_sample_results': results_df.to_dict('records')
+            'per_sample_results': per_sample_results
         }
         
         with open(results_json_path, 'w') as f:
