@@ -123,7 +123,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     
     # Create the DataLoader for the client's partition
     train_loader = get_data_loader(data_partition, args.batch_size)
-    print(f"Client {client_id}: Created dataloader with {len(data_partition)} samples.")
     
     if not client_shipping_list:
         print(f"Client {client_id}: No shipping plan for round {round_num}. Skipping.")
@@ -145,8 +144,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     model_weights = global_warehouse.get_shipping_weights(client_shipping_list)
     optimizer_states = global_warehouse.get_shipping_optimizer_states(client_shipping_list)
     
-    print(f"Client {client_id} Round {round_num}: Received {len(client_shipping_list)} model parts.")
-    
     # Build a local map from block_id to model_part from the update_plan
     block_id_to_model_part = {}
     if client_update_plan:
@@ -164,10 +161,10 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     )
     
     # Assemble the model using the received plan and weights
+    num_tensors = 0
     if client_update_plan:
         assemble_model_from_plan(model, model_weights, client_update_plan)
         num_tensors = len(model.state_dict())
-        print(f"Client {client_id}: Assembled model with {num_tensors} tensors.")
     
     # Set trainability of parameters and configure optimizer
     model.to(device)
@@ -205,13 +202,13 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
     test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
     
-    # Combined training and test results output
-    print(f"Client {client_id} Round {round_num}: Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f}")
-    
     # Extract updated weights based on the update plan (only trainable parts)
     updated_weights = {}
     trained_state_dict = model.state_dict()
-    print(f"Client {client_id}: Extracting weights for trainable components: {list(model_to_update.keys())}")
+    trainable_components = list(model_to_update.keys())
+    
+    # Combined comprehensive output line
+    print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Trainable: {trainable_components}")
     
     for component_name, component_info in model_to_update.items():
         if component_info['status'] == 'trainable':
