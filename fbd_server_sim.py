@@ -2,6 +2,7 @@ import json
 import os
 import torch
 import torch.nn as nn
+import numpy as np
 import medmnist
 from medmnist import INFO, Evaluator
 import torch.utils.data as data
@@ -214,7 +215,17 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
 
             # Calculate ensemble metrics using majority voting
             true_labels = test_dataset.labels.flatten()
-            member_predictions = np.argmax(np.array(all_y_scores), axis=2)
+            all_y_scores_array = np.array(all_y_scores)
+            
+            # Handle different task types
+            if task == 'binary-class':
+                # For binary classification, scores are shape (num_models, num_samples, 1)
+                # Convert sigmoid outputs to binary predictions
+                member_predictions = (all_y_scores_array.squeeze(axis=2) > 0.5).astype(int)
+            else:
+                # For multi-class, scores are shape (num_models, num_samples, num_classes)
+                member_predictions = np.argmax(all_y_scores_array, axis=2)
+            
             votes_by_sample = member_predictions.T  # Shape: (num_samples, num_ensemble_members)
             
             # Calculate majority vote for each sample and voting confidence
