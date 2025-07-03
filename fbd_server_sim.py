@@ -1,4 +1,5 @@
 import json
+import os
 import torch
 import torch.nn as nn
 import medmnist
@@ -71,10 +72,20 @@ def initialize_server_simulation(args):
     """Initialize the server simulation environment"""
     print("Server: Initializing simulation...")
     
+    # Set up cache directory if not provided
+    if not args.cache_dir:
+        args.cache_dir = os.path.join(os.getcwd(), "cache")
+        print(f"Cache directory not set, using default: {args.cache_dir}")
+    
+    if not os.path.exists(args.cache_dir):
+        os.makedirs(args.cache_dir)
+    
     # Initialize FBD Warehouse
     fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
     
+    # Create model template directly without loading from file
+    # In simulation, we don't need to save/load - just create fresh each time
     model_template = get_pretrained_fbd_model(
         architecture=args.model_flag,
         norm=args.norm,
@@ -82,8 +93,6 @@ def initialize_server_simulation(args):
         num_classes=args.num_classes,
         use_pretrained=True
     )
-    initial_model_path = f"{args.cache_dir}/initial_{args.model_flag}.pth"
-    model_template.load_state_dict(torch.load(initial_model_path))
     
     warehouse = FBDWarehouse(
         fbd_trace=fbd_trace,
