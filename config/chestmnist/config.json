@@ -6,7 +6,7 @@
     "num_classes": 14,
     "num_clients": 6,
     "num_rounds": 30,
-    "batch_size": 128,
+    "batch_size": 256,
     "download": true,
     "resize": false,
     "as_rgb": true,
