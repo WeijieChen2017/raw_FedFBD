@@ -14,10 +14,13 @@ from collections import defaultdict
 def load_experiment_settings(experiment_name):
     """Loads the fbd_settings.json for a given experiment."""
     config_path = os.path.join("config", experiment_name, "fbd_settings.json")
+    print(f"DEBUG: Loading FBD settings from: {config_path}")
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Settings file not found for experiment '{experiment_name}' at: {config_path}")
     with open(config_path, 'r') as f:
-        return json.load(f)
+        settings = json.load(f)
+    print(f"DEBUG: Loaded settings for experiment: {experiment_name}")
+    return settings
 
 def generate_model_to_blocks_mapping(settings):
     """Generate mapping from model colors to their block IDs, ordered by layer."""
@@ -62,6 +65,9 @@ def generate_plans(settings):
             current_round += 1
     
     total_rounds = len(round_to_parts_to_update)
+    print(f"DEBUG: Generated {total_rounds} rounds from UPDATE_SCHEDULE")
+    print(f"DEBUG: round_to_parts_to_update keys: {list(round_to_parts_to_update.keys())}")
+    print(f"DEBUG: OUTER_ROUNDS_TOTAL from fbd_settings: {FBD_INFO['training_plan']['outer_rounds_total']}")
     
     for outer_round in range(total_rounds):
         sched_idx = outer_round % FBD_INFO["training_plan"]["rounds"]
