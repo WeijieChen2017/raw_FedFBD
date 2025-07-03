@@ -205,12 +205,21 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     
     client_request_list = request_plans.get(str(round_num + 1), {}).get(str(client_id), [])
     
-    # Get the assigned model color for this client and round
-    training_schedule = fbd_settings.get('FBD_INFO', {}).get('training_plan', {}).get('schedule', {})
-    assigned_model_color = training_schedule.get(str(round_num), {}).get(str(client_id), None)
+    # Get the assigned model color from what the update_plan tells us to train
+    fbd_trace = fbd_settings.get('FBD_TRACE', {})
+    assigned_model_color = None
+    
+    if client_update_plan and 'model_to_update' in client_update_plan:
+        # Find the model color from the first trainable block in update_plan
+        for component_name, component_info in client_update_plan['model_to_update'].items():
+            if component_info.get('status') == 'trainable':
+                block_id = component_info.get('block_id')
+                if block_id in fbd_trace:
+                    assigned_model_color = fbd_trace[block_id]['color']
+                    break
     
     if not assigned_model_color:
-        print(f"Client {client_id}: No assigned model color for round {round_num}. Skipping.")
+        print(f"Client {client_id}: No trainable blocks in update_plan for round {round_num}. Skipping.")
         return None
     
     # Create the DataLoader for the client's partition
