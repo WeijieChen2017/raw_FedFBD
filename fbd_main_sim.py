@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import time
+import shutil
 import medmnist
 import logging
 import torch
@@ -166,9 +167,21 @@ def main():
         if key not in ['num_classes', 'task', 'n_channels']:
             args_dict[key] = value
     
-    # Set output directory for simulation
-    args.output_dir = f"fbd_sim_{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}"
-    os.makedirs(args.output_dir, exist_ok=True)
+    # Define temporary and final output directories (like original fbd_main.py)
+    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
+    
+    # Clean up the temporary directory from any previous failed runs
+    if os.path.exists(temp_output_dir):
+        import shutil
+        shutil.rmtree(temp_output_dir)
+    os.makedirs(temp_output_dir)
+    
+    args.output_dir = temp_output_dir
+    
+    # Set up logging directory (like original)
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    os.makedirs(log_dir, exist_ok=True)
     
     # Initialize server simulation
     warehouse = initialize_server_simulation(args)
@@ -213,13 +226,44 @@ def main():
         round_eval_results = collect_and_evaluate_round(r, args, warehouse, client_responses)
         server_evaluation_history.append(round_eval_results)
         
-        # Save results
-        history_save_path = os.path.join(args.output_dir, "server_evaluation_history.json")
+        # Save results to eval_results directory (like original)
+        eval_results_dir = os.path.join(args.output_dir, "eval_results")
+        os.makedirs(eval_results_dir, exist_ok=True)
+        
+        # Save individual model results for this round
+        for model_color, metrics in round_eval_results.items():
+            if model_color != 'round':
+                model_dir = os.path.join(eval_results_dir, args.experiment_name, args.model_flag, model_color)
+                os.makedirs(model_dir, exist_ok=True)
+                
+                result_file = os.path.join(model_dir, f"round_{r}_eval_metrics.json")
+                with open(result_file, 'w') as f:
+                    json.dump({
+                        "round": r,
+                        "model_color": model_color,
+                        "model_name": args.model_flag,
+                        "dataset": args.experiment_name,
+                        **metrics
+                    }, f, indent=4)
+        
+        # Save complete server evaluation history
+        history_save_path = os.path.join(eval_results_dir, "server_evaluation_history.json")
         with open(history_save_path, 'w') as f:
             json.dump(server_evaluation_history, f, indent=4)
-        print(f"Server evaluation history updated for round {r}")
+            
+        # Save warehouse state after each round
+        warehouse_save_path = os.path.join(args.output_dir, f"fbd_warehouse_round_{r}.pth")
+        warehouse.save_warehouse(warehouse_save_path)
+        
+        print(f"Server evaluation history and warehouse updated for round {r}")
     
-    print(f"\nSimulation complete! Results saved to: {args.output_dir}")
+    # Move the temporary run folder to its final destination (like original)
+    try:
+        shutil.move(temp_output_dir, final_output_dir)
+        print(f"\nSimulation complete! Results saved to: {final_output_dir}")
+    except Exception as e:
+        print(f"Error moving results to final destination: {e}")
+        print(f"Results remain in: {temp_output_dir}")
 
 if __name__ == "__main__":
     main()
