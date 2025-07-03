@@ -105,12 +105,29 @@ def initialize_server_simulation(args):
 
 def load_simulation_plans(args):
     """Load shipping and update plans for simulation"""
-    # Load shipping and update plans
     shipping_plan_path = f"config/{args.experiment_name}/shipping_plan.json"
+    update_plan_path = f"config/{args.experiment_name}/update_plan.json"
+    
+    # Check if plans exist, if not generate them
+    if not os.path.exists(shipping_plan_path) or not os.path.exists(update_plan_path):
+        print(f"Plans not found for {args.experiment_name}. Generating plans...")
+        try:
+            import subprocess
+            result = subprocess.run([
+                "python3", "fbd_generate_plan.py", 
+                "--experiment_name", args.experiment_name
+            ], capture_output=True, text=True, check=True)
+            print("Plans generated successfully!")
+        except subprocess.CalledProcessError as e:
+            print(f"Error generating plans: {e}")
+            print(f"stdout: {e.stdout}")
+            print(f"stderr: {e.stderr}")
+            raise
+    
+    # Load shipping and update plans
     with open(shipping_plan_path, 'r') as f:
         shipping_plans = json.load(f)
     
-    update_plan_path = f"config/{args.experiment_name}/update_plan.json"
     with open(update_plan_path, 'r') as f:
         update_plans = json.load(f)
     
