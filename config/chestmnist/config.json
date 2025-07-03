@@ -11,7 +11,7 @@
     "resize": false,
     "as_rgb": true,
     "size": 28,
-    "num_ensemble": 24,
+    "num_ensemble": 8,
     "seed": 42,
     "local_learning_rate": 0.0005,
     "local_epochs": 1,
