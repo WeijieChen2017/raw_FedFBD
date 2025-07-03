@@ -1,0 +1,282 @@
+#!/usr/bin/env python3
+
+import os
+import json
+import argparse
+import torch
+import torch.nn as nn
+import numpy as np
+import pandas as pd
+from collections import Counter
+import logging
+
+import medmnist
+from medmnist import INFO, Evaluator
+import torch.utils.data as data
+import torchvision.transforms as transforms
+
+from fbd_model_ckpt import get_pretrained_fbd_model
+from fbd_utils import load_fbd_settings, FBDWarehouse, setup_logger
+from fbd_dataset import DATASET_SPECIFIC_RULES
+
+def _get_scores(model, data_loader, task, device):
+    """Runs the model on the data and returns the raw scores."""
+    model.eval()
+    y_score = torch.tensor([]).to(device)
+    with torch.no_grad():
+        for inputs, _ in data_loader:
+            outputs = model(inputs.to(device))
+            
+            if task == 'multi-label, binary-class':
+                m = nn.Sigmoid()
+                outputs = m(outputs)
+            else:
+                m = nn.Softmax(dim=1)
+                outputs = m(outputs)
+            
+            y_score = torch.cat((y_score, outputs), 0)
+            
+    return y_score.detach().cpu().numpy()
+
+def perform_final_ensemble_prediction(args):
+    """
+    Performs final ensemble prediction on test data and returns detailed results.
+    
+    Returns:
+        pandas.DataFrame: Table with columns 'sample_id', 'c_i', 'z_i', 'true_label', 'predicted_label'
+    """
+    # Setup logging
+    logger = setup_logger("FBD_Test", "fbd_test_sim.log")
+    logger.info("Starting final ensemble prediction...")
+    
+    # Load warehouse
+    warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
+    if not os.path.exists(warehouse_path):
+        logger.error(f"Warehouse file not found: {warehouse_path}")
+        raise FileNotFoundError(f"Warehouse file not found: {warehouse_path}")
+    
+    # Load FBD settings
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+    try:
+        with open(fbd_settings_path, 'r') as f:
+            fbd_settings = json.load(f)
+        
+        fbd_trace = fbd_settings.get('FBD_TRACE', {})
+        final_test_colors = fbd_settings.get('FINAL_TEST_COLORS', [])
+        
+        if not final_test_colors:
+            logger.warning("FINAL_TEST_COLORS not found in fbd_settings.json. Using default ensemble colors.")
+            final_test_colors = fbd_settings.get('ENSEMBLE_COLORS', ['M0', 'M1', 'M2', 'M3', 'M4', 'M5'])
+            
+    except FileNotFoundError:
+        logger.error(f"FBD settings file not found: {fbd_settings_path}")
+        raise
+    
+    # Initialize warehouse
+    model_template = get_pretrained_fbd_model(
+        architecture=args.model_flag,
+        norm=args.norm,
+        in_channels=args.in_channels,
+        num_classes=args.num_classes,
+        use_pretrained=False
+    )
+    
+    warehouse = FBDWarehouse(
+        fbd_trace=fbd_trace,
+        model_template=model_template,
+        log_file_path=os.path.join(args.comm_dir, "warehouse.log")
+    )
+    warehouse.load_warehouse(warehouse_path)
+    logger.info(f"Loaded warehouse from {warehouse_path}")
+    
+    # Prepare test dataset
+    info = INFO[args.experiment_name]
+    DataClass = getattr(medmnist, info['python_class'])
+    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
+    as_rgb = dataset_rules.get("as_rgb", False)
+    
+    data_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5])
+    ])
+    
+    test_dataset = DataClass(
+        split='test', 
+        transform=data_transform, 
+        download=True, 
+        as_rgb=as_rgb, 
+        size=args.size
+    )
+    
+    test_loader = data.DataLoader(
+        dataset=test_dataset, 
+        batch_size=args.batch_size, 
+        shuffle=False
+    )
+    
+    # Setup device and task
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    task = info['task']
+    
+    logger.info(f"Using device: {device}")
+    logger.info(f"Task: {task}")
+    logger.info(f"Test dataset size: {len(test_dataset)}")
+    logger.info(f"Ensemble colors: {final_test_colors}")
+    
+    # Get predictions from each model in the ensemble
+    logger.info("Gathering predictions from ensemble models...")
+    all_model_scores = []
+    
+    for model_color in final_test_colors:
+        logger.info(f"Processing model {model_color}...")
+        
+        model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        ).to(device)
+        
+        model_weights = warehouse.get_model_weights(model_color)
+        if not model_weights:
+            logger.warning(f"No weights found for model {model_color}. Skipping.")
+            continue
+            
+        model.load_state_dict(model_weights)
+        scores = _get_scores(model, test_loader, task, device)
+        all_model_scores.append(scores)
+        logger.info(f"Got predictions from {model_color}, shape: {scores.shape}")
+
+    if not all_model_scores:
+        logger.error("No valid model predictions gathered. Aborting.")
+        raise RuntimeError("No valid model predictions gathered.")
+    
+    # Calculate ensemble predictions using majority vote
+    logger.info("Calculating ensemble predictions...")
+    
+    # Convert scores to predictions (argmax for each model)
+    votes = np.stack([np.argmax(scores, axis=1) for scores in all_model_scores], axis=1)
+    # votes shape: (num_samples, num_models)
+    
+    true_labels = test_dataset.labels.squeeze()
+    num_samples = len(true_labels)
+    num_models = votes.shape[1]
+    
+    # Calculate c_i (confidence) and z_i (correctness) for each sample
+    results_data = []
+    
+    for i in range(num_samples):
+        sample_votes = votes[i, :]
+        vote_counts = Counter(sample_votes)
+        
+        # Get majority vote
+        majority_class, majority_count = vote_counts.most_common(1)[0]
+        
+        # Calculate c_i: ratio of majority votes
+        c_i = majority_count / num_models
+        
+        # Calculate z_i: 1 if majority vote matches true label, 0 otherwise
+        z_i = 1 if majority_class == true_labels[i] else 0
+        
+        results_data.append({
+            'sample_id': i,
+            'c_i': c_i,
+            'z_i': z_i,
+            'true_label': int(true_labels[i]),
+            'predicted_label': int(majority_class),
+            'majority_count': majority_count,
+            'total_votes': num_models
+        })
+    
+    # Create DataFrame
+    results_df = pd.DataFrame(results_data)
+    
+    # Calculate summary statistics
+    overall_accuracy = results_df['z_i'].mean()
+    mean_confidence = results_df['c_i'].mean()
+    
+    logger.info(f"Final ensemble results:")
+    logger.info(f"  Overall accuracy: {overall_accuracy:.4f}")
+    logger.info(f"  Mean confidence: {mean_confidence:.4f}")
+    logger.info(f"  Number of samples: {num_samples}")
+    logger.info(f"  Number of models: {num_models}")
+    
+    return results_df
+
+def main():
+    parser = argparse.ArgumentParser(description="FBD Final Ensemble Test")
+    parser.add_argument("--experiment_name", type=str, required=True, 
+                       help="Name of the experiment")
+    parser.add_argument("--model_flag", type=str, required=True, 
+                       help="Model architecture (e.g., resnet18)")
+    parser.add_argument("--norm", type=str, required=True, 
+                       help="Normalization type")
+    parser.add_argument("--in_channels", type=int, required=True, 
+                       help="Number of input channels")
+    parser.add_argument("--num_classes", type=int, required=True, 
+                       help="Number of output classes")
+    parser.add_argument("--size", type=int, default=224, 
+                       help="Image size")
+    parser.add_argument("--batch_size", type=int, default=128, 
+                       help="Batch size for evaluation")
+    parser.add_argument("--comm_dir", type=str, default="fbd_comm", 
+                       help="Communication directory containing warehouse")
+    parser.add_argument("--output_dir", type=str, default="final_results", 
+                       help="Output directory for results")
+    parser.add_argument("--final_ensemble", action="store_true", 
+                       help="Perform final ensemble prediction")
+    
+    args = parser.parse_args()
+    
+    if not args.final_ensemble:
+        print("Use --final_ensemble flag to perform final ensemble prediction")
+        return
+    
+    # Create output directory
+    os.makedirs(args.output_dir, exist_ok=True)
+    
+    try:
+        # Perform final ensemble prediction
+        results_df = perform_final_ensemble_prediction(args)
+        
+        # Save results to CSV
+        results_csv_path = os.path.join(args.output_dir, "final_ensemble_results.csv")
+        results_df.to_csv(results_csv_path, index=False)
+        print(f"Results saved to: {results_csv_path}")
+        
+        # Save detailed results to JSON
+        results_json_path = os.path.join(args.output_dir, "final_ensemble_results.json")
+        results_dict = {
+            'summary': {
+                'overall_accuracy': float(results_df['z_i'].mean()),
+                'mean_confidence': float(results_df['c_i'].mean()),
+                'num_samples': len(results_df),
+                'num_models': results_df['total_votes'].iloc[0] if len(results_df) > 0 else 0
+            },
+            'per_sample_results': results_df.to_dict('records')
+        }
+        
+        with open(results_json_path, 'w') as f:
+            json.dump(results_dict, f, indent=2)
+        print(f"Detailed results saved to: {results_json_path}")
+        
+        # Print summary
+        print("\n" + "="*50)
+        print("FINAL ENSEMBLE RESULTS SUMMARY")
+        print("="*50)
+        print(f"Overall Accuracy: {results_df['z_i'].mean():.4f}")
+        print(f"Mean Confidence: {results_df['c_i'].mean():.4f}")
+        print(f"Number of samples: {len(results_df)}")
+        print(f"Number of models: {results_df['total_votes'].iloc[0] if len(results_df) > 0 else 0}")
+        
+        # Show first few samples
+        print("\nFirst 10 samples:")
+        print(results_df[['sample_id', 'c_i', 'z_i', 'true_label', 'predicted_label']].head(10))
+        
+    except Exception as e:
+        print(f"Error during final ensemble prediction: {e}")
+        raise
+
+if __name__ == "__main__":
+    main()
