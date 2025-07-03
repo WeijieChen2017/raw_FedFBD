@@ -151,6 +151,7 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             import random
             from scipy.stats import mode
             import numpy as np
+            from tqdm import tqdm
             
             all_y_scores = []
             print(f"Generating {args.num_ensemble} hybrid models for ensemble evaluation...")
@@ -159,7 +160,7 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             model_logger_level = logging.getLogger('fbd_model_ckpt').level
             logging.getLogger('fbd_model_ckpt').setLevel(logging.ERROR)
 
-            for i in range(args.num_ensemble):
+            for i in tqdm(range(args.num_ensemble), desc="Generating hybrid models"):
                 # Create a random hybrid model configuration
                 hybrid_config = {part: random.choice(ensemble_colors_pool) for part in model_parts_pool}
                 

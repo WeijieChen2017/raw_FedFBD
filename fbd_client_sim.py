@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import medmnist
 import logging
+import json
 from medmnist import INFO, Evaluator
 import torch.utils.data as data
 import torchvision.transforms as transforms
@@ -121,6 +122,19 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     info = INFO[args.experiment_name]
     task = info['task']
     
+    # Load FBD settings to get the training schedule
+    fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+    with open(fbd_settings_path, 'r') as f:
+        fbd_settings = json.load(f)
+    
+    # Get the assigned model color for this client and round
+    training_schedule = fbd_settings.get('FBD_INFO', {}).get('training_plan', {}).get('schedule', {})
+    assigned_model_color = training_schedule.get(str(round_num), {}).get(str(client_id), None)
+    
+    if not assigned_model_color:
+        print(f"Client {client_id}: No assigned model color for round {round_num}. Skipping.")
+        return None
+    
     # Create the DataLoader for the client's partition
     train_loader = get_data_loader(data_partition, args.batch_size)
     
@@ -173,12 +187,21 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     for param in model.parameters():
         param.requires_grad = False
     
-    # Unfreeze parameters of trainable parts
+    # Filter blocks to only train those belonging to the assigned model color
+    fbd_trace = fbd_settings.get('FBD_TRACE', {})
+    assigned_model_blocks = [block_id for block_id, info in fbd_trace.items() 
+                           if info.get('color') == assigned_model_color]
+    
+    # Unfreeze parameters of trainable parts that belong to the assigned model color
     model_to_update = client_update_plan.get('model_to_update', {})
     trainable_block_ids = []
+    trainable_components = []
+    
     for component_name, component_info in model_to_update.items():
-        if component_info['status'] == 'trainable':
+        if (component_info['status'] == 'trainable' and 
+            component_info['block_id'] in assigned_model_blocks):
             trainable_block_ids.append(component_info['block_id'])
+            trainable_components.append(component_name)
             for name, param in model.named_parameters():
                 if name.startswith(component_name):
                     param.requires_grad = True
@@ -202,16 +225,16 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
     test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
     
-    # Extract updated weights based on the update plan (only trainable parts)
+    # Extract updated weights based on the update plan (only trainable parts for assigned model color)
     updated_weights = {}
     trained_state_dict = model.state_dict()
-    trainable_components = list(model_to_update.keys())
     
     # Combined comprehensive output line
-    print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Trainable: {trainable_components}")
+    print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
     
     for component_name, component_info in model_to_update.items():
-        if component_info['status'] == 'trainable':
+        if (component_info['status'] == 'trainable' and 
+            component_info['block_id'] in assigned_model_blocks):
             block_id = component_info['block_id']
             for param_name, param_tensor in trained_state_dict.items():
                 if param_name.startswith(component_name):
