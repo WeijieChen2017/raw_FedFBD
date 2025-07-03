@@ -571,6 +571,25 @@ class FBDWarehouse:
         Args:
             filepath (str): Path to save the warehouse
         """
+        import os
+        import glob
+        
+        # Clean up old warehouse files if this is a round-based save
+        if 'fbd_warehouse_round_' in filepath:
+            # Get directory and base pattern
+            directory = os.path.dirname(filepath)
+            pattern = os.path.join(directory, 'fbd_warehouse_round_*.pth')
+            
+            # Find all existing warehouse files
+            existing_files = glob.glob(pattern)
+            
+            # Remove old files
+            for old_file in existing_files:
+                try:
+                    os.remove(old_file)
+                except OSError:
+                    pass
+        
         torch.save({
             'warehouse': self.warehouse,
             'fbd_trace': self.fbd_trace,
@@ -588,6 +607,60 @@ class FBDWarehouse:
         self.warehouse = checkpoint['warehouse']
         self.fbd_trace = checkpoint['fbd_trace']
         self.optimizer_states = checkpoint['optimizer_states']
+    
+    def save_round_evaluation(self, round_num, eval_metrics, save_dir):
+        """
+        Save evaluation metrics for a specific round.
+        
+        Args:
+            round_num (int): Current round number
+            eval_metrics (dict): Dictionary containing evaluation metrics
+            save_dir (str): Directory to save evaluation logs
+        """
+        import json
+        import os
+        import glob
+        
+        eval_file = os.path.join(save_dir, f'evaluation_round_{round_num}.json')
+        
+        # Remove old evaluation files to keep only latest
+        old_eval_files = glob.glob(os.path.join(save_dir, 'evaluation_round_*.json'))
+        for old_file in old_eval_files:
+            try:
+                os.remove(old_file)
+            except OSError:
+                pass
+        
+        # Save current evaluation
+        with open(eval_file, 'w') as f:
+            json.dump(eval_metrics, f, indent=2)
+
+    def save_client_training_metrics(self, round_num, client_metrics, save_dir):
+        """
+        Save training metrics for all clients in a specific round.
+        
+        Args:
+            round_num (int): Current round number
+            client_metrics (dict): Dictionary with client_id as key and metrics as value
+            save_dir (str): Directory to save training metrics
+        """
+        import json
+        import os
+        import glob
+        
+        metrics_file = os.path.join(save_dir, f'client_training_round_{round_num}.json')
+        
+        # Remove old client training files to keep only latest
+        old_metrics_files = glob.glob(os.path.join(save_dir, 'client_training_round_*.json'))
+        for old_file in old_metrics_files:
+            try:
+                os.remove(old_file)
+            except OSError:
+                pass
+        
+        # Save current client training metrics
+        with open(metrics_file, 'w') as f:
+            json.dump(client_metrics, f, indent=2)
 
 def generate_client_model_palettes(num_clients, fbd_file_path):
     """
