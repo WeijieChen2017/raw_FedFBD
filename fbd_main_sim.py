@@ -44,8 +44,6 @@ def client_dataset_distribution(total_samples, num_clients, variation_ratio=0.3,
     
     # Start with equal distribution
     base_samples_per_client = total_samples // num_clients
-    print(f"Debug: total_samples={total_samples}, num_clients={num_clients}, base_samples_per_client={base_samples_per_client}")
-    
     # Generate random variations for each client
     client_samples = []
     remaining_samples = total_samples
@@ -63,7 +61,6 @@ def client_dataset_distribution(total_samples, num_clients, variation_ratio=0.3,
         else:
             samples = min_samples
         
-        print(f"Debug: Client {i}: min={min_samples}, max={max_samples}, assigned={samples}, remaining={remaining_samples-samples}")
         client_samples.append(samples)
         remaining_samples -= samples
     
@@ -205,11 +202,6 @@ def main():
         seed=args.seed + 100  # Different seed for partition variation
     )
     
-    # Verify partition sizes
-    print("Actual partition sizes:")
-    for i, partition in enumerate(partitions):
-        print(f"  Client {i}: {len(partition)} samples")
-    print()
     
     print(f"Server: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
     

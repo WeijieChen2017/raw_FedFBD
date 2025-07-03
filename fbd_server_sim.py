@@ -277,7 +277,12 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         else:
             # Get weights for specific model color (M0, M1, M2, etc.)
             model_weights = warehouse.get_model_weights(model_color)
-            model.load_state_dict(model_weights)
+            if model_weights:
+                model.load_state_dict(model_weights)
+                print(f"  Evaluating {model_color}: loaded {len(model_weights)} parameters")
+            else:
+                print(f"  Warning: No weights found for {model_color}")
+                return {"test_loss": 0.0, "test_auc": 0.0, "test_acc": 0.0}
         
         model.to(device)
         metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
