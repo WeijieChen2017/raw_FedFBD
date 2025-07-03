@@ -85,8 +85,8 @@ def load_data(args):
     info = INFO[data_flag]
     DataClass = getattr(medmnist, info['python_class'])
 
-    dataset_rules = DATASET_SPECIFIC_RULES.get(data_flag, {})
-    as_rgb = dataset_rules.get("as_rgb", False)
+    # Use as_rgb setting from config instead of hardcoded rules
+    as_rgb = getattr(args, 'as_rgb', False)
 
     data_transform = transforms.Compose([
         transforms.ToTensor(),

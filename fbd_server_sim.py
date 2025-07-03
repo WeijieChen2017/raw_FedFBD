@@ -366,8 +366,8 @@ def prepare_test_dataset(args):
     print("Server: Preparing test dataset for evaluations...")
     info = INFO[args.experiment_name]
     DataClass = getattr(medmnist, info['python_class'])
-    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
-    as_rgb = dataset_rules.get("as_rgb", False)
+    # Use as_rgb setting from config instead of hardcoded rules
+    as_rgb = getattr(args, 'as_rgb', False)
     data_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[.5], std=[.5])

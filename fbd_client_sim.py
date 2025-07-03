@@ -231,8 +231,8 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     
     # Prepare test dataset for evaluations
     DataClass = getattr(medmnist, info['python_class'])
-    dataset_rules = DATASET_SPECIFIC_RULES.get(args.experiment_name, {})
-    as_rgb = dataset_rules.get("as_rgb", False)
+    # Use as_rgb setting from config instead of hardcoded rules
+    as_rgb = getattr(args, 'as_rgb', False)
     data_transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[.5], std=[.5])
