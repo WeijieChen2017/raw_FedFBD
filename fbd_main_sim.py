@@ -260,12 +260,12 @@ def main():
         print(f"Server evaluation history and warehouse updated for round {r}")
     
     # Move the temporary run folder to its final destination (like original)
-    try:
-        shutil.move(temp_output_dir, final_output_dir)
-        print(f"\nSimulation complete! Results saved to: {final_output_dir}")
-    except Exception as e:
-        print(f"Error moving results to final destination: {e}")
-        print(f"Results remain in: {temp_output_dir}")
+    # try:
+    #     shutil.move(temp_output_dir, final_output_dir)
+    #     print(f"\nSimulation complete! Results saved to: {final_output_dir}")
+    # except Exception as e:
+    #     print(f"Error moving results to final destination: {e}")
+    #     print(f"Results remain in: {temp_output_dir}")
 
 if __name__ == "__main__":
     main()
