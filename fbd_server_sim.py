@@ -53,13 +53,44 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
     criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
     
     try:
+        # Create a fresh model instance
+        model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False  # Don't use pretrained weights, we'll load from warehouse
+        )
+        
         if model_color == "averaging":
-            model = warehouse.get_averaged_model()
+            # Get weights from all models M0-M5 and average them
+            all_model_weights = []
+            for i in range(6):
+                try:
+                    model_weights = warehouse.get_model_weights(f"M{i}")
+                    all_model_weights.append(model_weights)
+                except Exception as e:
+                    print(f"Warning: Could not get weights for M{i}: {e}")
+            
+            if all_model_weights:
+                # Average the weights
+                averaged_weights = {}
+                for key in all_model_weights[0].keys():
+                    averaged_weights[key] = torch.stack([weights[key] for weights in all_model_weights]).mean(dim=0)
+                model.load_state_dict(averaged_weights)
+            else:
+                # Fallback to M0 if averaging fails
+                model_weights = warehouse.get_model_weights("M0")
+                model.load_state_dict(model_weights)
+                
         elif model_color == "ensemble":
-            # For ensemble, use M0 as placeholder
-            model = warehouse.get_model_by_color("M0")
+            # For ensemble, use M0 as placeholder (simplified)
+            model_weights = warehouse.get_model_weights("M0")
+            model.load_state_dict(model_weights)
         else:
-            model = warehouse.get_model_by_color(model_color)
+            # Get weights for specific model color (M0, M1, M2, etc.)
+            model_weights = warehouse.get_model_weights(model_color)
+            model.load_state_dict(model_weights)
         
         model.to(device)
         metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
