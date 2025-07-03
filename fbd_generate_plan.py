@@ -67,7 +67,13 @@ def generate_plans(settings):
     total_rounds = len(round_to_parts_to_update)
     print(f"DEBUG: Generated {total_rounds} rounds from UPDATE_SCHEDULE")
     print(f"DEBUG: round_to_parts_to_update keys: {list(round_to_parts_to_update.keys())}")
-    print(f"DEBUG: OUTER_ROUNDS_TOTAL from fbd_settings: {FBD_INFO['training_plan']['outer_rounds_total']}")
+    print(f"DEBUG: Available keys in FBD_INFO['training_plan']: {list(FBD_INFO['training_plan'].keys())}")
+    
+    # Check if outer_rounds_total exists in settings root
+    if 'OUTER_ROUNDS_TOTAL' in settings:
+        print(f"DEBUG: OUTER_ROUNDS_TOTAL from fbd_settings: {settings['OUTER_ROUNDS_TOTAL']}")
+    else:
+        print("DEBUG: OUTER_ROUNDS_TOTAL not found in settings")
     
     for outer_round in range(total_rounds):
         sched_idx = outer_round % FBD_INFO["training_plan"]["rounds"]
