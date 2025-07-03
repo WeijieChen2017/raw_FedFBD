@@ -157,15 +157,17 @@ def main():
     
     info = INFO[args.experiment_name]
     args.task = info['task']
-    args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     args.num_classes = len(info['label'])
     
     # Load additional configuration from config.json (required)
     config = load_config(args.experiment_name, args.model_flag)
     args_dict = vars(args)
     for key, value in vars(config).items():
-        if key not in ['num_classes', 'task', 'n_channels']:
+        if key not in ['num_classes', 'task']:
             args_dict[key] = value
+    
+    # Set n_channels based on config's as_rgb setting (after config is loaded)
+    args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     
     # Define temporary and final output directories (like original fbd_main.py)
     temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
