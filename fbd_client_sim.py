@@ -313,7 +313,13 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     # Combined comprehensive output line
     print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
     
-    # Send back weights according to request_plan (organized by block IDs)
+    # Send back weights according to request_plan (all requested blocks)
+    # Also include metadata about which blocks were trainable
+    trainable_block_ids_set = set()
+    for component_name, component_info in model_to_update.items():
+        if component_info['status'] == 'trainable':
+            trainable_block_ids_set.add(component_info['block_id'])
+    
     for block_id in client_request_list:
         if block_id in fbd_trace:
             model_part = fbd_trace[block_id]['model_part']
@@ -336,5 +342,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
         "test_metrics": test_metrics,
         "updated_weights": updated_weights,
         "updated_optimizer_states": updated_optimizer_states,
+        "trainable_block_ids": list(trainable_block_ids_set),
         "round": round_num
     }

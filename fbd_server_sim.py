@@ -389,18 +389,31 @@ def collect_and_evaluate_round(round_num, args, warehouse, client_responses):
         loss = response.get("train_loss")
         updated_weights = response.get("updated_weights")
         updated_optimizer_states = response.get("updated_optimizer_states")
+        trainable_block_ids = response.get("trainable_block_ids", [])
         round_losses.append(loss)
         
         if updated_weights:
-            warehouse.store_weights_batch(updated_weights)
-            # Debug: Check which block IDs are being updated
-            block_ids = list(updated_weights.keys())[:3]  # Show first 3 block IDs
-            print(f"Server: Received update from client {client_id} for round {round_num}, loss: {loss:.4f}, stored {len(updated_weights)} blocks (e.g., {block_ids})")
+            # Only store blocks that were actually trainable (trained)
+            trainable_weights = {block_id: weights for block_id, weights in updated_weights.items() 
+                               if block_id in trainable_block_ids}
+            
+            if trainable_weights:
+                warehouse.store_weights_batch(trainable_weights)
+                # Debug: Check which block IDs are being updated
+                all_block_ids = list(updated_weights.keys())[:3]
+                trainable_ids = list(trainable_weights.keys())[:3]
+                print(f"Server: Received {len(updated_weights)} blocks from client {client_id} (e.g., {all_block_ids}), stored {len(trainable_weights)} trainable blocks (e.g., {trainable_ids}), loss: {loss:.4f}")
+            else:
+                print(f"Server: WARNING - Client {client_id} sent no trainable weights!")
         else:
             print(f"Server: WARNING - Client {client_id} sent no updated weights!")
         
         if updated_optimizer_states:
-            warehouse.store_optimizer_state_batch(updated_optimizer_states)
+            # Only store optimizer states for trainable blocks
+            trainable_optimizer_states = {block_id: state for block_id, state in updated_optimizer_states.items() 
+                                        if block_id in trainable_block_ids}
+            if trainable_optimizer_states:
+                warehouse.store_optimizer_state_batch(trainable_optimizer_states)
     
     # Print summary
     avg_loss = sum(round_losses) / len(round_losses) if round_losses else 0
