@@ -12,12 +12,12 @@
   "FINAL_TEST_COLORS": ["M0", "M1", "M2", "M3", "M4", "M5"],
   "FINAL_TEST_SIZE": 128,
   "UPDATE_SCHEDULE": [
-    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
-    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
-    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
-    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
-    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
-    {"num_rounds": 3, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []}
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5], "model_part_to_update": []}
   ],
   "OUTER_ROUNDS_TOTAL": 60,
   "BLOCKS_PER_MODEL": 6,
