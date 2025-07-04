@@ -153,6 +153,8 @@ def main():
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
                         help="Regularization coefficient (overrides config if specified)")
+    parser.add_argument("--ensemble_size", type=int, default=None,
+                        help="Ensemble size for evaluation (overrides config if specified)")
     args = parser.parse_args()
     
     # Load configuration from medmnist INFO
@@ -172,6 +174,15 @@ def main():
     
     # Set n_channels based on config's as_rgb setting (after config is loaded)
     args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
+    
+    # Override ensemble_size if provided via command line
+    if 'ensemble_size' in args_dict and args_dict['ensemble_size'] is not None:
+        # Command line argument was provided, it takes precedence
+        cmdline_ensemble_size = args_dict['ensemble_size']
+        config_ensemble_size = getattr(config, 'ensemble_size', 'not set')
+        if config_ensemble_size != 'not set' and cmdline_ensemble_size != config_ensemble_size:
+            print(f"Overriding ensemble_size from config ({config_ensemble_size}) to command line value ({cmdline_ensemble_size})")
+        args.ensemble_size = cmdline_ensemble_size
     
     # Determine regularizer settings for directory naming
     if args.reg is not None:
@@ -295,6 +306,7 @@ def main():
     print(f"\n5. FBD CONFIGURATION:")
     print(f"   - Model colors: {getattr(args, 'colors', ['red', 'yellow', 'blue'])}")
     print(f"   - Block assignment: {getattr(args, 'block_assignment', 'cyclic')}")
+    print(f"   - Ensemble size: {getattr(args, 'ensemble_size', 1)}")
     print(f"   - Optimizer: Adam")
     print(f"   - Seed: {getattr(args, 'seed', 42)}")
     
