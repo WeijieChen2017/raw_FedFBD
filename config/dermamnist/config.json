@@ -24,9 +24,9 @@
     "norm": "bn",
     "in_channels": 3,
     "num_classes": 7,
-    "num_clients": 4,
+    "num_clients": 6,
     "num_rounds": 30,
-    "batch_size": 64,
+    "batch_size": 512,
     "download": true,
     "resize": false,
     "as_rgb": false,
@@ -35,7 +35,7 @@
     "seed": 42,
     "local_learning_rate": 0.0005,
     "local_epochs": 1,
-    "centralized_learning_rate": 1e-05,
+    "centralized_learning_rate": 0.0001,
     "remove_communication": true,
     "training_save_dir": "/content/drive/MyDrive/2025FBD/"
   }
