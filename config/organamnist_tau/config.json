@@ -1,0 +1,42 @@
+[
+  {
+    "model_flag": "resnet18",
+    "norm": "bn",
+    "in_channels": 3,
+    "num_classes": 8,
+    "num_clients": 6,
+    "num_rounds": 30,
+    "batch_size": 128,
+    "download": true,
+    "resize": false,
+    "as_rgb": true,
+    "size": 28,
+    "num_ensemble": 24,
+    "seed": 42,
+    "local_learning_rate": 0.0005,
+    "local_epochs": 1,
+    "centralized_learning_rate": 0.0001,
+    "remove_communication": true,
+    "training_save_dir": "/content/drive/MyDrive/2025FBD/"
+  },
+  {
+    "model_flag": "resnet50",
+    "norm": "bn",
+    "in_channels": 3,
+    "num_classes": 8,
+    "num_clients": 6,
+    "num_rounds": 30,
+    "batch_size": 128,
+    "download": true,
+    "resize": false,
+    "as_rgb": true,
+    "size": 28,
+    "num_ensemble": 24,
+    "seed": 42,
+    "local_learning_rate": 0.0005,
+    "local_epochs": 1,
+    "centralized_learning_rate": 0.0001,
+    "remove_communication": true,
+    "training_save_dir": "/content/drive/MyDrive/2025FBD/"
+  }
+]
