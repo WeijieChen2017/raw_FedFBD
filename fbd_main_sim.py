@@ -149,6 +149,10 @@ def main():
     parser.add_argument("--model_flag", type=str, default="resnet18", help="Model flag.")
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
+    parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
+                        help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
+    parser.add_argument("--reg_coef", type=float, default=None, 
+                        help="Regularization coefficient (overrides config if specified)")
     args = parser.parse_args()
     
     # Load configuration from medmnist INFO
@@ -169,9 +173,40 @@ def main():
     # Set n_channels based on config's as_rgb setting (after config is loaded)
     args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     
+    # Determine regularizer settings for directory naming
+    if args.reg is not None:
+        if args.reg == 'none':
+            reg_suffix = "_reg_none"
+        else:
+            reg_type_str = args.reg
+            reg_coef_str = f"{args.reg_coef:.3f}" if args.reg_coef is not None else "0.100"
+            reg_suffix = f"_reg_{reg_type_str}_coef_{reg_coef_str}"
+    else:
+        # Check config file for regularizer settings
+        try:
+            fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+            with open(fbd_settings_path, 'r') as f:
+                fbd_settings = json.load(f)
+            regularizer_params = fbd_settings.get('REGULARIZER_PARAMS', {})
+            reg_type = regularizer_params.get('type')
+            if reg_type == 'consistency loss':
+                reg_type_str = 'y'
+            elif reg_type == 'weights distance':
+                reg_type_str = 'w'
+            else:
+                reg_type_str = 'none'
+            
+            if reg_type_str != 'none':
+                reg_coef = regularizer_params.get('coefficient', 0.1)
+                reg_suffix = f"_reg_{reg_type_str}_coef_{reg_coef:.3f}"
+            else:
+                reg_suffix = "_reg_none"
+        except:
+            reg_suffix = ""
+    
     # Define temporary and final output directories (like original fbd_main.py)
-    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
-    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}_{time.strftime('%Y%m%d_%H%M%S')}")
+    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
     
     # Clean up the temporary directory from any previous failed runs
     if os.path.exists(temp_output_dir):
@@ -201,8 +236,77 @@ def main():
         seed=args.seed + 100  # Different seed for partition variation
     )
     
+    # Generate and display training plan
+    print("\n" + "="*80)
+    print("TRAINING PLAN SUMMARY")
+    print("="*80)
+    print(f"\n1. DATASET AND MODEL:")
+    print(f"   - Dataset: {args.experiment_name}")
+    print(f"   - Model: {args.model_flag}")
+    print(f"   - Task: {args.task}")
+    print(f"   - Number of classes: {args.num_classes}")
+    print(f"   - Input channels: {args.n_channels}")
     
-    print(f"Server: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
+    print(f"\n2. FEDERATED LEARNING SETUP:")
+    print(f"   - Number of clients: {args.num_clients}")
+    print(f"   - Number of rounds: {args.num_rounds}")
+    print(f"   - Local epochs per round: {args.local_epochs}")
+    print(f"   - Local batch size: {getattr(args, 'batch_size', 128)}")
+    print(f"   - Local learning rate: {getattr(args, 'local_learning_rate', 0.001)}")
+    print(f"   - Data distribution: {'IID' if args.iid else 'Non-IID'}")
+    print(f"   - Sample variation: ±30% from equal distribution")
+    
+    print(f"\n3. REGULARIZATION:")
+    # Determine regularization settings for display
+    if args.reg is not None:
+        if args.reg == 'none':
+            print(f"   - Type: None")
+            print(f"   - Coefficient: N/A")
+        else:
+            reg_type = 'Weights Distance' if args.reg == 'w' else 'Consistency Loss'
+            reg_coef = args.reg_coef if args.reg_coef is not None else 0.1
+            print(f"   - Type: {reg_type}")
+            print(f"   - Coefficient: {reg_coef}")
+            print(f"   - Source: Command line arguments")
+    else:
+        # Check config file
+        try:
+            fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+            with open(fbd_settings_path, 'r') as f:
+                fbd_settings = json.load(f)
+            regularizer_params = fbd_settings.get('REGULARIZER_PARAMS', {})
+            reg_type = regularizer_params.get('type', 'None')
+            if reg_type and reg_type != 'None':
+                reg_coef = regularizer_params.get('coefficient', 0.1)
+                print(f"   - Type: {reg_type}")
+                print(f"   - Coefficient: {reg_coef}")
+                print(f"   - Source: Config file (fbd_settings.json)")
+            else:
+                print(f"   - Type: None")
+                print(f"   - Coefficient: N/A")
+        except:
+            print(f"   - Type: None (config not found)")
+            print(f"   - Coefficient: N/A")
+    
+    print(f"\n4. OUTPUT:")
+    print(f"   - Output directory: {temp_output_dir}")
+    print(f"   - Final directory: {final_output_dir}")
+    
+    print(f"\n5. FBD CONFIGURATION:")
+    print(f"   - Model colors: {getattr(args, 'colors', ['red', 'yellow', 'blue'])}")
+    print(f"   - Block assignment: {getattr(args, 'block_assignment', 'cyclic')}")
+    print(f"   - Optimizer: Adam")
+    print(f"   - Seed: {getattr(args, 'seed', 42)}")
+    
+    print("\n" + "="*80)
+    
+    # Ask for user approval
+    approval = input("\nDo you want to proceed with this training plan? (yes/no): ").strip().lower()
+    if approval not in ['yes', 'y']:
+        print("Training cancelled by user.")
+        return
+    
+    print(f"\nServer: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
     
     # Run simulation rounds
     server_evaluation_history = []

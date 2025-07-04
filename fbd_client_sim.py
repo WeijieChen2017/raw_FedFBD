@@ -65,12 +65,87 @@ def get_dataset_stats(data_partition):
     }
     return stats
 
-def train(model, train_loader, task, criterion, optimizer, epochs, device):
+def build_regularizer_model(regularizer_spec, global_warehouse, args, device):
+    """
+    Build a regularizer model from block IDs specification using the global warehouse.
+    
+    Args:
+        regularizer_spec (dict): Dictionary mapping model parts to block IDs
+        global_warehouse: The global warehouse containing all model weights
+        args: Training arguments
+        device: PyTorch device
+        
+    Returns:
+        torch.nn.Module: Assembled regularizer model
+    """
+    # Create a base model instance
+    reg_model = get_pretrained_fbd_model(
+        architecture=args.model_flag,
+        norm=args.norm,
+        in_channels=args.in_channels,
+        num_classes=args.num_classes,
+        use_pretrained=False
+    )
+    
+    # Get weights for the regularizer blocks from warehouse
+    reg_block_ids = list(regularizer_spec.values())
+    reg_weights = global_warehouse.get_shipping_weights(reg_block_ids)
+    
+    # Load the weights into the regularizer model
+    reg_model.load_state_dict(reg_weights, strict=False)
+    reg_model.to(device)
+    reg_model.eval()  # Set to eval mode since we only need predictions
+    return reg_model
+
+def train(model, train_loader, task, criterion, optimizer, epochs, device, update_plan=None, global_warehouse=None, args=None):
     """Trains the model for a specified number of epochs."""
     model.train()
     total_loss = 0
+    total_main_loss = 0
+    total_reg_loss = 0
+    
+    # Check if we need to build regularizer models
+    regularizer_models = []
+    regularizer_coefficient = 0.0
+    regularizer_type = None
+    
+    if update_plan and 'model_as_regularizer' in update_plan and global_warehouse and args:
+        # Load regularizer settings
+        try:
+            # Check if command line args override the config
+            if hasattr(args, 'reg') and args.reg is not None:
+                # Map command line args to regularizer types
+                if args.reg == 'none':
+                    regularizer_type = None
+                    regularizer_coefficient = 0.0
+                else:
+                    regularizer_type = 'weights distance' if args.reg == 'w' else 'consistency loss'
+                    regularizer_coefficient = args.reg_coef if args.reg_coef is not None else 0.1
+            else:
+                # Fall back to config file settings
+                fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+                with open(fbd_settings_path, 'r') as f:
+                    fbd_settings = json.load(f)
+                
+                regularizer_params = fbd_settings.get('REGULARIZER_PARAMS', {})
+                regularizer_type = regularizer_params.get('type')
+                regularizer_coefficient = regularizer_params.get('coefficient', 0.1)
+            
+            if regularizer_type in ['consistency loss', 'weights distance']:
+                
+                # Build regularizer models
+                for regularizer_spec in update_plan['model_as_regularizer']:
+                    reg_model = build_regularizer_model(regularizer_spec, global_warehouse, args, device)
+                    regularizer_models.append(reg_model)
+                
+                print(f"Built {len(regularizer_models)} regularizer models (type: {regularizer_type}) with coefficient {regularizer_coefficient}")
+        except Exception as e:
+            print(f"Warning: Could not load regularizer settings: {e}")
+    
     for epoch in range(epochs):
         epoch_loss = 0
+        epoch_main_loss = 0
+        epoch_reg_loss = 0
         num_batches = 0
         for inputs, targets in train_loader:
             optimizer.zero_grad()
@@ -78,21 +153,71 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device):
 
             if task == 'multi-label, binary-class':
                 targets = targets.to(torch.float32).to(device)
-                loss = criterion(outputs, targets)
+                main_loss = criterion(outputs, targets)
             else:
                 targets = torch.squeeze(targets, 1).long().to(device)
-                loss = criterion(outputs, targets)
+                main_loss = criterion(outputs, targets)
+            
+            loss = main_loss
+            reg_loss_value = 0.0
+            
+            # Add regularization loss if regularizer models exist
+            if regularizer_models and regularizer_coefficient > 0:
+                if regularizer_type == 'consistency loss':
+                    # Consistency loss: L2 distance between model outputs
+                    consistency_loss = 0.0
+                    with torch.no_grad():
+                        for reg_model in regularizer_models:
+                            reg_outputs = reg_model(inputs.to(device))
+                            # Compute L2 distance between predictions
+                            consistency_loss += torch.norm(outputs - reg_outputs, p=2)
+                    
+                    # Average over regularizer models and add to main loss
+                    consistency_loss = consistency_loss / len(regularizer_models)
+                    reg_loss_value = regularizer_coefficient * consistency_loss
+                    loss = loss + reg_loss_value
+                
+                elif regularizer_type == 'weights distance':
+                    # Weights distance: L2 distance between model parameters
+                    weights_distance = 0.0
+                    main_params = dict(model.named_parameters())
+                    
+                    for reg_model in regularizer_models:
+                        reg_params = dict(reg_model.named_parameters())
+                        model_distance = 0.0
+                        
+                        # Compute L2 distance between corresponding parameters
+                        for param_name, main_param in main_params.items():
+                            if param_name in reg_params and main_param.requires_grad:
+                                reg_param = reg_params[param_name]
+                                param_distance = torch.norm(main_param - reg_param, p=2)
+                                model_distance += param_distance
+                        
+                        weights_distance += model_distance
+                    
+                    # Average over regularizer models and add to main loss
+                    weights_distance = weights_distance / len(regularizer_models)
+                    reg_loss_value = regularizer_coefficient * weights_distance
+                    loss = loss + reg_loss_value
             
             loss.backward()
             optimizer.step()
             
             epoch_loss += loss.item()
+            epoch_main_loss += main_loss.item()
+            epoch_reg_loss += reg_loss_value.item() if torch.is_tensor(reg_loss_value) else reg_loss_value
             num_batches += 1
         
         if num_batches > 0:
             total_loss += (epoch_loss / num_batches)
+            total_main_loss += (epoch_main_loss / num_batches)
+            total_reg_loss += (epoch_reg_loss / num_batches)
 
-    return total_loss / epochs if epochs > 0 else 0
+    avg_total_loss = total_loss / epochs if epochs > 0 else 0
+    avg_main_loss = total_main_loss / epochs if epochs > 0 else 0
+    avg_reg_loss = total_reg_loss / epochs if epochs > 0 else 0
+    
+    return avg_total_loss, avg_main_loss, avg_reg_loss
 
 def assemble_model_from_plan(model, received_weights, update_plan):
     """Assembles a model by loading weights according to a specific update plan."""
@@ -309,7 +434,7 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     )
     
     # Train the model
-    loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device)
+    loss, main_loss, reg_loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device, client_update_plan, global_warehouse, args)
     
     # Evaluate the model on the test set
     test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
@@ -320,7 +445,7 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     trained_state_dict = model.state_dict()
     
     # Combined comprehensive output line
-    print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
+    print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
     
     # Send back weights according to request_plan (all requested blocks)
     # Also include metadata about which blocks were trainable
