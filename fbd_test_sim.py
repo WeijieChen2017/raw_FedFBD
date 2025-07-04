@@ -87,6 +87,40 @@ def diagnose_warehouse_weights(warehouse, logger, final_test_colors):
     
     logger.info("=== END DIAGNOSTICS ===")
 
+def diagnose_predictions(scores, true_labels, model_name, logger):
+    """Diagnostic function to analyze model predictions and identify issues"""
+    logger.info(f"=== PREDICTION DIAGNOSTICS for {model_name} ===")
+    
+    # Basic statistics
+    logger.info(f"Scores shape: {scores.shape}")
+    logger.info(f"Scores range: [{scores.min():.4f}, {scores.max():.4f}]")
+    logger.info(f"Scores mean: {scores.mean():.4f}, std: {scores.std():.4f}")
+    
+    # Predicted vs true labels
+    predicted_labels = np.argmax(scores, axis=1)
+    logger.info(f"Predicted labels range: [{predicted_labels.min()}, {predicted_labels.max()}]")
+    logger.info(f"True labels range: [{true_labels.min()}, {true_labels.max()}]")
+    
+    # Class distribution
+    unique_pred, pred_counts = np.unique(predicted_labels, return_counts=True)
+    unique_true, true_counts = np.unique(true_labels, return_counts=True)
+    
+    logger.info(f"Predicted class distribution: {dict(zip(unique_pred, pred_counts))}")
+    logger.info(f"True class distribution: {dict(zip(unique_true, true_counts))}")
+    
+    # Accuracy calculation
+    correct = np.sum(predicted_labels == true_labels)
+    total = len(true_labels)
+    accuracy = correct / total
+    logger.info(f"Manual accuracy calculation: {accuracy:.4f} ({correct}/{total})")
+    
+    # Check if model is predicting mostly one class
+    most_predicted_class = predicted_labels.mode if hasattr(predicted_labels, 'mode') else np.bincount(predicted_labels).argmax()
+    most_predicted_count = np.sum(predicted_labels == most_predicted_class)
+    logger.info(f"Most predicted class: {most_predicted_class} ({most_predicted_count}/{total} = {most_predicted_count/total:.4f})")
+    
+    logger.info(f"=== END PREDICTION DIAGNOSTICS ===")
+
 def perform_final_ensemble_prediction(args):
     """
     Performs final ensemble prediction on test data and returns detailed results.
@@ -218,6 +252,7 @@ def perform_final_ensemble_prediction(args):
             continue
             
         model.load_state_dict(model_weights)
+        model.eval()  # Ensure model is in evaluation mode
         scores = _get_scores(model, test_loader, task, device)
         all_model_scores.append(scores)
         
@@ -227,6 +262,9 @@ def perform_final_ensemble_prediction(args):
         logger.info(f"Individual {model_color} - AUC: {individual_auc:.4f}, ACC: {individual_acc:.4f}")
         
         logger.info(f"Got predictions from {model_color}, shape: {scores.shape}")
+        
+        # Diagnose predictions
+        diagnose_predictions(scores, test_dataset.labels.squeeze(), model_color, logger)
     
     # Add the averaging model
     logger.info("Creating and evaluating averaged model from all colors...")
@@ -263,6 +301,7 @@ def perform_final_ensemble_prediction(args):
         ).to(device)
         
         averaged_model.load_state_dict(averaged_weights)
+        averaged_model.eval()  # Ensure model is in evaluation mode
         averaged_scores = _get_scores(averaged_model, test_loader, task, device)
         all_model_scores.append(averaged_scores)
         
@@ -273,6 +312,9 @@ def perform_final_ensemble_prediction(args):
         
         logger.info(f"Got predictions from averaged model, shape: {averaged_scores.shape}")
         logger.info(f"Averaged {len(all_model_weights)} models: {[f'M{i}' for i in range(len(all_model_weights))]}")
+        
+        # Diagnose predictions
+        diagnose_predictions(averaged_scores, test_dataset.labels.squeeze(), 'averaging', logger)
 
     if not all_model_scores:
         logger.error("No valid model predictions gathered. Aborting.")
