@@ -167,6 +167,12 @@ def perform_final_ensemble_prediction(args):
         model.load_state_dict(model_weights)
         scores = _get_scores(model, test_loader, task, device)
         all_model_scores.append(scores)
+        
+        # Evaluate individual model using MedMNIST evaluator
+        test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+        individual_auc, individual_acc = test_evaluator.evaluate(scores, None, None)
+        logger.info(f"Individual {model_color} - AUC: {individual_auc:.4f}, ACC: {individual_acc:.4f}")
+        
         logger.info(f"Got predictions from {model_color}, shape: {scores.shape}")
     
     # Add the averaging model
@@ -206,6 +212,12 @@ def perform_final_ensemble_prediction(args):
         averaged_model.load_state_dict(averaged_weights)
         averaged_scores = _get_scores(averaged_model, test_loader, task, device)
         all_model_scores.append(averaged_scores)
+        
+        # Evaluate averaged model using MedMNIST evaluator
+        test_evaluator_avg = Evaluator(args.experiment_name, 'test', size=args.size)
+        avg_auc, avg_acc = test_evaluator_avg.evaluate(averaged_scores, None, None)
+        logger.info(f"Individual Averaging model - AUC: {avg_auc:.4f}, ACC: {avg_acc:.4f}")
+        
         logger.info(f"Got predictions from averaged model, shape: {averaged_scores.shape}")
         logger.info(f"Averaged {len(all_model_weights)} models: {[f'M{i}' for i in range(len(all_model_weights))]}")
 
@@ -223,6 +235,34 @@ def perform_final_ensemble_prediction(args):
     true_labels = test_dataset.labels.squeeze()
     num_samples = len(true_labels)
     num_models = votes.shape[1]
+    
+    # Also evaluate using MedMNIST evaluator for comparison
+    test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+    
+    # Calculate ensemble average scores for MedMNIST evaluation
+    ensemble_avg_scores = np.mean(all_model_scores, axis=0)
+    medmnist_auc, medmnist_acc = test_evaluator.evaluate(ensemble_avg_scores, None, None)
+    
+    logger.info(f"MedMNIST Evaluator results:")
+    logger.info(f"  Ensemble Avg AUC: {medmnist_auc:.4f}")
+    logger.info(f"  Ensemble Avg ACC: {medmnist_acc:.4f}")
+    
+    # Save predictions for analysis
+    predictions_dir = os.path.join(args.output_dir, "predictions")
+    os.makedirs(predictions_dir, exist_ok=True)
+    
+    # Save individual model predictions
+    for i, (model_color, scores) in enumerate(zip(final_test_colors + ['averaging'], all_model_scores)):
+        pred_file = os.path.join(predictions_dir, f"{model_color}_predictions.csv")
+        pred_df = pd.DataFrame(scores)
+        pred_df.to_csv(pred_file, index=False)
+        logger.info(f"Saved {model_color} predictions to {pred_file}")
+    
+    # Save ensemble average predictions
+    ensemble_pred_file = os.path.join(predictions_dir, "ensemble_avg_predictions.csv")
+    ensemble_pred_df = pd.DataFrame(ensemble_avg_scores)
+    ensemble_pred_df.to_csv(ensemble_pred_file, index=False)
+    logger.info(f"Saved ensemble average predictions to {ensemble_pred_file}")
     
     # Calculate c_i (confidence) and z_i (correctness) for each sample
     results_data = []
@@ -258,7 +298,8 @@ def perform_final_ensemble_prediction(args):
     mean_confidence = results_df['c_i'].mean()
     
     logger.info(f"Final ensemble results:")
-    logger.info(f"  Overall accuracy: {overall_accuracy:.4f}")
+    logger.info(f"  Majority Vote accuracy: {overall_accuracy:.4f}")
+    logger.info(f"  MedMNIST Ensemble Avg accuracy: {medmnist_acc:.4f}")
     logger.info(f"  Mean confidence: {mean_confidence:.4f}")
     logger.info(f"  Number of samples: {num_samples}")
     logger.info(f"  Number of models: {num_models}")
@@ -340,10 +381,11 @@ def main():
         print("\n" + "="*50)
         print("FINAL ENSEMBLE RESULTS SUMMARY")
         print("="*50)
-        print(f"Overall Accuracy: {results_df['z_i'].mean():.4f}")
+        print(f"Majority Vote Accuracy: {results_df['z_i'].mean():.4f}")
         print(f"Mean Confidence: {results_df['c_i'].mean():.4f}")
         print(f"Number of samples: {len(results_df)}")
         print(f"Number of models: {results_df['total_votes'].iloc[0] if len(results_df) > 0 else 0}")
+        print(f"\nFor comparison - MedMNIST Ensemble Avg Accuracy will be logged in the log file.")
         
         # Show first few samples
         print("\nFirst 10 samples:")
