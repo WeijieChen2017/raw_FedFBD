@@ -74,6 +74,12 @@ def create_hetero_partitions(train_dataset, hetero_config, seed=None):
         _, label = train_dataset[i]
         if isinstance(label, torch.Tensor):
             label = label.item()
+        elif isinstance(label, np.ndarray):
+            label = int(label.item()) if label.size == 1 else int(label[0])
+        elif hasattr(label, 'item'):
+            label = int(label.item())
+        else:
+            label = int(label)
         labels.append(label)
     
     # Group indices by class
