@@ -269,6 +269,16 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 medium_confidence_samples = 0
                 low_confidence_samples = 0
             else:
+                # Debug shapes
+                print(f"Debug - all_y_scores_array shape: {all_y_scores_array.shape}")
+                print(f"Debug - member_predictions shape before transpose: {member_predictions.shape}")
+                print(f"Debug - true_labels shape: {true_labels.shape}")
+                
+                # Ensure member_predictions has the right shape
+                if len(member_predictions.shape) == 1:
+                    # If member_predictions is 1D, it means we only have 1 model
+                    member_predictions = member_predictions.reshape(1, -1)
+                
                 votes_by_sample = member_predictions.T  # Shape: (num_samples, num_ensemble_members)
                 
                 # Calculate majority vote for each sample and voting confidence
@@ -296,38 +306,57 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 majority_votes = np.array(majority_votes)
                 vote_confidences = np.array(vote_confidences)
                 
-                # Calculate accuracy
-                num_correct_majority = np.sum(majority_votes == true_labels)
-                num_samples = len(true_labels)
-                majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
+                # Debug voting results
+                print(f"Debug - votes_by_sample shape: {votes_by_sample.shape}")
+                print(f"Debug - majority_votes shape: {majority_votes.shape}")
+                print(f"Debug - vote_confidences shape: {vote_confidences.shape}")
                 
-                # Calculate voting statistics
-                mean_confidence = np.mean(vote_confidences)
-                min_confidence = np.min(vote_confidences)
-                max_confidence = np.max(vote_confidences)
-                
-                # Count samples by confidence level
-                high_confidence_samples = np.sum(vote_confidences >= 0.8)  # 80%+ agreement
-                medium_confidence_samples = np.sum((vote_confidences >= 0.6) & (vote_confidences < 0.8))  # 60-80% agreement
-                low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
-                
-                # Calculate mean member accuracy for diagnostics
-                print(f"Debug - member_predictions final shape: {member_predictions.shape}")
-                print(f"Debug - true_labels shape: {true_labels.shape}")
-                
-                # Fix broadcasting issue: member_predictions is (num_models, num_samples), true_labels is (num_samples,)
-                # We need to reshape true_labels to (1, num_samples) to broadcast correctly
-                true_labels_reshaped = true_labels.reshape(1, -1)
-                print(f"Debug - true_labels_reshaped shape: {true_labels_reshaped.shape}")
-                
-                # Ensure shapes are compatible for broadcasting
-                if member_predictions.shape[1] != true_labels_reshaped.shape[1]:
-                    print(f"Warning: Shape mismatch - member_predictions: {member_predictions.shape}, true_labels: {true_labels_reshaped.shape}")
+                # Ensure shapes match before comparison
+                if len(majority_votes) != len(true_labels):
+                    print(f"ERROR: Shape mismatch - majority_votes: {majority_votes.shape}, true_labels: {true_labels.shape}")
+                    # Fall back to a safe default
+                    majority_vote_accuracy = 0.0
+                    mean_confidence = 0.0
+                    min_confidence = 0.0
+                    max_confidence = 0.0
+                    high_confidence_samples = 0
+                    medium_confidence_samples = 0
+                    low_confidence_samples = 0
                     mean_member_accuracy = 0.0
+                    num_correct_majority = 0
                 else:
-                    num_correct_individual = np.sum(member_predictions == true_labels_reshaped)
-                    total_individual_votes = member_predictions.size
-                    mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
+                    # Calculate accuracy
+                    num_correct_majority = np.sum(majority_votes == true_labels)
+                    num_samples = len(true_labels)
+                    majority_vote_accuracy = num_correct_majority / num_samples if num_samples > 0 else 0
+                    
+                    # Calculate voting statistics
+                    mean_confidence = np.mean(vote_confidences)
+                    min_confidence = np.min(vote_confidences)
+                    max_confidence = np.max(vote_confidences)
+                    
+                    # Count samples by confidence level
+                    high_confidence_samples = np.sum(vote_confidences >= 0.8)  # 80%+ agreement
+                    medium_confidence_samples = np.sum((vote_confidences >= 0.6) & (vote_confidences < 0.8))  # 60-80% agreement
+                    low_confidence_samples = np.sum(vote_confidences < 0.6)  # <60% agreement
+                    
+                    # Calculate mean member accuracy for diagnostics
+                    print(f"Debug - member_predictions final shape: {member_predictions.shape}")
+                    print(f"Debug - true_labels shape: {true_labels.shape}")
+                    
+                    # Fix broadcasting issue: member_predictions is (num_models, num_samples), true_labels is (num_samples,)
+                    # We need to reshape true_labels to (1, num_samples) to broadcast correctly
+                    true_labels_reshaped = true_labels.reshape(1, -1)
+                    print(f"Debug - true_labels_reshaped shape: {true_labels_reshaped.shape}")
+                    
+                    # Ensure shapes are compatible for broadcasting
+                    if member_predictions.shape[1] != true_labels_reshaped.shape[1]:
+                        print(f"Warning: Shape mismatch - member_predictions: {member_predictions.shape}, true_labels: {true_labels_reshaped.shape}")
+                        mean_member_accuracy = 0.0
+                    else:
+                        num_correct_individual = np.sum(member_predictions == true_labels_reshaped)
+                        total_individual_votes = member_predictions.size
+                        mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
 
             if task == 'multi-label, binary-class':
                 print(f"Ensemble complete: {len(all_y_scores)} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Hamming Acc: {hamming_accuracy:.4f}")
