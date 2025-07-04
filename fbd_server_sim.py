@@ -246,13 +246,18 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 mean_member_accuracy = hamming_accuracy  # Use Hamming accuracy for multi-label
                 
             elif task == 'binary-class':
-                # For binary classification, scores are shape (num_models, num_samples, 1) or (num_models, num_samples)
+                # For binary classification, scores are shape (num_models, num_samples, 1) or (num_models, num_samples, 2)
                 true_labels = test_dataset.labels.flatten()
-                # Convert sigmoid outputs to binary predictions
-                # Handle both shapes: (num_models, num_samples, 1) and (num_models, num_samples)
-                if len(all_y_scores_array.shape) == 3 and all_y_scores_array.shape[2] == 1:
-                    member_predictions = (all_y_scores_array.squeeze(axis=2) > 0.5).astype(int)
+                # Convert outputs to binary predictions
+                if len(all_y_scores_array.shape) == 3:
+                    if all_y_scores_array.shape[2] == 1:
+                        # Single output (sigmoid)
+                        member_predictions = (all_y_scores_array.squeeze(axis=2) > 0.5).astype(int)
+                    else:
+                        # Two outputs (softmax) - take argmax
+                        member_predictions = np.argmax(all_y_scores_array, axis=2)
                 else:
+                    # 2D array (num_models, num_samples)
                     member_predictions = (all_y_scores_array > 0.5).astype(int)
             else:
                 # For multi-class, scores are shape (num_models, num_samples, num_classes)
@@ -271,13 +276,17 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             else:
                 # Debug shapes
                 print(f"Debug - all_y_scores_array shape: {all_y_scores_array.shape}")
-                print(f"Debug - member_predictions shape before transpose: {member_predictions.shape}")
+                print(f"Debug - member_predictions shape before processing: {member_predictions.shape}")
                 print(f"Debug - true_labels shape: {true_labels.shape}")
                 
-                # Ensure member_predictions has the right shape
+                # Ensure member_predictions is 2D for voting
                 if len(member_predictions.shape) == 1:
                     # If member_predictions is 1D, it means we only have 1 model
                     member_predictions = member_predictions.reshape(1, -1)
+                elif len(member_predictions.shape) > 2:
+                    print(f"ERROR: member_predictions has unexpected shape {member_predictions.shape}")
+                    # This shouldn't happen after our fixes above, but just in case
+                    raise ValueError(f"member_predictions should be 2D but has shape {member_predictions.shape}")
                 
                 votes_by_sample = member_predictions.T  # Shape: (num_samples, num_ensemble_members)
                 
