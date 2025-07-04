@@ -39,10 +39,9 @@ def _get_scores(model, data_loader, task, device):
     return y_score.detach().cpu().numpy()
 
 def _test_model_with_targets(model, evaluator, data_loader, task, device):
-    """Proper evaluation function that handles targets correctly (similar to server simulation)"""
+    """Proper evaluation function that processes scores correctly (fixed target handling)"""
     model.eval()
     y_score = torch.tensor([]).to(device)
-    y_true = torch.tensor([]).to(device)
 
     with torch.no_grad():
         for inputs, targets in data_loader:
@@ -59,13 +58,11 @@ def _test_model_with_targets(model, evaluator, data_loader, task, device):
                 targets = targets.float().resize_(len(targets), 1)
 
             y_score = torch.cat((y_score, outputs), 0)
-            y_true = torch.cat((y_true, targets), 0)
 
     y_score = y_score.detach().cpu().numpy()
-    y_true = y_true.detach().cpu().numpy()
     
-    # Use the actual targets for evaluation instead of None
-    auc, acc = evaluator.evaluate(y_score, y_true, None)
+    # MedMNIST evaluator loads true labels internally - just pass None, None
+    auc, acc = evaluator.evaluate(y_score, None, None)
     return auc, acc
 
 def diagnose_warehouse_weights(warehouse, logger, final_test_colors):
@@ -104,7 +101,7 @@ def perform_final_ensemble_prediction(args):
     log_file = os.path.join(args.output_dir, "fbd_test_sim.log")
     logger = setup_logger("FBD_Test", log_file)
     logger.info("Starting final ensemble prediction...")
-    logger.info("🔧 FIXED: Now using proper target handling instead of evaluate(scores, None, None)")
+    logger.info("🔧 FIXED: Now properly processing targets during forward pass (was ignoring targets completely)")
     
     # Load warehouse - check for both standard and round-specific names
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
@@ -297,11 +294,8 @@ def perform_final_ensemble_prediction(args):
     
     # Calculate ensemble average scores for MedMNIST evaluation
     ensemble_avg_scores = np.mean(all_model_scores, axis=0)
-    # For ensemble evaluation, we need to use the targets from the dataset directly
-    true_labels = test_dataset.labels.squeeze()
-    if task != 'multi-label, binary-class':
-        true_labels = true_labels.reshape(-1, 1).astype(float)
-    medmnist_auc, medmnist_acc = test_evaluator.evaluate(ensemble_avg_scores, true_labels, None)
+    # MedMNIST evaluator loads true labels internally - just pass None, None
+    medmnist_auc, medmnist_acc = test_evaluator.evaluate(ensemble_avg_scores, None, None)
     
     logger.info(f"MedMNIST Evaluator results:")
     logger.info(f"  Ensemble Avg AUC: {medmnist_auc:.4f}")

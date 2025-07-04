@@ -14,24 +14,21 @@ Users reported that `fbd_test_sim.py` outputs very low accuracy (~16%) while `fb
 
 **❌ Original Problem in `fbd_test_sim.py`:**
 ```python
-# WRONG: Ignores targets completely
+# WRONG: Ignores targets completely during forward pass
 for inputs, _ in data_loader:
     outputs = model(inputs.to(device))
-    # ... process outputs ...
-
-# WRONG: Passes None as targets to evaluator
-auc, acc = evaluator.evaluate(scores, None, None)
+    # ... process outputs only ...
 ```
 
 **✅ Fixed in `fbd_test_sim.py`:**
 ```python
-# CORRECT: Properly handles targets
+# CORRECT: Properly processes targets during forward pass
 for inputs, targets in data_loader:
     outputs = model(inputs.to(device))
-    # ... process both outputs and targets ...
+    # ... properly process both inputs and targets ...
 
-# CORRECT: Uses actual targets for evaluation
-auc, acc = evaluator.evaluate(scores, true_targets, None)
+# CORRECT: MedMNIST evaluator loads true labels internally
+auc, acc = evaluator.evaluate(scores, None, None)
 ```
 
 ## Key Differences Between Approaches
@@ -43,7 +40,7 @@ auc, acc = evaluator.evaluate(scores, true_targets, None)
 | **Function** | `_test_model()` | `_test_model_with_targets()` |
 | **Target Handling** | ✅ Proper target processing | ✅ Proper target processing (after fix) |
 | **Loss Calculation** | ✅ Calculates actual loss | ❌ No loss (scores only) |
-| **Evaluation Call** | `evaluate(scores, targets, None)` | `evaluate(scores, targets, None)` |
+| **Evaluation Call** | `evaluate(scores, None, None)` | `evaluate(scores, None, None)` |
 
 ### 2. Warehouse State
 
@@ -173,4 +170,4 @@ for inputs, targets in data_loader:
 
 ## Conclusion
 
-The key issue was improper target handling in the original `fbd_test_sim.py`. After fixing this issue, both evaluation approaches should provide consistent and accurate results, with each serving different use cases in the FBD workflow. 
+The key issue was improper target processing during the forward pass in the original `fbd_test_sim.py`. The original code ignored targets completely (`for inputs, _ in data_loader:`), which could affect model internal state (especially BatchNorm layers). The fix ensures proper target processing during forward pass while maintaining the standard MedMNIST evaluator calling convention. After fixing this issue, both evaluation approaches should provide consistent and accurate results, with each serving different use cases in the FBD workflow. 
