@@ -246,10 +246,14 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 mean_member_accuracy = hamming_accuracy  # Use Hamming accuracy for multi-label
                 
             elif task == 'binary-class':
-                # For binary classification, scores are shape (num_models, num_samples, 1)
+                # For binary classification, scores are shape (num_models, num_samples, 1) or (num_models, num_samples)
                 true_labels = test_dataset.labels.flatten()
                 # Convert sigmoid outputs to binary predictions
-                member_predictions = (all_y_scores_array.squeeze(axis=2) > 0.5).astype(int)
+                # Handle both shapes: (num_models, num_samples, 1) and (num_models, num_samples)
+                if len(all_y_scores_array.shape) == 3 and all_y_scores_array.shape[2] == 1:
+                    member_predictions = (all_y_scores_array.squeeze(axis=2) > 0.5).astype(int)
+                else:
+                    member_predictions = (all_y_scores_array > 0.5).astype(int)
             else:
                 # For multi-class, scores are shape (num_models, num_samples, num_classes)
                 true_labels = test_dataset.labels.flatten()
