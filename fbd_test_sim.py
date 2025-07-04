@@ -38,6 +38,58 @@ def _get_scores(model, data_loader, task, device):
             
     return y_score.detach().cpu().numpy()
 
+def _test_model_with_targets(model, evaluator, data_loader, task, device):
+    """Proper evaluation function that handles targets correctly (similar to server simulation)"""
+    model.eval()
+    y_score = torch.tensor([]).to(device)
+    y_true = torch.tensor([]).to(device)
+
+    with torch.no_grad():
+        for inputs, targets in data_loader:
+            outputs = model(inputs.to(device))
+            
+            if task == 'multi-label, binary-class':
+                targets = targets.to(torch.float32).to(device)
+                m = nn.Sigmoid()
+                outputs = m(outputs).to(device)
+            else:
+                targets = torch.squeeze(targets, 1).long().to(device)
+                m = nn.Softmax(dim=1)
+                outputs = m(outputs).to(device)
+                targets = targets.float().resize_(len(targets), 1)
+
+            y_score = torch.cat((y_score, outputs), 0)
+            y_true = torch.cat((y_true, targets), 0)
+
+    y_score = y_score.detach().cpu().numpy()
+    y_true = y_true.detach().cpu().numpy()
+    
+    # Use the actual targets for evaluation instead of None
+    auc, acc = evaluator.evaluate(y_score, y_true, None)
+    return auc, acc
+
+def diagnose_warehouse_weights(warehouse, logger, final_test_colors):
+    """Diagnostic function to check warehouse weights and compare with server simulation approach"""
+    logger.info("=== WAREHOUSE DIAGNOSTICS ===")
+    
+    # Check if we can retrieve weights for each color
+    for color in final_test_colors:
+        try:
+            weights = warehouse.get_model_weights(color)
+            if weights:
+                # Get a sample parameter to check if weights are reasonable
+                sample_param = next(iter(weights.values()))
+                param_sum = float(sample_param.sum()) if hasattr(sample_param, 'sum') else 0
+                param_mean = float(sample_param.mean()) if hasattr(sample_param, 'mean') else 0
+                param_std = float(sample_param.std()) if hasattr(sample_param, 'std') else 0
+                logger.info(f"  {color}: ✅ {len(weights)} params, sample stats: sum={param_sum:.6f}, mean={param_mean:.6f}, std={param_std:.6f}")
+            else:
+                logger.warning(f"  {color}: ❌ No weights found")
+        except Exception as e:
+            logger.error(f"  {color}: ❌ Error retrieving weights: {e}")
+    
+    logger.info("=== END DIAGNOSTICS ===")
+
 def perform_final_ensemble_prediction(args):
     """
     Performs final ensemble prediction on test data and returns detailed results.
@@ -52,6 +104,7 @@ def perform_final_ensemble_prediction(args):
     log_file = os.path.join(args.output_dir, "fbd_test_sim.log")
     logger = setup_logger("FBD_Test", log_file)
     logger.info("Starting final ensemble prediction...")
+    logger.info("🔧 FIXED: Now using proper target handling instead of evaluate(scores, None, None)")
     
     # Load warehouse - check for both standard and round-specific names
     warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
@@ -101,6 +154,9 @@ def perform_final_ensemble_prediction(args):
     )
     warehouse.load_warehouse(warehouse_path)
     logger.info(f"Loaded warehouse from {warehouse_path}")
+    
+    # Add diagnostic check
+    diagnose_warehouse_weights(warehouse, logger, final_test_colors)
     
     # Prepare test dataset
     info = INFO[args.experiment_name]
@@ -170,7 +226,7 @@ def perform_final_ensemble_prediction(args):
         
         # Evaluate individual model using MedMNIST evaluator
         test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
-        individual_auc, individual_acc = test_evaluator.evaluate(scores, None, None)
+        individual_auc, individual_acc = _test_model_with_targets(model, test_evaluator, test_loader, task, device)
         logger.info(f"Individual {model_color} - AUC: {individual_auc:.4f}, ACC: {individual_acc:.4f}")
         
         logger.info(f"Got predictions from {model_color}, shape: {scores.shape}")
@@ -215,7 +271,7 @@ def perform_final_ensemble_prediction(args):
         
         # Evaluate averaged model using MedMNIST evaluator
         test_evaluator_avg = Evaluator(args.experiment_name, 'test', size=args.size)
-        avg_auc, avg_acc = test_evaluator_avg.evaluate(averaged_scores, None, None)
+        avg_auc, avg_acc = _test_model_with_targets(averaged_model, test_evaluator_avg, test_loader, task, device)
         logger.info(f"Individual Averaging model - AUC: {avg_auc:.4f}, ACC: {avg_acc:.4f}")
         
         logger.info(f"Got predictions from averaged model, shape: {averaged_scores.shape}")
@@ -241,7 +297,11 @@ def perform_final_ensemble_prediction(args):
     
     # Calculate ensemble average scores for MedMNIST evaluation
     ensemble_avg_scores = np.mean(all_model_scores, axis=0)
-    medmnist_auc, medmnist_acc = test_evaluator.evaluate(ensemble_avg_scores, None, None)
+    # For ensemble evaluation, we need to use the targets from the dataset directly
+    true_labels = test_dataset.labels.squeeze()
+    if task != 'multi-label, binary-class':
+        true_labels = true_labels.reshape(-1, 1).astype(float)
+    medmnist_auc, medmnist_acc = test_evaluator.evaluate(ensemble_avg_scores, true_labels, None)
     
     logger.info(f"MedMNIST Evaluator results:")
     logger.info(f"  Ensemble Avg AUC: {medmnist_auc:.4f}")
