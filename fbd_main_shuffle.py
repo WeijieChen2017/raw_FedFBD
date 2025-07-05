@@ -264,7 +264,10 @@ def main():
     # 2. Start client processes
     processes = []
     for i in range(args.num_clients):
-        process = multiprocessing.Process(target=client_task, args=(i, partitions[i], args))
+        # Create a copy of args with the original dataset name for clients
+        client_args = argparse.Namespace(**vars(args))
+        client_args.experiment_name = dataset_name  # Use original dataset name without _shuffle
+        process = multiprocessing.Process(target=client_task, args=(i, partitions[i], client_args))
         processes.append(process)
         process.start()
 
