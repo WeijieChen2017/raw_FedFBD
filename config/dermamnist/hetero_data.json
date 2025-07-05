@@ -1,0 +1,148 @@
+{
+  "dataset": "dermamnist",
+  "num_clients": 6,
+  "num_classes": 7,
+  "alpha": 0.5,
+  "class_names": [
+    "actinic keratoses",
+    "basal cell carcinoma",
+    "benign keratosis-like lesions",
+    "dermatofibroma",
+    "melanoma",
+    "melanocytic nevi",
+    "vascular lesions"
+  ],
+  "client_distributions": {
+    "client_0": {
+      "class_percentages": [
+        6.39,
+        22.62,
+        3.03,
+        20.25,
+        31.92,
+        44.36,
+        3.57
+      ],
+      "class_distribution": {
+        "actinic keratoses": 6.39,
+        "basal cell carcinoma": 22.62,
+        "benign keratosis-like lesions": 3.03,
+        "dermatofibroma": 20.25,
+        "melanoma": 31.92,
+        "melanocytic nevi": 44.36,
+        "vascular lesions": 3.57
+      }
+    },
+    "client_1": {
+      "class_percentages": [
+        64.43,
+        1.46,
+        1.25,
+        1.22,
+        45.94,
+        7.02,
+        10.33
+      ],
+      "class_distribution": {
+        "actinic keratoses": 64.43,
+        "basal cell carcinoma": 1.46,
+        "benign keratosis-like lesions": 1.25,
+        "dermatofibroma": 1.22,
+        "melanoma": 45.94,
+        "melanocytic nevi": 7.02,
+        "vascular lesions": 10.33
+      }
+    },
+    "client_2": {
+      "class_percentages": [
+        5.56,
+        9.61,
+        28.2,
+        0.23,
+        16.48,
+        4.14,
+        40.12
+      ],
+      "class_distribution": {
+        "actinic keratoses": 5.56,
+        "basal cell carcinoma": 9.61,
+        "benign keratosis-like lesions": 28.2,
+        "dermatofibroma": 0.23,
+        "melanoma": 16.48,
+        "melanocytic nevi": 4.14,
+        "vascular lesions": 40.12
+      }
+    },
+    "client_3": {
+      "class_percentages": [
+        1.99,
+        49.82,
+        0.77,
+        32.91,
+        0.89,
+        2.96,
+        7.6
+      ],
+      "class_distribution": {
+        "actinic keratoses": 1.99,
+        "basal cell carcinoma": 49.82,
+        "benign keratosis-like lesions": 0.77,
+        "dermatofibroma": 32.91,
+        "melanoma": 0.89,
+        "melanocytic nevi": 2.96,
+        "vascular lesions": 7.6
+      }
+    },
+    "client_4": {
+      "class_percentages": [
+        21.56,
+        10.21,
+        61.94,
+        4.65,
+        0.03,
+        41.52,
+        4.97
+      ],
+      "class_distribution": {
+        "actinic keratoses": 21.56,
+        "basal cell carcinoma": 10.21,
+        "benign keratosis-like lesions": 61.94,
+        "dermatofibroma": 4.65,
+        "melanoma": 0.03,
+        "melanocytic nevi": 41.52,
+        "vascular lesions": 4.97
+      }
+    },
+    "client_5": {
+      "class_percentages": [
+        0.08,
+        6.28,
+        4.82,
+        40.75,
+        4.74,
+        0.0,
+        33.4
+      ],
+      "class_distribution": {
+        "actinic keratoses": 0.08,
+        "basal cell carcinoma": 6.28,
+        "benign keratosis-like lesions": 4.82,
+        "dermatofibroma": 40.75,
+        "melanoma": 4.74,
+        "melanocytic nevi": 0.0,
+        "vascular lesions": 33.4
+      }
+    }
+  },
+  "validation": {
+    "class_totals": [
+      100.01,
+      100.0,
+      100.00999999999999,
+      100.00999999999999,
+      100.0,
+      100.0,
+      99.99
+    ]
+  }
+}

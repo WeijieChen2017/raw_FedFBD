@@ -32,7 +32,7 @@ def load_hetero_config(experiment_name):
     Load heterogeneous dataset configuration from hetero_data.json
     
     Args:
-        experiment_name: Name of the experiment (e.g., 'organamnist_tau')
+        experiment_name: Name of the experiment (e.g., 'organamnist')
     
     Returns:
         dict: Heterogeneous distribution configuration
@@ -278,6 +278,8 @@ def main():
                         help="Ensemble size for evaluation (overrides config if specified)")
     parser.add_argument("--FedAvg", action="store_true", 
                         help="Enable FedAvg-style averaging of model blocks across colors at the end of each epoch")
+    parser.add_argument("--save_affix", type=str, default="", 
+                        help="String to append to the end of the output directory name")
     args = parser.parse_args()
     
     # Load configuration from medmnist INFO
@@ -340,8 +342,9 @@ def main():
     
     # Define temporary and final output directories (like original fbd_main.py)
     fedavg_suffix = "_FA" if args.FedAvg else ""
-    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau{fedavg_suffix}")
-    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau{fedavg_suffix}")
+    save_affix = f"_{args.save_affix}" if args.save_affix else ""
+    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau{fedavg_suffix}{save_affix}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau{fedavg_suffix}{save_affix}")
     
     # Clean up the temporary directory from any previous failed runs
     if os.path.exists(temp_output_dir):
@@ -365,7 +368,7 @@ def main():
     train_dataset, _ = load_data(args)
     
     # Try to load heterogeneous configuration
-    hetero_config = load_hetero_config(f"{args.experiment_name}_tau")
+    hetero_config = load_hetero_config(f"{args.experiment_name}")
     
     if hetero_config is not None:
         # Use heterogeneous partitioning
@@ -439,6 +442,8 @@ def main():
     print(f"\n4. OUTPUT:")
     print(f"   - Output directory: {temp_output_dir}")
     print(f"   - Final directory: {final_output_dir}")
+    if args.save_affix:
+        print(f"   - Save affix: '{args.save_affix}'")
     
     print(f"\n5. FBD CONFIGURATION:")
     print(f"   - FedAvg enabled: {'Yes' if args.FedAvg else 'No'}")

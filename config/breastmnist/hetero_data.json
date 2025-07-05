@@ -1,0 +1,78 @@
+{
+  "dataset": "breastmnist",
+  "num_clients": 6,
+  "num_classes": 2,
+  "alpha": 0.5,
+  "class_names": [
+    "malignant",
+    "benign"
+  ],
+  "client_distributions": {
+    "client_0": {
+      "class_percentages": [
+        8.1,
+        21.16
+      ],
+      "class_distribution": {
+        "malignant": 8.1,
+        "benign": 21.16
+      }
+    },
+    "client_1": {
+      "class_percentages": [
+        46.95,
+        0.79
+      ],
+      "class_distribution": {
+        "malignant": 46.95,
+        "benign": 0.79
+      }
+    },
+    "client_2": {
+      "class_percentages": [
+        14.12,
+        18.0
+      ],
+      "class_distribution": {
+        "malignant": 14.12,
+        "benign": 18.0
+      }
+    },
+    "client_3": {
+      "class_percentages": [
+        1.33,
+        24.71
+      ],
+      "class_distribution": {
+        "malignant": 1.33,
+        "benign": 24.71
+      }
+    },
+    "client_4": {
+      "class_percentages": [
+        29.07,
+        10.16
+      ],
+      "class_distribution": {
+        "malignant": 29.07,
+        "benign": 10.16
+      }
+    },
+    "client_5": {
+      "class_percentages": [
+        0.43,
+        25.18
+      ],
+      "class_distribution": {
+        "malignant": 0.43,
+        "benign": 25.18
+      }
+    }
+  },
+  "validation": {
+    "class_totals": [
+      100.0,
+      100.0
+    ]
+  }
+}

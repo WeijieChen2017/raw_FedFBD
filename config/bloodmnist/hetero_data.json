@@ -1,0 +1,162 @@
+{
+  "dataset": "bloodmnist",
+  "num_clients": 6,
+  "num_classes": 8,
+  "alpha": 0.5,
+  "class_names": [
+    "basophil",
+    "eosinophil",
+    "erythroblast",
+    "ig",
+    "lymphocyte",
+    "monocyte",
+    "neutrophil",
+    "platelet"
+  ],
+  "client_distributions": {
+    "client_0": {
+      "class_percentages": [
+        8.0,
+        30.77,
+        3.5,
+        23.71,
+        39.87,
+        46.65,
+        4.72,
+        0.27
+      ],
+      "class_distribution": {
+        "basophil": 8.0,
+        "eosinophil": 30.77,
+        "erythroblast": 3.5,
+        "ig": 23.71,
+        "lymphocyte": 39.87,
+        "monocyte": 46.65,
+        "neutrophil": 4.72,
+        "platelet": 0.27
+      }
+    },
+    "client_1": {
+      "class_percentages": [
+        59.72,
+        1.48,
+        1.07,
+        1.06,
+        42.5,
+        5.46,
+        10.13,
+        22.41
+      ],
+      "class_distribution": {
+        "basophil": 59.72,
+        "eosinophil": 1.48,
+        "erythroblast": 1.07,
+        "ig": 1.06,
+        "lymphocyte": 42.5,
+        "monocyte": 5.46,
+        "neutrophil": 10.13,
+        "platelet": 22.41
+      }
+    },
+    "client_2": {
+      "class_percentages": [
+        3.73,
+        7.0,
+        17.48,
+        0.15,
+        11.02,
+        2.33,
+        28.48,
+        39.87
+      ],
+      "class_distribution": {
+        "basophil": 3.73,
+        "eosinophil": 7.0,
+        "erythroblast": 17.48,
+        "ig": 0.15,
+        "lymphocyte": 11.02,
+        "monocyte": 2.33,
+        "neutrophil": 28.48,
+        "platelet": 39.87
+      }
+    },
+    "client_3": {
+      "class_percentages": [
+        1.4,
+        38.27,
+        0.5,
+        21.77,
+        0.63,
+        1.75,
+        5.69,
+        37.39
+      ],
+      "class_distribution": {
+        "basophil": 1.4,
+        "eosinophil": 38.27,
+        "erythroblast": 0.5,
+        "ig": 21.77,
+        "lymphocyte": 0.63,
+        "monocyte": 1.75,
+        "neutrophil": 5.69,
+        "platelet": 37.39
+      }
+    },
+    "client_4": {
+      "class_percentages": [
+        27.05,
+        13.93,
+        71.88,
+        5.46,
+        0.04,
+        43.8,
+        6.61,
+        0.02
+      ],
+      "class_distribution": {
+        "basophil": 27.05,
+        "eosinophil": 13.93,
+        "erythroblast": 71.88,
+        "ig": 5.46,
+        "lymphocyte": 0.04,
+        "monocyte": 43.8,
+        "neutrophil": 6.61,
+        "platelet": 0.02
+      }
+    },
+    "client_5": {
+      "class_percentages": [
+        0.1,
+        8.55,
+        5.57,
+        47.86,
+        5.94,
+        0.0,
+        44.36,
+        0.06
+      ],
+      "class_distribution": {
+        "basophil": 0.1,
+        "eosinophil": 8.55,
+        "erythroblast": 5.57,
+        "ig": 47.86,
+        "lymphocyte": 5.94,
+        "monocyte": 0.0,
+        "neutrophil": 44.36,
+        "platelet": 0.06
+      }
+    }
+  },
+  "validation": {
+    "class_totals": [
+      100.0,
+      100.0,
+      100.0,
+      100.01,
+      100.0,
+      99.99,
+      99.99,
+      100.02
+    ]
+  }
+}

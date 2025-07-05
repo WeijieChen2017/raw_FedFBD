@@ -1,0 +1,204 @@
+{
+  "dataset": "organsmnist",
+  "num_clients": 6,
+  "num_classes": 11,
+  "alpha": 0.5,
+  "class_names": [
+    "bladder",
+    "femur-left",
+    "femur-right",
+    "heart",
+    "kidney-left",
+    "kidney-right",
+    "liver",
+    "lung-left",
+    "lung-right",
+    "pancreas",
+    "spleen"
+  ],
+  "client_distributions": {
+    "client_0": {
+      "class_percentages": [
+        9.53,
+        38.39,
+        4.2,
+        32.01,
+        45.69,
+        50.89,
+        6.55,
+        0.36,
+        1.22,
+        4.37,
+        21.2
+      ],
+      "class_distribution": {
+        "bladder": 9.53,
+        "femur-left": 38.39,
+        "femur-right": 4.2,
+        "heart": 32.01,
+        "kidney-left": 45.69,
+        "kidney-right": 50.89,
+        "liver": 6.55,
+        "lung-left": 0.36,
+        "lung-right": 1.22,
+        "pancreas": 4.37,
+        "spleen": 21.2
+      }
+    },
+    "client_1": {
+      "class_percentages": [
+        58.24,
+        1.5,
+        1.05,
+        1.17,
+        39.89,
+        4.87,
+        11.51,
+        24.82,
+        29.13,
+        12.4,
+        0.0
+      ],
+      "class_distribution": {
+        "bladder": 58.24,
+        "femur-left": 1.5,
+        "femur-right": 1.05,
+        "heart": 1.17,
+        "kidney-left": 39.89,
+        "kidney-right": 4.87,
+        "liver": 11.51,
+        "lung-left": 24.82,
+        "lung-right": 29.13,
+        "pancreas": 12.4,
+        "spleen": 0.0
+      }
+    },
+    "client_2": {
+      "class_percentages": [
+        3.38,
+        6.65,
+        15.97,
+        0.16,
+        9.62,
+        1.94,
+        30.04,
+        41.05,
+        4.26,
+        33.6,
+        7.48
+      ],
+      "class_distribution": {
+        "bladder": 3.38,
+        "femur-left": 6.65,
+        "femur-right": 15.97,
+        "heart": 0.16,
+        "kidney-left": 9.62,
+        "kidney-right": 1.94,
+        "liver": 30.04,
+        "lung-left": 41.05,
+        "lung-right": 4.26,
+        "pancreas": 33.6,
+        "spleen": 7.48
+      }
+    },
+    "client_3": {
+      "class_percentages": [
+        1.1,
+        31.8,
+        0.41,
+        19.58,
+        0.48,
+        1.26,
+        5.26,
+        33.69,
+        3.17,
+        47.31,
+        1.46
+      ],
+      "class_distribution": {
+        "bladder": 1.1,
+        "femur-left": 31.8,
+        "femur-right": 0.41,
+        "heart": 19.58,
+        "kidney-left": 0.48,
+        "kidney-right": 1.26,
+        "liver": 5.26,
+        "lung-left": 33.69,
+        "lung-right": 3.17,
+        "pancreas": 47.31,
+        "spleen": 1.46
+      }
+    },
+    "client_4": {
+      "class_percentages": [
+        27.68,
+        14.92,
+        74.14,
+        6.34,
+        0.02,
+        41.04,
+        7.86,
+        0.03,
+        1.13,
+        1.12,
+        57.14
+      ],
+      "class_distribution": {
+        "bladder": 27.68,
+        "femur-left": 14.92,
+        "femur-right": 74.14,
+        "heart": 6.34,
+        "kidney-left": 0.02,
+        "kidney-right": 41.04,
+        "liver": 7.86,
+        "lung-left": 0.03,
+        "lung-right": 1.13,
+        "pancreas": 1.12,
+        "spleen": 57.14
+      }
+    },
+    "client_5": {
+      "class_percentages": [
+        0.07,
+        6.74,
+        4.23,
+        40.74,
+        4.3,
+        0.0,
+        38.78,
+        0.05,
+        61.09,
+        1.18,
+        12.71
+      ],
+      "class_distribution": {
+        "bladder": 0.07,
+        "femur-left": 6.74,
+        "femur-right": 4.23,
+        "heart": 40.74,
+        "kidney-left": 4.3,
+        "kidney-right": 0.0,
+        "liver": 38.78,
+        "lung-left": 0.05,
+        "lung-right": 61.09,
+        "pancreas": 1.18,
+        "spleen": 12.71
+      }
+    }
+  },
+  "validation": {
+    "class_totals": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      99.98,
+      99.99
+    ]
+  }
+}
