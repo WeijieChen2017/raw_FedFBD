@@ -35,7 +35,8 @@ def initialize_shuffle_experiment(args, dataset_name):
     # Set up logger
     log_dir = os.path.join(args.output_dir, "fbd_log")
     os.makedirs(log_dir, exist_ok=True)
-    logger = setup_logger("fbd_server", log_dir)
+    log_file = os.path.join(log_dir, "server.log")
+    logger = setup_logger("fbd_server", log_file)
     
     logger.info("="*80)
     logger.info("Server: Initializing shuffle experiment")
