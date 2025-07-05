@@ -78,7 +78,7 @@ def initialize_shuffle_experiment(args, dataset_name):
     model_template = get_pretrained_fbd_model(
         architecture=args.model_flag,
         norm=getattr(args, 'norm', 'bn'),
-        in_channels=getattr(args, 'n_channels', 3),
+        in_channels=getattr(args, 'in_channels', getattr(args, 'n_channels', 3)),
         num_classes=args.num_classes,
         use_pretrained=True
     )
@@ -155,7 +155,6 @@ def main():
     
     info = INFO[dataset_name]
     args.task = info['task']
-    args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     args.num_classes = len(info['label'])
     
     # Load additional configuration from config.json for non-dataset parameters
@@ -164,8 +163,11 @@ def main():
         args_dict = vars(args)
         # Only update non-dataset-specific parameters
         for key, value in vars(config).items():
-            if key not in ['num_classes', 'task', 'n_channels']:
+            if key not in ['num_classes', 'task']:
                 args_dict[key] = value
+    
+        # Set n_channels based on config's as_rgb setting (after config is loaded)
+        args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     except Exception as e:
         print(f"Warning: Could not load config.json, using defaults: {e}")
         # Set defaults for required parameters
