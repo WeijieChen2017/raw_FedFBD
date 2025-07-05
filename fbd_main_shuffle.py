@@ -4,7 +4,7 @@ import os
 import json
 from fbd_server import server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model
 from fbd_client import client_task
-from fbd_utils import load_config, handle_dataset_cache
+from fbd_utils import load_config, handle_dataset_cache, setup_logger
 from fbd_dataset import load_data, partition_data
 from fbd_plot import generate_plots
 import time
@@ -23,7 +23,14 @@ warnings.filterwarnings(
 
 def initialize_shuffle_experiment(args, dataset_name):
     """Initialize experiment for shuffle mode, handling dataset name correctly"""
-    from fbd_server import logger, prepare_initial_model, generate_and_store_warehouse
+    # Import what we need from fbd_server
+    from fbd_server import prepare_initial_model, generate_and_store_warehouse
+    from fbd_utils import setup_logger
+    
+    # Set up logger
+    log_dir = os.path.join(args.output_dir, "fbd_log")
+    os.makedirs(log_dir, exist_ok=True)
+    logger = setup_logger("fbd_server", log_dir)
     
     logger.info("="*80)
     logger.info("Server: Initializing shuffle experiment")
