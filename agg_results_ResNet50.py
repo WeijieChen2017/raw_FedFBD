@@ -13,7 +13,7 @@ def find_resnet50_folders(base_dir="fbd_run"):
     resnet50_folders = []
     for root, dirs, files in os.walk(base_dir):
         for dir_name in dirs:
-            if "resnet50" in dir_name.lower():
+            if "resnet50_reg" in dir_name.lower():
                 resnet50_folders.append(os.path.join(root, dir_name))
     
     return resnet50_folders
