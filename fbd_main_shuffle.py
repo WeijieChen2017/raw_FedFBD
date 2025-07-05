@@ -36,18 +36,23 @@ def main():
                         help="Ensemble size for evaluation (overrides config if specified)")
     args = parser.parse_args()
 
+    # Store the original experiment name for medmnist dataset loading
+    dataset_name = args.experiment_name
+    # Add _shuffle suffix for config loading
+    config_experiment_name = f"{args.experiment_name}_shuffle"
+
     # 0. Load configuration from medmnist INFO instead of config.json
-    if args.experiment_name not in INFO:
-        raise ValueError(f"Dataset {args.experiment_name} is not supported by medmnist.")
+    if dataset_name not in INFO:
+        raise ValueError(f"Dataset {dataset_name} is not supported by medmnist.")
     
-    info = INFO[args.experiment_name]
+    info = INFO[dataset_name]
     args.task = info['task']
     args.n_channels = 3 if getattr(args, 'as_rgb', False) else info['n_channels']
     args.num_classes = len(info['label'])
     
     # Load additional configuration from config.json for non-dataset parameters
     try:
-        config = load_config(args.experiment_name, args.model_flag)
+        config = load_config(config_experiment_name, args.model_flag)
         args_dict = vars(args)
         # Only update non-dataset-specific parameters
         for key, value in vars(config).items():
@@ -87,7 +92,7 @@ def main():
     else:
         # Check config file for regularizer settings
         try:
-            fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+            fbd_settings_path = f"config/{config_experiment_name}/fbd_settings.json"
             with open(fbd_settings_path, 'r') as f:
                 fbd_settings = json.load(f)
             regularizer_params = fbd_settings.get('REGULARIZER_PARAMS', {})
@@ -109,10 +114,10 @@ def main():
 
     # Define temporary and final output directories. The experiment runs in a temporary location
     # and is moved to the final destination only upon successful completion.
-    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
+    temp_output_dir = os.path.join(f"fbd_run", f"{config_experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
     args.comm_dir = os.path.join(temp_output_dir, "fbd_comm")
     os.makedirs(args.comm_dir, exist_ok=True)
-    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{config_experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
     
     # Clean up the temporary directory from any previous failed runs
     if os.path.exists(temp_output_dir):
@@ -121,12 +126,20 @@ def main():
 
     args.output_dir = temp_output_dir
     
+    # Update args.experiment_name to include _shuffle for config loading
+    args.experiment_name = config_experiment_name
+    
     # 1. Initialize Experiment
     initialize_experiment(args)
     
     # 1.A. Load and partition data
     print("Server: Loading and partitioning data...")
+    # Temporarily set experiment_name back to dataset name for data loading
+    original_experiment_name = args.experiment_name
+    args.experiment_name = dataset_name
     train_dataset, _ = load_data(args)
+    # Restore the shuffle experiment name
+    args.experiment_name = original_experiment_name
     partitions = partition_data(train_dataset, args.num_clients, args.iid)
 
     print(f"Server: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
