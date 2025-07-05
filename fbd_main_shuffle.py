@@ -55,6 +55,12 @@ def initialize_shuffle_experiment(args, dataset_name):
 
     # 2. Handle dataset caching - use the original dataset name
     logger.info("Server: Checking dataset cache...")
+    # Create cache directory if it doesn't exist
+    if not args.cache_dir:
+        args.cache_dir = "cache"
+    if not os.path.exists(args.cache_dir):
+        os.makedirs(args.cache_dir, exist_ok=True)
+        logger.info(f"Created cache directory: {args.cache_dir}")
     handle_dataset_cache(dataset_name, args.cache_dir)
 
     # 3. Prepare and cache the initial model
