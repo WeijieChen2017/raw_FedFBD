@@ -2,15 +2,17 @@ import multiprocessing
 import argparse
 import os
 import json
-from fbd_server import initialize_experiment, server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model
+from fbd_server import server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model
 from fbd_client import client_task
-from fbd_utils import load_config
+from fbd_utils import load_config, handle_dataset_cache
 from fbd_dataset import load_data, partition_data
 from fbd_plot import generate_plots
 import time
 import shutil
 import medmnist
 from medmnist import INFO
+import subprocess
+import logging
 
 import warnings
 warnings.filterwarnings(
@@ -18,6 +20,51 @@ warnings.filterwarnings(
     category=FutureWarning,
     message=r".*weights_only=False.*"
 )
+
+def initialize_shuffle_experiment(args, dataset_name):
+    """Initialize experiment for shuffle mode, handling dataset name correctly"""
+    from fbd_server import logger, prepare_initial_model, generate_and_store_warehouse
+    
+    logger.info("="*80)
+    logger.info("Server: Initializing shuffle experiment")
+    logger.info(f"Server: Dataset name for loading: {dataset_name}")
+    logger.info(f"Server: Config experiment name: {args.experiment_name}")
+    logger.info("="*80)
+    
+    # 1. Create/clean communication directory
+    if getattr(args, 'remove_communication', False) and os.path.exists(args.comm_dir):
+        logger.info(f"Server: Clearing communication directory at {args.comm_dir}")
+        shutil.rmtree(args.comm_dir)
+    
+    if not os.path.exists(args.comm_dir):
+        os.makedirs(args.comm_dir)
+        logger.info(f"Server: Created communication directory at {args.comm_dir}")
+
+    # 2. Handle dataset caching - use the original dataset name
+    logger.info("Server: Checking dataset cache...")
+    handle_dataset_cache(dataset_name, args.cache_dir)
+
+    # 3. Prepare and cache the initial model
+    logger.info("Server: Preparing initial model...")
+    prepare_initial_model(args)
+    
+    # 4. Generate FBD plans by calling the external script
+    logger.info("Server: Generating FBD plans...")
+    try:
+        subprocess.run(
+            ["python", "fbd_generate_plans.py", args.experiment_name, args.model_flag],
+            check=True
+        )
+        logger.info("Server: FBD plans generated successfully")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Server: Failed to generate FBD plans: {e}")
+        raise RuntimeError("Failed to generate FBD plans") from e
+    except FileNotFoundError:
+        logger.warning("Server: fbd_generate_plans.py not found, assuming plans are pre-generated")
+
+    # 5. Generate and store warehouse
+    logger.info("Server: Generating and storing warehouse...")
+    generate_and_store_warehouse(args)
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework - Shuffle")
@@ -126,20 +173,21 @@ def main():
 
     args.output_dir = temp_output_dir
     
+    # Store dataset name separately for medmnist operations
+    args.dataset_name = dataset_name
     # Update args.experiment_name to include _shuffle for config loading
     args.experiment_name = config_experiment_name
     
-    # 1. Initialize Experiment
-    initialize_experiment(args)
+    # 1. Initialize Experiment - use custom function that handles dataset name correctly
+    initialize_shuffle_experiment(args, dataset_name)
     
     # 1.A. Load and partition data
     print("Server: Loading and partitioning data...")
-    # Temporarily set experiment_name back to dataset name for data loading
-    original_experiment_name = args.experiment_name
+    # Temporarily override experiment_name for data loading
+    temp_experiment_name = args.experiment_name
     args.experiment_name = dataset_name
     train_dataset, _ = load_data(args)
-    # Restore the shuffle experiment name
-    args.experiment_name = original_experiment_name
+    args.experiment_name = temp_experiment_name
     partitions = partition_data(train_dataset, args.num_clients, args.iid)
 
     print(f"Server: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
