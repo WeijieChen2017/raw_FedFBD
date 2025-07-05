@@ -2,10 +2,11 @@ import multiprocessing
 import argparse
 import os
 import json
-from fbd_server import server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model
+from fbd_server import server_send_to_clients, server_collect_from_clients, end_experiment, evaluate_server_model, prepare_initial_model
 from fbd_client import client_task
-from fbd_utils import load_config, handle_dataset_cache, setup_logger
+from fbd_utils import load_config, handle_dataset_cache, setup_logger, load_fbd_settings, FBDWarehouse, save_json
 from fbd_dataset import load_data, partition_data
+from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_plot import generate_plots
 import time
 import shutil
@@ -13,6 +14,8 @@ import medmnist
 from medmnist import INFO
 import subprocess
 import logging
+import torch
+import torchvision.transforms as transforms
 
 import warnings
 warnings.filterwarnings(
@@ -23,9 +26,11 @@ warnings.filterwarnings(
 
 def initialize_shuffle_experiment(args, dataset_name):
     """Initialize experiment for shuffle mode, handling dataset name correctly"""
-    # Import what we need from fbd_server
-    from fbd_server import prepare_initial_model, generate_and_store_warehouse
-    from fbd_utils import setup_logger
+    # Import what we need
+    from fbd_server import prepare_initial_model
+    from fbd_utils import setup_logger, load_fbd_settings, FBDWarehouse, save_json
+    from fbd_model_ckpt import get_pretrained_fbd_model
+    import torch
     
     # Set up logger
     log_dir = os.path.join(args.output_dir, "fbd_log")
@@ -55,23 +60,65 @@ def initialize_shuffle_experiment(args, dataset_name):
     logger.info("Server: Preparing initial model...")
     prepare_initial_model(args)
     
-    # 4. Generate FBD plans by calling the external script
-    logger.info("Server: Generating FBD plans...")
-    try:
-        subprocess.run(
-            ["python", "fbd_generate_plans.py", args.experiment_name, args.model_flag],
-            check=True
-        )
-        logger.info("Server: FBD plans generated successfully")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Server: Failed to generate FBD plans: {e}")
-        raise RuntimeError("Failed to generate FBD plans") from e
-    except FileNotFoundError:
-        logger.warning("Server: fbd_generate_plans.py not found, assuming plans are pre-generated")
+    # 4. Plans are already pre-generated for shuffle experiments
+    logger.info("Server: Using pre-generated shuffle plans...")
+    
+    # 5. Initialize FBD Warehouse
+    logger.info("Server: Initializing FBD Warehouse...")
+    fbd_settings_path = os.path.join("config", args.experiment_name, "fbd_settings.json")
+    fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
 
-    # 5. Generate and store warehouse
-    logger.info("Server: Generating and storing warehouse...")
-    generate_and_store_warehouse(args)
+    model_template = get_pretrained_fbd_model(
+        architecture=args.model_flag,
+        norm=getattr(args, 'norm', 'bn'),
+        in_channels=getattr(args, 'n_channels', 3),
+        num_classes=args.num_classes,
+        use_pretrained=True
+    )
+    initial_model_path = os.path.join(args.cache_dir, f"initial_{args.model_flag}.pth")
+    model_template.load_state_dict(torch.load(initial_model_path))
+
+    args.warehouse = FBDWarehouse(
+        fbd_trace=fbd_trace,
+        model_template=model_template,
+        log_file_path=os.path.join(args.comm_dir, "warehouse.log")
+    )
+    
+    warehouse_path = os.path.join(args.comm_dir, "fbd_warehouse.pth")
+    args.warehouse.save_warehouse(warehouse_path)
+    logger.info(f"Server: FBD Warehouse initialized and saved to {warehouse_path}")
+    
+    # 6. Save training configuration
+    config_path = os.path.join(args.comm_dir, "train_config.json")
+    logger.info(f"Server: Saving training configuration to {config_path}")
+    
+    # Create a serializable copy of the configuration
+    args_to_save = vars(args).copy()
+    args_to_save.pop('warehouse', None)
+    args_to_save.pop('test_dataset', None)
+    save_json(args_to_save, config_path)
+    
+    # 7. Prepare test dataset
+    logger.info("Server: Preparing test dataset...")
+    from medmnist import INFO
+    import medmnist
+    import torchvision.transforms as transforms
+    
+    info = INFO[dataset_name]  # Use dataset_name, not experiment_name
+    DataClass = getattr(medmnist, info['python_class'])
+    as_rgb = getattr(args, 'as_rgb', False)
+    data_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5])
+    ])
+    args.test_dataset = DataClass(
+        split='test', 
+        transform=data_transform, 
+        download=True, 
+        as_rgb=as_rgb,
+        root=args.cache_dir
+    )
+    logger.info("Server: Test dataset prepared.")
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework - Shuffle")
