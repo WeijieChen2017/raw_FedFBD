@@ -1,0 +1,132 @@
+{
+  "TRANSPARENT_TO_CLIENT": false,
+  "MODEL_PARTS": [
+    "encoder_level1", 
+    "encoder_level2", 
+    "encoder_level3", 
+    "encoder_level4", 
+    "bottleneck", 
+    "decoder_level1", 
+    "decoder_level2", 
+    "decoder_level3", 
+    "decoder_level4"
+  ],
+  "MODEL_PART_ORDER": [
+    "encoder_level1", 
+    "encoder_level2", 
+    "encoder_level3", 
+    "encoder_level4", 
+    "bottleneck", 
+    "decoder_level1", 
+    "decoder_level2", 
+    "decoder_level3", 
+    "decoder_level4"
+  ],
+  "REGULARIZER_PARAMS": {
+    "type": "consistency loss",
+    "distance_type": "L2",
+    "coefficient": 0.1
+  },
+  "ENSEMBLE_SIZE": 32,
+  "ENSEMBLE_COLORS": ["M0", "M1", "M2", "M3", "M4", "M5"],
+  "FINAL_TEST_COLORS": ["M0", "M1", "M2", "M3", "M4", "M5"],
+  "FINAL_TEST_SIZE": 128,
+  "UPDATE_SCHEDULE": [
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5,6,7,8], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5,6,7,8], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5,6,7,8], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5,6,7,8], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5,6,7,8], "model_part_to_update": []},
+    {"num_rounds": 5, "model_part_index_to_update": [0,1,2,3,4,5,6,7,8], "model_part_to_update": []}
+  ],
+  "OUTER_ROUNDS_TOTAL": 30,
+  "BLOCKS_PER_MODEL": 9,
+  "FBD_TRACE": {
+    "SIM001": {"model_part": "encoder_level1", "color": "M0", "train_record": []},
+    "SIM002": {"model_part": "encoder_level2", "color": "M0", "train_record": []},
+    "SIM003": {"model_part": "encoder_level3", "color": "M0", "train_record": []},
+    "SIM004": {"model_part": "encoder_level4", "color": "M0", "train_record": []},
+    "SIM005": {"model_part": "bottleneck", "color": "M0", "train_record": []},
+    "SIM006": {"model_part": "decoder_level1", "color": "M0", "train_record": []},
+    "SIM007": {"model_part": "decoder_level2", "color": "M0", "train_record": []},
+    "SIM008": {"model_part": "decoder_level3", "color": "M0", "train_record": []},
+    "SIM009": {"model_part": "decoder_level4", "color": "M0", "train_record": []},
+    
+    "SIM010": {"model_part": "encoder_level1", "color": "M1", "train_record": []},
+    "SIM011": {"model_part": "encoder_level2", "color": "M1", "train_record": []},
+    "SIM012": {"model_part": "encoder_level3", "color": "M1", "train_record": []},
+    "SIM013": {"model_part": "encoder_level4", "color": "M1", "train_record": []},
+    "SIM014": {"model_part": "bottleneck", "color": "M1", "train_record": []},
+    "SIM015": {"model_part": "decoder_level1", "color": "M1", "train_record": []},
+    "SIM016": {"model_part": "decoder_level2", "color": "M1", "train_record": []},
+    "SIM017": {"model_part": "decoder_level3", "color": "M1", "train_record": []},
+    "SIM018": {"model_part": "decoder_level4", "color": "M1", "train_record": []},
+    
+    "SIM019": {"model_part": "encoder_level1", "color": "M2", "train_record": []},
+    "SIM020": {"model_part": "encoder_level2", "color": "M2", "train_record": []},
+    "SIM021": {"model_part": "encoder_level3", "color": "M2", "train_record": []},
+    "SIM022": {"model_part": "encoder_level4", "color": "M2", "train_record": []},
+    "SIM023": {"model_part": "bottleneck", "color": "M2", "train_record": []},
+    "SIM024": {"model_part": "decoder_level1", "color": "M2", "train_record": []},
+    "SIM025": {"model_part": "decoder_level2", "color": "M2", "train_record": []},
+    "SIM026": {"model_part": "decoder_level3", "color": "M2", "train_record": []},
+    "SIM027": {"model_part": "decoder_level4", "color": "M2", "train_record": []},
+    
+    "SIM028": {"model_part": "encoder_level1", "color": "M3", "train_record": []},
+    "SIM029": {"model_part": "encoder_level2", "color": "M3", "train_record": []},
+    "SIM030": {"model_part": "encoder_level3", "color": "M3", "train_record": []},
+    "SIM031": {"model_part": "encoder_level4", "color": "M3", "train_record": []},
+    "SIM032": {"model_part": "bottleneck", "color": "M3", "train_record": []},
+    "SIM033": {"model_part": "decoder_level1", "color": "M3", "train_record": []},
+    "SIM034": {"model_part": "decoder_level2", "color": "M3", "train_record": []},
+    "SIM035": {"model_part": "decoder_level3", "color": "M3", "train_record": []},
+    "SIM036": {"model_part": "decoder_level4", "color": "M3", "train_record": []},
+    
+    "SIM037": {"model_part": "encoder_level1", "color": "M4", "train_record": []},
+    "SIM038": {"model_part": "encoder_level2", "color": "M4", "train_record": []},
+    "SIM039": {"model_part": "encoder_level3", "color": "M4", "train_record": []},
+    "SIM040": {"model_part": "encoder_level4", "color": "M4", "train_record": []},
+    "SIM041": {"model_part": "bottleneck", "color": "M4", "train_record": []},
+    "SIM042": {"model_part": "decoder_level1", "color": "M4", "train_record": []},
+    "SIM043": {"model_part": "decoder_level2", "color": "M4", "train_record": []},
+    "SIM044": {"model_part": "decoder_level3", "color": "M4", "train_record": []},
+    "SIM045": {"model_part": "decoder_level4", "color": "M4", "train_record": []},
+    
+    "SIM046": {"model_part": "encoder_level1", "color": "M5", "train_record": []},
+    "SIM047": {"model_part": "encoder_level2", "color": "M5", "train_record": []},
+    "SIM048": {"model_part": "encoder_level3", "color": "M5", "train_record": []},
+    "SIM049": {"model_part": "encoder_level4", "color": "M5", "train_record": []},
+    "SIM050": {"model_part": "bottleneck", "color": "M5", "train_record": []},
+    "SIM051": {"model_part": "decoder_level1", "color": "M5", "train_record": []},
+    "SIM052": {"model_part": "decoder_level2", "color": "M5", "train_record": []},
+    "SIM053": {"model_part": "decoder_level3", "color": "M5", "train_record": []},
+    "SIM054": {"model_part": "decoder_level4", "color": "M5", "train_record": []}
+  },
+  "FBD_INFO": {
+    "models": {
+      "M0": [0, 1, 2],
+      "M1": [0, 3, 5],
+      "M2": [0, 4, 5],
+      "M3": [1, 3, 4],
+      "M4": [1, 2, 3],
+      "M5": [2, 4, 5]
+    },
+    "clients": {
+      "0": ["M0", "M1", "M2"],
+      "1": ["M0", "M3", "M4"],
+      "2": ["M0", "M4", "M5"],
+      "3": ["M1", "M3", "M4"],
+      "4": ["M2", "M3", "M5"],
+      "5": ["M1", "M2", "M5"]
+    },
+    "training_plan": {
+      "rounds": 3,
+      "schedule": {
+        "0": {"0": "M0", "1": "M3", "2": "M5", "3": "M4", "4": "M2", "5": "M1"},
+        "1": {"0": "M1", "1": "M4", "2": "M0", "3": "M3", "4": "M5", "5": "M2"},
+        "2": {"0": "M2", "1": "M0", "2": "M4", "3": "M1", "4": "M3", "5": "M5"}
+      },
+      "local_epochs_per_round": 1
+    }
+  }
+}
