@@ -276,6 +276,8 @@ def main():
                         help="Regularization coefficient (overrides config if specified)")
     parser.add_argument("--ensemble_size", type=int, default=None,
                         help="Ensemble size for evaluation (overrides config if specified)")
+    parser.add_argument("--FedAvg", action="store_true", 
+                        help="Enable FedAvg-style averaging of model blocks across colors at the end of each epoch")
     args = parser.parse_args()
     
     # Load configuration from medmnist INFO
@@ -337,8 +339,9 @@ def main():
             reg_suffix = ""
     
     # Define temporary and final output directories (like original fbd_main.py)
-    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau")
-    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau")
+    fedavg_suffix = "_FA" if args.FedAvg else ""
+    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau{fedavg_suffix}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}_tau{fedavg_suffix}")
     
     # Clean up the temporary directory from any previous failed runs
     if os.path.exists(temp_output_dir):
@@ -438,6 +441,7 @@ def main():
     print(f"   - Final directory: {final_output_dir}")
     
     print(f"\n5. FBD CONFIGURATION:")
+    print(f"   - FedAvg enabled: {'Yes' if args.FedAvg else 'No'}")
     print(f"   - Model colors: {getattr(args, 'colors', ['red', 'yellow', 'blue'])}")
     print(f"   - Block assignment: {getattr(args, 'block_assignment', 'cyclic')}")
     print(f"   - Ensemble size: {getattr(args, 'ensemble_size', 1)}")
@@ -508,6 +512,119 @@ def main():
         warehouse.save_warehouse(warehouse_save_path)
         
         print(f"Server evaluation history and warehouse updated for round {r}")
+        
+        # Apply FedAvg if enabled
+        if args.FedAvg:
+            print(f"\nApplying FedAvg averaging at the end of round {r}...")
+            
+            # Load FBD settings to get model parts
+            fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
+            with open(fbd_settings_path, 'r') as f:
+                fbd_settings = json.load(f)
+            
+            model_parts = fbd_settings.get('MODEL_PARTS', [])
+            colors = ["M0", "M1", "M2", "M3", "M4", "M5"]  # All 6 colors
+            
+            # For each model part, average weights and optimizer states across all colors
+            for part in model_parts:
+                # Collect block IDs for this part across all colors
+                block_ids_for_part = []
+                for color in colors:
+                    # Find block ID for this (part, color) combination
+                    for block_id, block_info in warehouse.fbd_trace.items():
+                        if block_info['model_part'] == part and block_info['color'] == color:
+                            block_ids_for_part.append(block_id)
+                            break
+                
+                if len(block_ids_for_part) != 6:
+                    print(f"  Warning: Expected 6 blocks for part '{part}', found {len(block_ids_for_part)}")
+                    continue
+                
+                # Average weights for this part
+                all_weights = []
+                for block_id in block_ids_for_part:
+                    try:
+                        weights = warehouse.retrieve_weights(block_id)
+                        all_weights.append(weights)
+                    except Exception as e:
+                        print(f"  Warning: Could not retrieve weights for block {block_id}: {e}")
+                
+                if all_weights:
+                    # Average the weights
+                    averaged_weights = {}
+                    for key in all_weights[0].keys():
+                        tensors = [w[key] for w in all_weights]
+                        if all(t.dtype == tensors[0].dtype for t in tensors) and tensors[0].dtype.is_floating_point:
+                            averaged_weights[key] = torch.stack(tensors).mean(dim=0)
+                        else:
+                            averaged_weights[key] = tensors[0].clone()
+                    
+                    # Update all blocks with averaged weights
+                    for block_id in block_ids_for_part:
+                        warehouse.store_weights(block_id, averaged_weights)
+                
+                # Average optimizer states for this part
+                all_optimizer_states = []
+                for block_id in block_ids_for_part:
+                    try:
+                        optimizer_state = warehouse.retrieve_optimizer_state(block_id)
+                        if optimizer_state:
+                            all_optimizer_states.append(optimizer_state)
+                    except Exception as e:
+                        print(f"  Warning: Could not retrieve optimizer state for block {block_id}: {e}")
+                
+                if all_optimizer_states:
+                    # Average the optimizer states
+                    averaged_optimizer_state = {}
+                    
+                    # First, check if all optimizer states have the same structure
+                    if 'state' in all_optimizer_states[0]:
+                        averaged_state_dict = {}
+                        # Get all parameter names
+                        all_param_names = set()
+                        for opt_state in all_optimizer_states:
+                            if 'state' in opt_state:
+                                all_param_names.update(opt_state['state'].keys())
+                        
+                        # Average each parameter's optimizer state
+                        for param_name in all_param_names:
+                            # Collect states for this parameter from all optimizer states
+                            param_states = []
+                            for opt_state in all_optimizer_states:
+                                if 'state' in opt_state and param_name in opt_state['state']:
+                                    param_states.append(opt_state['state'][param_name])
+                            
+                            if param_states:
+                                # Average the state values
+                                averaged_param_state = {}
+                                for state_key in param_states[0].keys():
+                                    state_values = [ps[state_key] for ps in param_states if state_key in ps]
+                                    if state_values:
+                                        if isinstance(state_values[0], torch.Tensor):
+                                            if state_values[0].dtype.is_floating_point:
+                                                averaged_param_state[state_key] = torch.stack(state_values).mean(dim=0)
+                                            else:
+                                                averaged_param_state[state_key] = state_values[0].clone()
+                                        else:
+                                            # For non-tensor values (like step count), use the mean
+                                            averaged_param_state[state_key] = sum(state_values) / len(state_values)
+                                
+                                averaged_state_dict[param_name] = averaged_param_state
+                        
+                        averaged_optimizer_state['state'] = averaged_state_dict
+                        
+                        # Copy other optimizer settings from the first state
+                        for key in all_optimizer_states[0].keys():
+                            if key != 'state':
+                                averaged_optimizer_state[key] = all_optimizer_states[0][key]
+                    
+                    # Update all blocks with averaged optimizer state
+                    for block_id in block_ids_for_part:
+                        warehouse.store_optimizer_state(block_id, averaged_optimizer_state)
+                
+                print(f"  Averaged {part} across all colors")
+            
+            print(f"FedAvg averaging completed for round {r}")
     
     # Move the temporary run folder to its final destination (like original)
     # try:
