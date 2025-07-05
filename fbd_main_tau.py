@@ -280,6 +280,8 @@ def main():
                         help="Enable FedAvg-style averaging of model blocks across colors at the end of each epoch")
     parser.add_argument("--save_affix", type=str, default="", 
                         help="String to append to the end of the output directory name")
+    parser.add_argument("--auto", action="store_true", 
+                        help="Auto-approve training plan without user confirmation")
     args = parser.parse_args()
     
     # Load configuration from medmnist INFO
@@ -456,10 +458,13 @@ def main():
     print("\n" + "="*80)
     
     # Ask for user approval
-    approval = input("\nDo you want to proceed with this training plan? (yes/no): ").strip().lower()
-    if approval not in ['yes', 'y']:
-        print("Training cancelled by user.")
-        return
+    if args.auto:
+        print("Auto-approval enabled. Proceeding with training plan.")
+    else:
+        approval = input("\nDo you want to proceed with this training plan? (yes/no): ").strip().lower()
+        if approval not in ['yes', 'y']:
+            print("Training cancelled by user.")
+            return
     
     print(f"\nServer: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
     
