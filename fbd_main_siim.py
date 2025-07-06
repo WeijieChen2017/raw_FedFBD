@@ -31,6 +31,7 @@ from fbd_server_siim import (
     collect_and_evaluate_round,
     get_client_plans_for_round
 )
+from fbd_models_siim import get_siim_model
 
 # Suppress noisy logging messages
 logging.getLogger('fbd_model_ckpt').setLevel(logging.WARNING)
@@ -495,6 +496,26 @@ def main():
         return
     
     print(f"\nServer: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
+
+    # Create a single reusable model instance to save memory
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if args.experiment_name == "siim":
+        reusable_model = get_siim_model(
+            architecture=args.model_flag,
+            in_channels=args.n_channels,
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
+        )
+    else:
+        # This path is not expected for siim, but as a fallback:
+        from fbd_models import get_pretrained_fbd_model
+        reusable_model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.n_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        )
     
     # Run simulation rounds
     server_evaluation_history = []
@@ -511,7 +532,7 @@ def main():
             )
             
             response = simulate_client_task(
-                client_id, partitions[client_id], args, r, 
+                reusable_model, client_id, partitions[client_id], args, r, 
                 warehouse, client_shipping_list, client_update_plan
             )
             client_responses[client_id] = response

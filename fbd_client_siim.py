@@ -397,22 +397,15 @@ def save_optimizer_state_by_request_plan(optimizer, model, client_request_list, 
 
 def save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_model_color, output_dir):
     """
-    Save model state dict and optimizer state dict to disk to free GPU memory.
-    
-    Args:
-        model: PyTorch model
-        optimizer: PyTorch optimizer
-        client_id: Client ID
-        round_num: Round number
-        assigned_model_color: Model color being trained
-        output_dir: Output directory to save states
-    
-    Returns:
-        dict: Paths to saved files
+    Save model state dict and optimizer state dict to disk.
+    This version avoids deleting the model to allow for reuse.
     """
     # Create client-specific directory
     client_dir = os.path.join(output_dir, f"client_{client_id}_round_{round_num}")
     os.makedirs(client_dir, exist_ok=True)
+    
+    # Ensure model and optimizer are on CPU before saving to avoid GPU sync issues
+    model.cpu()
     
     # Save model state dict
     model_path = os.path.join(client_dir, f"model_{assigned_model_color}.pth")
@@ -422,12 +415,8 @@ def save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_mo
     optimizer_path = os.path.join(client_dir, f"optimizer_{assigned_model_color}.pth")
     torch.save(optimizer.state_dict(), optimizer_path)
     
-    # Move model to CPU and clear GPU memory
-    model.cpu()
-    del model
-    del optimizer
+    # Clear GPU memory
     torch.cuda.empty_cache()
-    gc.collect()
     
     return {
         "model_path": model_path,
@@ -484,8 +473,8 @@ def create_model_for_evaluation(args, device):
     model.to(device)
     return model
 
-def simulate_client_task(client_id, data_partition, args, round_num, global_warehouse, client_shipping_list, client_update_plan):
-    """Simulated client task that processes one round"""
+def simulate_client_task(model, client_id, data_partition, args, round_num, global_warehouse, client_shipping_list, client_update_plan):
+    """Simulated client task that processes one round using a reusable model."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Get info from MedMNIST INFO or SIIM_INFO
@@ -537,24 +526,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
         print(f"Client {client_id}: No shipping plan for round {round_num}. Skipping.")
         return None
     
-    # Prepare test dataset for evaluations
-    if args.experiment_name == "siim":
-        # For SIIM, test data is provided via args.test_dataset from server
-        test_dataset = args.test_dataset
-        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
-        test_evaluator = None  # Will use MONAI metrics instead
-    else:
-        DataClass = getattr(medmnist, info['python_class'])
-        # Use as_rgb setting from config instead of hardcoded rules
-        as_rgb = getattr(args, 'as_rgb', False)
-        data_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[.5], std=[.5])
-        ])
-        test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
-        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
-        test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
-    
     # Get model weights and optimizer states from the warehouse
     model_weights = global_warehouse.get_shipping_weights(client_shipping_list)
     all_optimizer_states = global_warehouse.get_shipping_optimizer_states(client_shipping_list)
@@ -566,30 +537,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     
     optimizer_states = {block_id: state for block_id, state in all_optimizer_states.items() 
                        if block_id in assigned_model_blocks}
-    
-    # Build a local map from block_id to model_part from the update_plan
-    block_id_to_model_part = {}
-    if client_update_plan:
-        model_to_update_plan = client_update_plan.get('model_to_update', {})
-        for model_part, component_info in model_to_update_plan.items():
-            block_id_to_model_part[component_info['block_id']] = model_part
-    
-    # Create a base model instance
-    if args.experiment_name == "siim":
-        model = get_siim_model(
-            architecture=args.model_flag,
-            in_channels=args.n_channels,
-            out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
-        )
-    else:
-        model = get_pretrained_fbd_model(
-            architecture=args.model_flag,
-            norm=args.norm,
-            in_channels=args.in_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False  # Start with an empty model
-        )
     
     # Assemble the model using the received plan and weights
     num_tensors = 0
@@ -656,36 +603,49 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     # Train the model
     loss, main_loss, reg_loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device, client_update_plan, global_warehouse, args)
     
-    # Save model state after training to free GPU memory
+    # Save model state after training
     model_state_info = save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_model_color, args.output_dir)
     
-    # Create a fresh model for evaluation to avoid GPU memory issues
-    eval_model = create_model_for_evaluation(args, device)
-    
-    # Load the trained weights into the evaluation model
-    eval_model.load_state_dict(torch.load(model_state_info["model_path"], map_location=device))
-    
+    # Load the trained weights back for evaluation
+    model.load_state_dict(torch.load(model_state_info["model_path"]))
+    model.to(device)
+
+    # Prepare test dataset for evaluations
+    if args.experiment_name == "siim":
+        test_dataset = args.test_dataset
+        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+    else:
+        DataClass = getattr(medmnist, info['python_class'])
+        as_rgb = getattr(args, 'as_rgb', False)
+        data_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])
+        ])
+        test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
+        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+        test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+
     # Evaluate the model on the test set
     if args.experiment_name == "siim":
         from monai.metrics import DiceMetric
         dice_metric = DiceMetric(include_background=True, reduction="mean")
-        test_metrics = _test_siim_model(eval_model, test_loader, criterion, dice_metric, device)
+        test_metrics = _test_siim_model(model, test_loader, criterion, dice_metric, device)
         test_loss, test_dice, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
         test_auc = test_dice  # Use dice score as AUC placeholder
     else:
-        test_metrics = _test_model(eval_model, test_evaluator, test_loader, task, criterion, device)
+        test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+        test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
         test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
     
-    # Clean up evaluation model
-    eval_model.cpu()
-    del eval_model
+    # Clean up GPU memory before the next client
+    model.cpu()
+    del optimizer
     torch.cuda.empty_cache()
-    gc.collect()
     
     # Extract updated weights based on the request_plan (send back specific block IDs)
     updated_weights = {}
     # Load the trained state dict from disk
-    trained_state_dict = torch.load(model_state_info["model_path"], map_location=device)
+    trained_state_dict = torch.load(model_state_info["model_path"], map_location='cpu')
     
     # Combined comprehensive output line
     print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
@@ -710,8 +670,17 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
             if block_weights:
                 updated_weights[block_id] = block_weights
     
-    # Save optimizer states according to request_plan
-    updated_optimizer_states = save_optimizer_state_by_request_plan(optimizer, model, client_request_list, fbd_trace)
+    # Create a dummy optimizer to save state from (model is on CPU)
+    # The state was already saved to disk during training
+    dummy_optimizer = build_optimizer_with_state(
+        model, 
+        optimizer_states, 
+        list(model.parameters()), 
+        'cpu', 
+        default_lr=args.local_learning_rate
+    )
+    dummy_optimizer.load_state_dict(torch.load(model_state_info["optimizer_path"]))
+    updated_optimizer_states = save_optimizer_state_by_request_plan(dummy_optimizer, model, client_request_list, fbd_trace)
     
     # Return client response
     return {
