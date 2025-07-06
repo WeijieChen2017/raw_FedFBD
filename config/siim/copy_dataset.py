@@ -27,11 +27,18 @@ print(f"We are about to copy the dataset using {len(commands)} commands.")
 print(f"The first 10 commands are:")
 for command in commands[:10]:
     print(command)
+print()
 
 # wait for user to approve
-input("Press Enter to continue..., or type 'n' to exit")
-if input == 'n':
+user_input = input("Press Enter to continue..., or type 'n' to exit")
+if user_input == 'n':
     exit()
+else:
+    print("Copying dataset...")
 
 for command in commands:
+    # before copying, check if the the target folder exists
+    target_folder = command.split(" ")[1]
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder, exist_ok=True)
     os.system(command)
