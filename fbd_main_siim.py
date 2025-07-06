@@ -55,7 +55,7 @@ def create_siim_fold_partitions(fold_config, args):
     from monai.transforms import (
         Compose, LoadImaged, EnsureChannelFirstd, ScaleIntensityRanged,
         CenterSpatialCropd, RandFlipd, RandRotate90d, RandShiftIntensityd,
-        RandScaleIntensityd, ToTensord, EnsureTyped, Resized
+        RandScaleIntensityd, ToTensord, EnsureTyped, Resized, DivisiblePadd
     )
     
     # Define transforms (same as in load_siim_data)
@@ -68,6 +68,7 @@ def create_siim_fold_partitions(fold_config, args):
         ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
+        DivisiblePadd(keys=["image", "label"], k=16),
         RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
         RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1),
         RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=2),
@@ -84,6 +85,7 @@ def create_siim_fold_partitions(fold_config, args):
         ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
+        DivisiblePadd(keys=["image", "label"], k=16),
         ToTensord(keys=["image", "label"]),
         EnsureTyped(keys=["image", "label"]),
     ])
