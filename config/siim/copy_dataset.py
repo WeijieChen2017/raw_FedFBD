@@ -38,7 +38,7 @@ else:
 
 for command in commands:
     # before copying, check if the the target folder exists
-    target_folder = command.split(" ")[1]
+    target_folder = command.split(" ")[2]
     print(f"Checking if {target_folder} exists...")
     if not os.path.exists(target_folder):
         os.makedirs(target_folder, exist_ok=True)
