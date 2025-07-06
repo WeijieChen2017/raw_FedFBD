@@ -9,6 +9,17 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 from collections import Counter
 
+# Define SIIM-specific INFO entry since SIIM is not a MedMNIST dataset
+SIIM_INFO = {
+    'siim': {
+        'task': 'segmentation',
+        'description': 'SIIM-ACR Pneumothorax Segmentation Challenge',
+        'n_channels': 1,
+        'label': {'0': 'background', '1': 'pneumothorax'},
+        'license': 'SIIM'
+    }
+}
+
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_models_siim import get_pretrained_fbd_model as get_siim_model
 from fbd_dataset import get_data_loader, DATASET_SPECIFIC_RULES
@@ -353,7 +364,15 @@ def save_optimizer_state_by_request_plan(optimizer, model, client_request_list, 
 def simulate_client_task(client_id, data_partition, args, round_num, global_warehouse, client_shipping_list, client_update_plan):
     """Simulated client task that processes one round"""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    info = INFO[args.experiment_name]
+    
+    # Get info from MedMNIST INFO or SIIM_INFO
+    if args.experiment_name in INFO:
+        info = INFO[args.experiment_name]
+    elif args.experiment_name in SIIM_INFO:
+        info = SIIM_INFO[args.experiment_name]
+    else:
+        raise ValueError(f"Unknown experiment: {args.experiment_name}")
+    
     task = info['task']
     
     # Load FBD settings to get the training schedule

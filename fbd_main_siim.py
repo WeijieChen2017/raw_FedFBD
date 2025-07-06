@@ -8,6 +8,18 @@ import logging
 import torch
 import torch.utils.data
 from fbd_utils import load_config
+from medmnist import INFO
+
+# Define SIIM-specific INFO entry since SIIM is not a MedMNIST dataset
+SIIM_INFO = {
+    'siim': {
+        'task': 'segmentation',
+        'description': 'SIIM-ACR Pneumothorax Segmentation Challenge',
+        'n_channels': 1,
+        'label': {'0': 'background', '1': 'pneumothorax'},
+        'license': 'SIIM'
+    }
+}
 from fbd_dataset_siim import load_siim_data, partition_siim_data
 from fbd_client_siim import simulate_client_task
 import numpy as np
@@ -252,11 +264,13 @@ def main():
         args.n_channels = 1  # Grayscale medical images
     else:
         # For MedMNIST datasets
-        from medmnist import INFO
-        if args.experiment_name not in INFO:
+        if args.experiment_name in INFO:
+            info = INFO[args.experiment_name]
+        elif args.experiment_name in SIIM_INFO:
+            info = SIIM_INFO[args.experiment_name]
+        else:
             raise ValueError(f"Dataset {args.experiment_name} is not supported.")
         
-        info = INFO[args.experiment_name]
         args.task = info['task']
         args.num_classes = len(info['label'])
     

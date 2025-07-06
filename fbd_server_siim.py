@@ -9,6 +9,17 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 import logging
 
+# Define SIIM-specific INFO entry since SIIM is not a MedMNIST dataset
+SIIM_INFO = {
+    'siim': {
+        'task': 'segmentation',
+        'description': 'SIIM-ACR Pneumothorax Segmentation Challenge',
+        'n_channels': 1,
+        'label': {'0': 'background', '1': 'pneumothorax'},
+        'license': 'SIIM'
+    }
+}
+
 from fbd_model_ckpt import get_pretrained_fbd_model
 from fbd_models_siim import get_pretrained_fbd_model as get_siim_model
 from fbd_utils import load_fbd_settings, FBDWarehouse
@@ -119,7 +130,12 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         )
     else:
         # Original MedMNIST handling
-        info = INFO[experiment_name]
+        if experiment_name in INFO:
+            info = INFO[experiment_name]
+        elif experiment_name in SIIM_INFO:
+            info = SIIM_INFO[experiment_name]
+        else:
+            raise ValueError(f"Unknown experiment: {experiment_name}")
         task = info['task']
         
         # Create test loader
@@ -548,7 +564,12 @@ def prepare_test_dataset(args):
         _, test_dataset = load_siim_data(args)
     else:
         # Original MedMNIST handling
-        info = INFO[args.experiment_name]
+        if args.experiment_name in INFO:
+            info = INFO[args.experiment_name]
+        elif args.experiment_name in SIIM_INFO:
+            info = SIIM_INFO[args.experiment_name]
+        else:
+            raise ValueError(f"Unknown experiment: {args.experiment_name}")
         DataClass = getattr(medmnist, info['python_class'])
         # Use as_rgb setting from config instead of hardcoded rules
         as_rgb = getattr(args, 'as_rgb', False)
