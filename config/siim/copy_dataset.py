@@ -41,4 +41,5 @@ for command in commands:
     target_folder = command.split(" ")[1]
     if not os.path.exists(target_folder):
         os.makedirs(target_folder, exist_ok=True)
+        print(f"Created folder {target_folder}")
     os.system(command)
