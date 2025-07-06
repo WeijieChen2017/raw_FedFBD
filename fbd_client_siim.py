@@ -125,10 +125,9 @@ def build_regularizer_model(regularizer_spec, global_warehouse, args, device):
     if args.experiment_name == "siim":
         reg_model = get_siim_model(
             architecture=args.model_flag,
-            norm=args.norm,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
         )
     else:
         reg_model = get_pretrained_fbd_model(
@@ -468,10 +467,9 @@ def create_model_for_evaluation(args, device):
         from fbd_models_siim import get_siim_model
         model = get_siim_model(
             architecture=args.model_flag,
-            norm=args.norm,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
         )
     else:
         from fbd_models import get_pretrained_fbd_model
@@ -580,10 +578,9 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     if args.experiment_name == "siim":
         model = get_siim_model(
             architecture=args.model_flag,
-            norm=args.norm,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False  # Start with an empty model
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
         )
     else:
         model = get_pretrained_fbd_model(

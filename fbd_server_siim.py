@@ -75,10 +75,9 @@ def load_server_model_from_disk(model_path, args, experiment_name, device):
     if experiment_name == "siim":
         model = get_siim_model(
             architecture=args.model_flag,
-            norm=args.norm,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
         )
     else:
         model = get_pretrained_fbd_model(
@@ -190,10 +189,9 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         # Create model
         model = get_siim_model(
             architecture=args.model_flag,
-            norm=args.norm,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
         )
     else:
         # Original MedMNIST handling
@@ -596,10 +594,9 @@ def initialize_server_simulation(args):
     if args.experiment_name == "siim":
         model_template = get_siim_model(
             architecture=args.model_flag,
-            norm=args.norm,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False  # No pretrained weights for SIIM
+            out_channels=args.num_classes,
+            features=getattr(args, 'features', 128)
         )
     else:
         model_template = get_pretrained_fbd_model(
