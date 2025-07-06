@@ -22,42 +22,41 @@ class FBDUNet(nn.Module):
             dropout=0.2
         )
         
-        # Define FBD model parts based on UNet structure
-        # UNet has encoder, bottleneck, and decoder parts
-        # We'll split it into logical parts for FBD
+        # Define FBD model parts based on actual MONAI UNet structure
+        # MONAI UNet structure:
+        # model[0]: Initial ResidualUnit
+        # model[1]: SkipConnection with nested structure (encoder-decoder)
+        # model[2]: Final Sequential layers
         
-        # Part 1: Initial convolution and first encoder level
-        self.encoder_level1 = nn.Sequential(
-            self.unet.model[0],  # Initial convolution
-            self.unet.model[1][0]  # First encoder block
-        )
+        # Part 1: Initial convolution
+        self.initial_conv = self.unet.model[0]
         
-        # Part 2: Second encoder level
-        self.encoder_level2 = self.unet.model[1][1]
+        # The main encoder-decoder part is nested in skip connections
+        # We need to access the submodules correctly
+        main_skip = self.unet.model[1]  # Main SkipConnection
         
-        # Part 3: Third encoder level
-        self.encoder_level3 = self.unet.model[1][2]
+        # Part 2: First encoder level
+        self.encoder_level1 = main_skip.submodule[0]  # First ResidualUnit
         
-        # Part 4: Fourth encoder level
-        self.encoder_level4 = self.unet.model[1][3]
+        # Part 3: Second level SkipConnection
+        level2_skip = main_skip.submodule[1]  # SkipConnection
+        self.encoder_level2 = level2_skip.submodule[0]  # Second ResidualUnit
         
-        # Part 5: Bottleneck (deepest level)
-        self.bottleneck = self.unet.model[1][4]
+        # Part 4: Third level SkipConnection
+        level3_skip = level2_skip.submodule[1]  # SkipConnection
+        self.encoder_level3 = level3_skip.submodule[0]  # Third ResidualUnit
         
-        # Part 6: First decoder level
-        self.decoder_level1 = self.unet.model[2][0]
+        # Part 5: Fourth level SkipConnection (bottleneck)
+        level4_skip = level3_skip.submodule[1]  # SkipConnection
+        self.bottleneck = level4_skip.submodule  # Bottom ResidualUnit
         
-        # Part 7: Second decoder level
-        self.decoder_level2 = self.unet.model[2][1]
+        # Part 6: Decoder levels (upsampling blocks)
+        self.decoder_level3 = level3_skip.submodule[2]  # First decoder block
+        self.decoder_level2 = level2_skip.submodule[2]  # Second decoder block
+        self.decoder_level1 = main_skip.submodule[2]    # Third decoder block
         
-        # Part 8: Third decoder level
-        self.decoder_level3 = self.unet.model[2][2]
-        
-        # Part 9: Fourth decoder level and output
-        self.decoder_level4 = nn.Sequential(
-            self.unet.model[2][3],
-            self.unet.model[2][4]  # Final output convolution
-        )
+        # Part 7: Final output layers
+        self.final_layers = self.unet.model[2]
         
     def forward(self, x):
         # For standard forward pass, use the complete UNet
@@ -66,17 +65,18 @@ class FBDUNet(nn.Module):
     def get_fbd_parts(self):
         """
         Return the model parts for FBD framework.
+        These parts correspond to different levels of the U-Net architecture.
         """
         return {
+            'initial_conv': self.initial_conv,
             'encoder_level1': self.encoder_level1,
             'encoder_level2': self.encoder_level2,
             'encoder_level3': self.encoder_level3,
-            'encoder_level4': self.encoder_level4,
             'bottleneck': self.bottleneck,
-            'decoder_level1': self.decoder_level1,
-            'decoder_level2': self.decoder_level2,
             'decoder_level3': self.decoder_level3,
-            'decoder_level4': self.decoder_level4
+            'decoder_level2': self.decoder_level2,
+            'decoder_level1': self.decoder_level1,
+            'final_layers': self.final_layers
         }
 
 
