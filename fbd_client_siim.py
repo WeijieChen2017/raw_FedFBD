@@ -203,7 +203,12 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
             if task == 'multi-label, binary-class':
                 targets = targets.to(torch.float32).to(device)
                 main_loss = criterion(outputs, targets)
+            elif task == 'segmentation':
+                # For segmentation tasks (like SIIM), keep targets as float
+                targets = targets.to(torch.float32).to(device)
+                main_loss = criterion(outputs, targets)
             else:
+                # For classification tasks
                 targets = torch.squeeze(targets, 1).long().to(device)
                 main_loss = criterion(outputs, targets)
             

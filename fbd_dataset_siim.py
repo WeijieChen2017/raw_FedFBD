@@ -35,7 +35,14 @@ class SIIMSegmentationDataset(Dataset):
         data = self.data_list[idx]
         if self.transforms:
             data = self.transforms(data)
-        return data
+            # Extract image and label from the transformed data dictionary
+            # MONAI transforms return a dictionary with 'image' and 'label' keys
+            image = data['image']
+            label = data['label']
+            return image, label
+        else:
+            # If no transforms, return the raw data (this shouldn't happen in practice)
+            return data
 
 
 def load_siim_fold_data(args):
