@@ -196,7 +196,16 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
         epoch_main_loss = 0
         epoch_reg_loss = 0
         num_batches = 0
-        for inputs, targets in train_loader:
+        for batch_data in train_loader:
+            # Handle different data formats
+            if isinstance(batch_data, dict):
+                # Dictionary format (SIIM dataset)
+                inputs = batch_data["image"]
+                targets = batch_data["label"]
+            else:
+                # Tuple format (original datasets)
+                inputs, targets = batch_data
+            
             optimizer.zero_grad()
             outputs = model(inputs.to(device))
 

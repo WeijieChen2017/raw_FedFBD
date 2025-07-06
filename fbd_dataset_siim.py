@@ -35,11 +35,9 @@ class SIIMSegmentationDataset(Dataset):
         data = self.data_list[idx]
         if self.transforms:
             data = self.transforms(data)
-            # Extract image and label from the transformed data dictionary
+            # Return the transformed data as a dictionary to match expected format
             # MONAI transforms return a dictionary with 'image' and 'label' keys
-            image = data['image']
-            label = data['label']
-            return image, label
+            return data
         else:
             # If no transforms, return the raw data (this shouldn't happen in practice)
             return data
