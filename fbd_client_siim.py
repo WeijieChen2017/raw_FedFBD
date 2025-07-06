@@ -272,12 +272,30 @@ def assemble_model_from_plan(model, received_weights, update_plan):
     """Assembles a model by loading weights according to a specific update plan."""
     full_state_dict = {}
     
+    # Get FBD parts and create mapping from component names to parameter names
+    fbd_parts = model.get_fbd_parts()
+    component_to_param_names = {}
+    
+    for component_name, component_module in fbd_parts.items():
+        component_to_param_names[component_name] = []
+        # Get all parameters from this component
+        component_params = dict(component_module.named_parameters())
+        
+        # Find corresponding parameter names in the full model
+        for full_name, full_param in model.named_parameters():
+            for comp_param_name, comp_param in component_params.items():
+                if full_param is comp_param:
+                    component_to_param_names[component_name].append(full_name)
+    
     if 'model_to_update' in update_plan:
         for component_name, info in update_plan['model_to_update'].items():
-            # component_name is the model_part, e.g., 'layer1'
-            for param_name, param_value in received_weights.items():
-                if param_name.startswith(component_name):
-                    full_state_dict[param_name] = param_value
+            # Get the actual parameter names for this component
+            if component_name in component_to_param_names:
+                component_param_names = component_to_param_names[component_name]
+                
+                for param_name, param_value in received_weights.items():
+                    if param_name in component_param_names:
+                        full_state_dict[param_name] = param_value
     
     model.load_state_dict(full_state_dict, strict=False)
 
@@ -487,14 +505,33 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     trainable_block_ids = []
     trainable_components = []
     
+    # Get FBD parts and create mapping from component names to parameter names
+    fbd_parts = model.get_fbd_parts()
+    component_to_param_names = {}
+    
+    for component_name, component_module in fbd_parts.items():
+        component_to_param_names[component_name] = []
+        # Get all parameters from this component
+        component_params = dict(component_module.named_parameters())
+        
+        # Find corresponding parameter names in the full model
+        for full_name, full_param in model.named_parameters():
+            for comp_param_name, comp_param in component_params.items():
+                if full_param is comp_param:
+                    component_to_param_names[component_name].append(full_name)
+    
     for component_name, component_info in model_to_update.items():
         if (component_info['status'] == 'trainable' and 
             component_info['block_id'] in assigned_model_blocks):
             trainable_block_ids.append(component_info['block_id'])
             trainable_components.append(component_name)
-            for name, param in model.named_parameters():
-                if name.startswith(component_name):
-                    param.requires_grad = True
+            
+            # Unfreeze parameters for this component
+            if component_name in component_to_param_names:
+                for param_name in component_to_param_names[component_name]:
+                    for name, param in model.named_parameters():
+                        if name == param_name:
+                            param.requires_grad = True
     
     if args.experiment_name == "siim":
         from monai.losses import DiceCELoss
