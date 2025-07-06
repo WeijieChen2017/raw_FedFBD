@@ -24,6 +24,94 @@ from fbd_server_siim import (
 logging.getLogger('fbd_model_ckpt').setLevel(logging.WARNING)
 logging.getLogger('root').setLevel(logging.WARNING)
 
+def load_fold_config(fold_idx):
+    """Load fold configuration from saved JSON files."""
+    fold_config_path = f"config/siim/siim_fbd_fold_{fold_idx}.json"
+    
+    if not os.path.exists(fold_config_path):
+        raise FileNotFoundError(f"Fold configuration file not found: {fold_config_path}")
+    
+    with open(fold_config_path, 'r') as f:
+        fold_config = json.load(f)
+    
+    return fold_config
+
+def create_siim_fold_partitions(fold_config, args):
+    """Create SIIM client partitions from fold configuration."""
+    from fbd_dataset_siim import SIIMSegmentationDataset
+    from monai.transforms import (
+        Compose, LoadImaged, EnsureChannelFirstd, ScaleIntensityRanged,
+        CenterSpatialCropd, RandFlipd, RandRotate90d, RandShiftIntensityd,
+        RandScaleIntensityd, ToTensord, EnsureTyped
+    )
+    
+    # Define transforms (same as in load_siim_data)
+    min_intensity = -1024
+    max_intensity = 1976
+    
+    train_transforms = Compose([
+        LoadImaged(keys=["image", "label"]),
+        EnsureChannelFirstd(keys=["image", "label"]),
+        ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
+                           a_min=min_intensity, a_max=max_intensity, clip=True),
+        CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
+        RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
+        RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1),
+        RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=2),
+        RandRotate90d(keys=["image", "label"], prob=0.2, spatial_axes=(0, 1)),
+        RandShiftIntensityd(keys=["image"], prob=0.5, offsets=0.1),
+        RandScaleIntensityd(keys=["image"], prob=0.5, factors=0.1),
+        ToTensord(keys=["image", "label"]),
+        EnsureTyped(keys=["image", "label"]),
+    ])
+    
+    test_transforms = Compose([
+        LoadImaged(keys=["image", "label"]),
+        EnsureChannelFirstd(keys=["image", "label"]),
+        ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
+                           a_min=min_intensity, a_max=max_intensity, clip=True),
+        CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
+        ToTensord(keys=["image", "label"]),
+        EnsureTyped(keys=["image", "label"]),
+    ])
+    
+    # Create client partitions from fold configuration
+    client_partitions = []
+    train_data = fold_config['train']
+    
+    print(f"Creating SIIM client partitions for fold {args.fold}:")
+    total_samples = 0
+    
+    for client_id in range(args.num_clients):
+        client_key = f"client_{client_id}"
+        if client_key in train_data:
+            client_samples = train_data[client_key]
+            print(f"  Client {client_id}: {len(client_samples)} samples")
+            total_samples += len(client_samples)
+            
+            # Create dataset for this client
+            client_dataset = SIIMSegmentationDataset(client_samples, transforms=train_transforms)
+            client_partitions.append(client_dataset)
+        else:
+            print(f"  Client {client_id}: No data found")
+            # Create empty dataset
+            client_dataset = SIIMSegmentationDataset([], transforms=train_transforms)
+            client_partitions.append(client_dataset)
+    
+    print(f"Total training samples: {total_samples}")
+    
+    # Create test dataset
+    test_data = []
+    for client_id in range(args.num_clients):
+        client_key = f"client_{client_id}"
+        if client_key in fold_config['test']:
+            test_data.extend(fold_config['test'][client_key])
+    
+    test_dataset = SIIMSegmentationDataset(test_data, transforms=test_transforms)
+    print(f"Test dataset: {len(test_dataset)} samples")
+    
+    return client_partitions, test_dataset
+
 def client_dataset_distribution(total_samples, num_clients, variation_ratio=0.3, seed=None):
     """
     Distribute dataset samples among clients with random variation around equal distribution.
@@ -143,10 +231,11 @@ def create_client_partitions(train_dataset, num_clients, iid=False, variation_ra
 
 def main():
     parser = argparse.ArgumentParser(description="Federated Barter-based Data Exchange Framework - Simulation")
-    parser.add_argument("--experiment_name", type=str, default="bloodmnist", help="Name of the experiment.")
-    parser.add_argument("--model_flag", type=str, default="resnet18", help="Model flag.")
+    parser.add_argument("--experiment_name", type=str, default="siim", help="Name of the experiment.")
+    parser.add_argument("--model_flag", type=str, default="unet", help="Model flag.")
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
+    parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
@@ -222,9 +311,12 @@ def main():
         except:
             reg_suffix = ""
     
+    # Add fold suffix to output directory name
+    fold_suffix = f"_fold_{args.fold}" if args.fold is not None else ""
+    
     # Define temporary and final output directories (like original fbd_main.py)
-    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
-    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
+    temp_output_dir = os.path.join(f"fbd_run", f"{args.experiment_name}_{args.model_flag}{reg_suffix}{fold_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
+    final_output_dir = os.path.join(args.training_save_dir, f"{args.experiment_name}_{args.model_flag}{reg_suffix}{fold_suffix}_{time.strftime('%Y%m%d_%H%M%S')}")
     
     # Clean up the temporary directory from any previous failed runs
     if os.path.exists(temp_output_dir):
@@ -241,13 +333,25 @@ def main():
     # Initialize server simulation
     warehouse = initialize_server_simulation(args)
     shipping_plans, update_plans = load_simulation_plans(args)
-    args.test_dataset = prepare_test_dataset(args)
     
     # Load and partition data
     print("Server: Loading and partitioning data...")
     if args.experiment_name == "siim":
-        train_dataset, _ = load_siim_data(args)
-        partitions = partition_siim_data(train_dataset, args.num_clients, args.iid)
+        if args.fold is not None:
+            # Use fold configuration
+            if args.fold not in [0, 1, 2, 3]:
+                raise ValueError(f"Fold must be 0, 1, 2, or 3, got {args.fold}")
+            
+            print(f"Loading SIIM data using fold configuration {args.fold}")
+            fold_config = load_fold_config(args.fold)
+            partitions, test_dataset = create_siim_fold_partitions(fold_config, args)
+            args.test_dataset = test_dataset
+        else:
+            # Use original loading method
+            print("Loading SIIM data using original method")
+            train_dataset, test_dataset = load_siim_data(args)
+            partitions = partition_siim_data(train_dataset, args.num_clients, args.iid)
+            args.test_dataset = test_dataset
     else:
         from fbd_dataset import load_data, partition_data
         train_dataset, _ = load_data(args)
@@ -258,6 +362,7 @@ def main():
             variation_ratio=0.3,  # ±30% variation from equal split
             seed=args.seed + 100  # Different seed for partition variation
         )
+        args.test_dataset = prepare_test_dataset(args)
     
     # Generate and display training plan
     print("\n" + "="*80)
@@ -272,6 +377,8 @@ def main():
     if args.experiment_name == "siim":
         print(f"   - ROI size: {args.roi_size}")
         print(f"   - Architecture features: {args.features}")
+        if args.fold is not None:
+            print(f"   - Cross-validation fold: {args.fold}")
     
     print(f"\n2. FEDERATED LEARNING SETUP:")
     print(f"   - Number of clients: {args.num_clients}")
@@ -280,7 +387,10 @@ def main():
     print(f"   - Local batch size: {getattr(args, 'batch_size', 128)}")
     print(f"   - Local learning rate: {getattr(args, 'local_learning_rate', 0.001)}")
     print(f"   - Data distribution: {'IID' if args.iid else 'Non-IID'}")
-    print(f"   - Sample variation: ±30% from equal distribution")
+    if args.fold is None:
+        print(f"   - Sample variation: ±30% from equal distribution")
+    else:
+        print(f"   - Data partitioning: Pre-defined fold configuration")
     
     print(f"\n3. REGULARIZATION:")
     # Determine regularization settings for display
@@ -376,6 +486,7 @@ def main():
                         "model_color": model_color,
                         "model_name": args.model_flag,
                         "dataset": args.experiment_name,
+                        "fold": args.fold,
                         **metrics
                     }, f, indent=4)
         
