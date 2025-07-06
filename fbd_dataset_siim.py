@@ -234,14 +234,10 @@ def partition_siim_data(dataset, num_clients, iid=True):
     return partitions
 
 
-def get_siim_data_loader(dataset_partition, batch_size, shuffle=True, num_workers=4):
-    """Create a DataLoader for SIIM dataset partition."""
-    return DataLoader(
-        dataset_partition,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=True,
-        persistent_workers=True if num_workers > 0 else False,
-        prefetch_factor=2 if num_workers > 0 else None
-    )
+def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True):
+    """
+    Create a DataLoader for the SIIM dataset.
+    Uses MONAI's DataLoader.
+    """
+    # Using num_workers=0 to prevent multiprocessing issues in some environments
+    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle)
