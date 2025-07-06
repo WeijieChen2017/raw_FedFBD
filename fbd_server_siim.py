@@ -8,6 +8,7 @@ from medmnist import INFO, Evaluator
 import torch.utils.data as data
 import torchvision.transforms as transforms
 import logging
+import gc
 
 # Define SIIM-specific INFO entry since SIIM is not a MedMNIST dataset
 SIIM_INFO = {
@@ -27,6 +28,72 @@ from fbd_dataset import DATASET_SPECIFIC_RULES
 
 # Suppress logging from fbd_model_ckpt to reduce noise
 logging.getLogger('fbd_model_ckpt').setLevel(logging.WARNING)
+
+def save_server_model_to_disk(model, model_color, round_num, output_dir):
+    """
+    Save server model state dict to disk to free GPU memory.
+    
+    Args:
+        model: PyTorch model
+        model_color: Model color identifier
+        round_num: Round number
+        output_dir: Output directory to save states
+    
+    Returns:
+        str: Path to saved model file
+    """
+    # Create server model directory
+    server_dir = os.path.join(output_dir, f"server_round_{round_num}")
+    os.makedirs(server_dir, exist_ok=True)
+    
+    # Save model state dict
+    model_path = os.path.join(server_dir, f"model_{model_color}.pth")
+    torch.save(model.state_dict(), model_path)
+    
+    # Move model to CPU and clear GPU memory
+    model.cpu()
+    del model
+    torch.cuda.empty_cache()
+    gc.collect()
+    
+    return model_path
+
+def load_server_model_from_disk(model_path, args, experiment_name, device):
+    """
+    Load server model state dict from disk.
+    
+    Args:
+        model_path: Path to saved model state dict
+        args: Training arguments
+        experiment_name: Name of the experiment
+        device: PyTorch device
+    
+    Returns:
+        PyTorch model with loaded weights
+    """
+    # Create model instance
+    if experiment_name == "siim":
+        model = get_siim_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.n_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        )
+    else:
+        model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        )
+    
+    # Load weights
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    
+    return model
 
 def _get_scores(model, data_loader, task, device):
     """Runs the model on the data and returns the raw scores."""
@@ -184,10 +251,22 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                             print(f"Warning: Cannot average non-floating point tensor '{key}' (dtype: {first_tensor.dtype}). Using first model's weights.")
                 
                 model.load_state_dict(averaged_weights)
+                
+                # Save averaged model to disk and clean up GPU memory
+                model_path = save_server_model_to_disk(model, model_color, getattr(args, 'current_round', 0), args.output_dir)
+                
+                # Load model back for evaluation
+                model = load_server_model_from_disk(model_path, args, experiment_name, device)
             else:
                 # Fallback to M0 if averaging fails
                 model_weights = warehouse.get_model_weights("M0")
                 model.load_state_dict(model_weights)
+                
+                # Save M0 model to disk and clean up GPU memory
+                model_path = save_server_model_to_disk(model, model_color, getattr(args, 'current_round', 0), args.output_dir)
+                
+                # Load model back for evaluation
+                model = load_server_model_from_disk(model_path, args, experiment_name, device)
                 
         elif model_color == "ensemble":
             # Implement block-wise ensemble evaluation
@@ -273,6 +352,12 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 # Get scores from hybrid model
                 y_score = _get_scores(hybrid_model, test_loader, task, device)
                 all_y_scores.append(y_score)
+                
+                # Clean up hybrid model to free GPU memory
+                hybrid_model.cpu()
+                del hybrid_model
+                torch.cuda.empty_cache()
+                gc.collect()
 
             # Restore original logging level
             logging.getLogger('fbd_model_ckpt').setLevel(model_logger_level)
@@ -281,7 +366,13 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 print("No valid hybrid model predictions were generated. Falling back to M0.")
                 model_weights = warehouse.get_model_weights("M0")
                 model.load_state_dict(model_weights)
-                model.to(device)
+                
+                # Save M0 model to disk and clean up GPU memory
+                model_path = save_server_model_to_disk(model, model_color, getattr(args, 'current_round', 0), args.output_dir)
+                
+                # Load model back for evaluation
+                model = load_server_model_from_disk(model_path, args, experiment_name, device)
+                
                 metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
                 return {"test_loss": metrics[0], "test_auc": metrics[1], "test_acc": metrics[2]}
 
@@ -465,11 +556,15 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 sample_param = next(iter(model_weights.values()))
                 param_sum = float(sample_param.sum()) if hasattr(sample_param, 'sum') else 0
                 print(f"  Evaluating {model_color}: loaded {len(model_weights)} parameters, sample param sum: {param_sum:.6f}")
+                
+                # Save individual model to disk and clean up GPU memory
+                model_path = save_server_model_to_disk(model, model_color, getattr(args, 'current_round', 0), args.output_dir)
+                
+                # Load model back for evaluation
+                model = load_server_model_from_disk(model_path, args, experiment_name, device)
             else:
                 print(f"  Warning: No weights found for {model_color}")
                 return {"test_loss": 0.0, "test_auc": 0.0, "test_acc": 0.0}
-        
-        model.to(device)
         if experiment_name == "siim":
             metrics = _test_siim_model(model, test_loader, criterion, dice_metric, device)
             return {"test_loss": metrics[0], "test_dice": metrics[1], "test_acc": metrics[2]}
@@ -639,6 +734,9 @@ def collect_and_evaluate_round(round_num, args, warehouse, client_responses):
     
     # Store results for summary output
     model_results = []
+    
+    # Set current round for disk-based model management
+    args.current_round = round_num
     
     # Evaluate individual models M0 to M5
     for model_idx in range(6):

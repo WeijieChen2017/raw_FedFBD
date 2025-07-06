@@ -8,6 +8,9 @@ from medmnist import INFO, Evaluator
 import torch.utils.data as data
 import torchvision.transforms as transforms
 from collections import Counter
+import os
+import numpy as np
+import gc
 
 # Define SIIM-specific INFO entry since SIIM is not a MedMNIST dataset
 SIIM_INFO = {
@@ -393,6 +396,96 @@ def save_optimizer_state_by_request_plan(optimizer, model, client_request_list, 
     
     return optimizer_states
 
+def save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_model_color, output_dir):
+    """
+    Save model state dict and optimizer state dict to disk to free GPU memory.
+    
+    Args:
+        model: PyTorch model
+        optimizer: PyTorch optimizer
+        client_id: Client ID
+        round_num: Round number
+        assigned_model_color: Model color being trained
+        output_dir: Output directory to save states
+    
+    Returns:
+        dict: Paths to saved files
+    """
+    # Create client-specific directory
+    client_dir = os.path.join(output_dir, f"client_{client_id}_round_{round_num}")
+    os.makedirs(client_dir, exist_ok=True)
+    
+    # Save model state dict
+    model_path = os.path.join(client_dir, f"model_{assigned_model_color}.pth")
+    torch.save(model.state_dict(), model_path)
+    
+    # Save optimizer state dict
+    optimizer_path = os.path.join(client_dir, f"optimizer_{assigned_model_color}.pth")
+    torch.save(optimizer.state_dict(), optimizer_path)
+    
+    # Move model to CPU and clear GPU memory
+    model.cpu()
+    del model
+    del optimizer
+    torch.cuda.empty_cache()
+    gc.collect()
+    
+    return {
+        "model_path": model_path,
+        "optimizer_path": optimizer_path,
+        "client_dir": client_dir
+    }
+
+def load_model_state_from_disk(model_path, optimizer_path, device):
+    """
+    Load model state dict and optimizer state dict from disk.
+    
+    Args:
+        model_path: Path to saved model state dict
+        optimizer_path: Path to saved optimizer state dict
+        device: PyTorch device
+    
+    Returns:
+        tuple: (model_state_dict, optimizer_state_dict)
+    """
+    model_state_dict = torch.load(model_path, map_location=device)
+    optimizer_state_dict = torch.load(optimizer_path, map_location=device)
+    
+    return model_state_dict, optimizer_state_dict
+
+def create_model_for_evaluation(args, device):
+    """
+    Create a model instance for evaluation purposes.
+    
+    Args:
+        args: Training arguments
+        device: PyTorch device
+    
+    Returns:
+        PyTorch model
+    """
+    if args.experiment_name == "siim":
+        from fbd_models_siim import get_siim_model
+        model = get_siim_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.n_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        )
+    else:
+        from fbd_models import get_pretrained_fbd_model
+        model = get_pretrained_fbd_model(
+            architecture=args.model_flag,
+            norm=args.norm,
+            in_channels=args.in_channels,
+            num_classes=args.num_classes,
+            use_pretrained=False
+        )
+    
+    model.to(device)
+    return model
+
 def simulate_client_task(client_id, data_partition, args, round_num, global_warehouse, client_shipping_list, client_update_plan):
     """Simulated client task that processes one round"""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -566,20 +659,36 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
     # Train the model
     loss, main_loss, reg_loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device, client_update_plan, global_warehouse, args)
     
+    # Save model state after training to free GPU memory
+    model_state_info = save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_model_color, args.output_dir)
+    
+    # Create a fresh model for evaluation to avoid GPU memory issues
+    eval_model = create_model_for_evaluation(args, device)
+    
+    # Load the trained weights into the evaluation model
+    eval_model.load_state_dict(torch.load(model_state_info["model_path"], map_location=device))
+    
     # Evaluate the model on the test set
     if args.experiment_name == "siim":
         from monai.metrics import DiceMetric
         dice_metric = DiceMetric(include_background=True, reduction="mean")
-        test_metrics = _test_siim_model(model, test_loader, criterion, dice_metric, device)
+        test_metrics = _test_siim_model(eval_model, test_loader, criterion, dice_metric, device)
         test_loss, test_dice, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
         test_auc = test_dice  # Use dice score as AUC placeholder
     else:
-        test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+        test_metrics = _test_model(eval_model, test_evaluator, test_loader, task, criterion, device)
         test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
+    
+    # Clean up evaluation model
+    eval_model.cpu()
+    del eval_model
+    torch.cuda.empty_cache()
+    gc.collect()
     
     # Extract updated weights based on the request_plan (send back specific block IDs)
     updated_weights = {}
-    trained_state_dict = model.state_dict()
+    # Load the trained state dict from disk
+    trained_state_dict = torch.load(model_state_info["model_path"], map_location=device)
     
     # Combined comprehensive output line
     print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
@@ -614,5 +723,6 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
         "updated_weights": updated_weights,
         "updated_optimizer_states": updated_optimizer_states,
         "trainable_block_ids": list(trainable_block_ids_set),
-        "round": round_num
+        "round": round_num,
+        "model_state_info": model_state_info
     }
