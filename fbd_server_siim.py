@@ -182,8 +182,8 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         from monai.losses import DiceCELoss
         from monai.metrics import DiceMetric
         
-        # Create test loader
-        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+        # Create test loader, ensuring num_workers=0 to prevent deadlocks
+        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
         criterion = DiceCELoss(to_onehot_y=False, sigmoid=True).to(device)
         dice_metric = DiceMetric(include_background=True, reduction="mean")
         
@@ -205,8 +205,8 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             raise ValueError(f"Unknown experiment: {experiment_name}")
         task = info['task']
         
-        # Create test loader
-        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
+        # Create test loader, ensuring num_workers=0 to prevent deadlocks
+        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
         test_evaluator = Evaluator(experiment_name, 'test', size=args.size)
         criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
         
