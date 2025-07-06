@@ -175,7 +175,7 @@ def analyze_dataset_sizes(data_root="./siim-101", config_dir="config/siim"):
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze SIIM dataset image sizes')
-    parser.add_argument('--data_root', default='./code_template/siim-101',
+    parser.add_argument('--data_root', default='siim-101',
                        help='Root directory containing SIIM data')
     parser.add_argument('--config_dir', default='config/siim',
                        help='Directory containing fold configuration files')
