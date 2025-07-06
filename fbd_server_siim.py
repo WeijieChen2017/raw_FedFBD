@@ -22,7 +22,7 @@ SIIM_INFO = {
 }
 
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_models_siim import get_pretrained_fbd_model as get_siim_model
+from fbd_models_siim import get_siim_model
 from fbd_utils import load_fbd_settings, FBDWarehouse
 from fbd_dataset import DATASET_SPECIFIC_RULES
 
@@ -73,11 +73,12 @@ def load_server_model_from_disk(model_path, args, experiment_name, device):
     """
     # Create model instance
     if experiment_name == "siim":
-        model = get_siim_model(
+        model = get_pretrained_fbd_model(
             architecture=args.model_flag,
+            norm=None,
             in_channels=args.n_channels,
-            out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
+            num_classes=args.num_classes,
+            use_pretrained=False
         )
     else:
         model = get_pretrained_fbd_model(
@@ -187,11 +188,12 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         dice_metric = DiceMetric(include_background=True, reduction="mean")
         
         # Create model
-        model = get_siim_model(
+        model = get_pretrained_fbd_model(
             architecture=args.model_flag,
+            norm=None,
             in_channels=args.n_channels,
-            out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
+            num_classes=args.num_classes,
+            use_pretrained=False
         )
     else:
         # Original MedMNIST handling
