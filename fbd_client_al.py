@@ -371,7 +371,10 @@ def extract_features(model, data_loader, device):
         activation['features'] = input[0]
     
     # Register hook on the last linear layer
-    if hasattr(model, 'fc'):
+    if hasattr(model, 'out_layer'):
+        # FBD models use out_layer
+        handle = model.out_layer.register_forward_hook(hook)
+    elif hasattr(model, 'fc'):
         handle = model.fc.register_forward_hook(hook)
     elif hasattr(model, 'classifier'):
         if isinstance(model.classifier, nn.Sequential):
@@ -485,11 +488,24 @@ def active_learning_round(client_id, unlabeled_indices, labeled_indices, model, 
             try:
                 # Get model weights from warehouse
                 from fbd_model_ckpt import get_pretrained_fbd_model
+                # Get the actual number of classes from the current model
+                if hasattr(model, 'out_layer'):
+                    num_classes = model.out_layer.out_features
+                elif hasattr(model, 'fc'):
+                    num_classes = model.fc.out_features
+                elif hasattr(model, 'classifier'):
+                    if isinstance(model.classifier, nn.Sequential):
+                        num_classes = model.classifier[-1].out_features
+                    else:
+                        num_classes = model.classifier.out_features
+                else:
+                    num_classes = 8  # Default for bloodmnist
+                
                 ensemble_model = get_pretrained_fbd_model(
-                    architecture=model.architecture if hasattr(model, 'architecture') else 'resnet18',
-                    norm=model.norm if hasattr(model, 'norm') else True,
-                    in_channels=model.in_channels if hasattr(model, 'in_channels') else 3,
-                    num_classes=model.num_classes if hasattr(model, 'num_classes') else 10,
+                    architecture='resnet18',  # Use the actual architecture
+                    norm=True,
+                    in_channels=3,
+                    num_classes=num_classes,
                     use_pretrained=False
                 )
                 
@@ -571,8 +587,17 @@ def active_learning_round(client_id, unlabeled_indices, labeled_indices, model, 
         candidate_indices = [unlabeled_indices[i] for i in candidate_relative_indices]
         
         # Extract features for diversity selection
-        features, _ = extract_features(model, unlabeled_loader, device)
-        candidate_features = features[candidate_relative_indices]
+        try:
+            features, _ = extract_features(model, unlabeled_loader, device)
+            candidate_features = features[candidate_relative_indices]
+        except (ValueError, IndexError) as e:
+            print(f"Warning: Could not extract features for diversity filtering: {e}")
+            print("Using random selection instead of diversity filtering")
+            # Fall back to random selection from candidates
+            np.random.shuffle(candidate_indices)
+            selected_indices = candidate_indices[:q_i]
+            print(f"Client {client_id}: Selected {len(selected_indices)} samples from {len(unlabeled_indices)} unlabeled (random fallback)")
+            return selected_indices
         
         # Select diverse subset
         selected_indices = kmeans_plus_plus_selection(
