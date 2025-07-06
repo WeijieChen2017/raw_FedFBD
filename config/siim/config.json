@@ -27,7 +27,7 @@
     "colors": ["M0", "M1", "M2", "M3", "M4", "M5"],
     "block_assignment": "cyclic",
     "task": "segmentation",
-    "data_root": "./code_template/siim-101/SIIM_Fed_Learning_Phase1Data",
+    "data_root": "./siim-101/SIIM_Fed_Learning_Phase1Data",
     "fold_file": "balanced_siim_4fold_mor.json",
     "fold": 0
 }
