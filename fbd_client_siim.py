@@ -24,7 +24,7 @@ SIIM_INFO = {
 }
 
 from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_models_siim import get_pretrained_fbd_model as get_siim_model
+from fbd_models_siim import get_siim_model
 from fbd_dataset import get_data_loader, DATASET_SPECIFIC_RULES
 from fbd_dataset_siim import get_siim_data_loader
 
