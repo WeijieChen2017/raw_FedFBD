@@ -675,7 +675,7 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     dummy_optimizer = build_optimizer_with_state(
         model, 
         optimizer_states, 
-        list(model.parameters()), 
+        list(filter(lambda p: p.requires_grad, model.parameters())), 
         'cpu', 
         default_lr=args.local_learning_rate
     )
