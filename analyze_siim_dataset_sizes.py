@@ -32,7 +32,7 @@ def get_image_size(image_path):
         print(f"Error loading image {image_path}: {e}")
         return None
 
-def analyze_dataset_sizes(data_root="./code_template/siim-101", config_dir="config/siim"):
+def analyze_dataset_sizes(data_root="./siim-101", config_dir="config/siim"):
     """Analyze sizes of all images in SIIM dataset."""
     
     print("=" * 80)
