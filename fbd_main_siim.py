@@ -94,15 +94,39 @@ def create_siim_fold_partitions(fold_config, args):
     print(f"Creating SIIM client partitions for fold {args.fold}:")
     total_samples = 0
     
+    # Get the data root directory from args
+    # The fold paths are relative to the parent directory of SIIM_Fed_Learning_Phase1Data
+    data_root = getattr(args, 'data_root', './code_template/siim-101')
+    
+    # If data_root ends with SIIM_Fed_Learning_Phase1Data, use its parent directory
+    if data_root.endswith('SIIM_Fed_Learning_Phase1Data'):
+        data_root = os.path.dirname(data_root)
+    
+    print(f"Using data root: {data_root}")
+    
     for client_id in range(args.num_clients):
         client_key = f"client_{client_id}"
         if client_key in train_data:
             client_samples = train_data[client_key]
-            print(f"  Client {client_id}: {len(client_samples)} samples")
-            total_samples += len(client_samples)
+            
+            # Resolve relative paths using data_root
+            resolved_samples = []
+            for sample in client_samples:
+                resolved_sample = {}
+                for key, path in sample.items():
+                    if isinstance(path, str) and not os.path.isabs(path):
+                        # Convert relative path to absolute path using data_root
+                        resolved_path = os.path.join(data_root, path)
+                        resolved_sample[key] = resolved_path
+                    else:
+                        resolved_sample[key] = path
+                resolved_samples.append(resolved_sample)
+            
+            print(f"  Client {client_id}: {len(resolved_samples)} samples")
+            total_samples += len(resolved_samples)
             
             # Create dataset for this client
-            client_dataset = SIIMSegmentationDataset(client_samples, transforms=train_transforms)
+            client_dataset = SIIMSegmentationDataset(resolved_samples, transforms=train_transforms)
             client_partitions.append(client_dataset)
         else:
             print(f"  Client {client_id}: No data found")
@@ -119,7 +143,20 @@ def create_siim_fold_partitions(fold_config, args):
         if client_key in fold_config['test']:
             test_data.extend(fold_config['test'][client_key])
     
-    test_dataset = SIIMSegmentationDataset(test_data, transforms=test_transforms)
+    # Resolve test data paths as well
+    resolved_test_data = []
+    for sample in test_data:
+        resolved_sample = {}
+        for key, path in sample.items():
+            if isinstance(path, str) and not os.path.isabs(path):
+                # Convert relative path to absolute path using data_root
+                resolved_path = os.path.join(data_root, path)
+                resolved_sample[key] = resolved_path
+            else:
+                resolved_sample[key] = path
+        resolved_test_data.append(resolved_sample)
+    
+    test_dataset = SIIMSegmentationDataset(resolved_test_data, transforms=test_transforms)
     print(f"Test dataset: {len(test_dataset)} samples")
     
     return client_partitions, test_dataset
