@@ -449,8 +449,15 @@ def active_learning_round(client_id, unlabeled_indices, labeled_indices, model, 
     
     model.eval()
     
+    # Get the base dataset from the data_loader
+    if hasattr(data_loader.dataset, 'dataset'):
+        # This is already a Subset, get the base dataset
+        base_dataset = data_loader.dataset.dataset
+    else:
+        base_dataset = data_loader.dataset
+    
     # Create a subset data loader for unlabeled data
-    unlabeled_dataset = torch.utils.data.Subset(data_loader.dataset, unlabeled_indices)
+    unlabeled_dataset = torch.utils.data.Subset(base_dataset, unlabeled_indices)
     unlabeled_loader = torch.utils.data.DataLoader(
         unlabeled_dataset, batch_size=data_loader.batch_size, shuffle=False
     )
@@ -459,10 +466,14 @@ def active_learning_round(client_id, unlabeled_indices, labeled_indices, model, 
     if hasattr(model, 'task'):
         task = model.task
     else:
-        # Infer from a test forward pass
-        test_input = next(iter(unlabeled_loader))[0][:1]  # Get one sample
-        test_output = model(test_input.to(device))
-        task = 'multi-label, binary-class' if test_output.shape[1] > 1 else 'multi-class'
+        # Try to infer from a test forward pass
+        try:
+            test_input = next(iter(unlabeled_loader))[0][:1]  # Get one sample
+            test_output = model(test_input.to(device))
+            task = 'multi-label, binary-class' if test_output.shape[1] > 1 else 'multi-class'
+        except (StopIteration, IndexError):
+            # If no unlabeled data, default to multi-class
+            task = 'multi-class'
     
     # Step 1: Score samples based on selected metric
     if metric == 'ensemble_ratio' and warehouse and model_colors:
@@ -746,13 +757,28 @@ def simulate_client_task(client_id, data_partition, args, round_num, global_ware
             global_N = active_learning_state.get('global_N', 1)
             budget_frac = active_learning_state.get('budget_frac', 0.05)
             
+            # Get the original full partition from active learning state
+            original_partition = active_learning_state.get('original_partition')
+            if original_partition is None:
+                # Fallback: try to get from data_partition
+                if hasattr(data_partition, 'dataset'):
+                    original_partition = data_partition.dataset
+                else:
+                    original_partition = data_partition
+            
+            full_partition_loader = torch.utils.data.DataLoader(
+                original_partition, 
+                batch_size=args.batch_size, 
+                shuffle=False
+            )
+            
             # Perform active learning selection
             selected_indices = active_learning_round(
                 client_id=client_id,
                 unlabeled_indices=unlabeled_indices,
                 labeled_indices=labeled_indices,
                 model=model,
-                data_loader=train_loader,
+                data_loader=full_partition_loader,
                 device=device,
                 budget_frac=budget_frac,
                 global_N=global_N,

@@ -593,6 +593,8 @@ def main():
             # Update AL state for this round
             active_learning_state['perform_selection'] = is_al_round
             active_learning_state['budget_frac'] = args.al_budget_per_round
+            # Pass the original partition reference
+            active_learning_state['original_partition'] = partitions[client_id]
             
             response = simulate_client_task(
                 client_id, client_partition, args, r, 
