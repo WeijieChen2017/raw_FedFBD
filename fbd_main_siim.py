@@ -120,6 +120,16 @@ def create_siim_fold_partitions(fold_config, args):
                     if isinstance(path, str) and not os.path.isabs(path):
                         # Convert relative path to absolute path using data_root
                         resolved_path = os.path.join(data_root, path)
+                        
+                        # Handle the case where there's an extra folder with the same filename
+                        if not os.path.exists(resolved_path) and path.endswith('.nii.gz'):
+                            # Extract filename from path
+                            filename = os.path.basename(path)
+                            # Try the nested structure: path/filename
+                            nested_path = os.path.join(data_root, path, filename)
+                            if os.path.exists(nested_path):
+                                resolved_path = nested_path
+                        
                         resolved_sample[key] = resolved_path
                     else:
                         resolved_sample[key] = path
@@ -154,6 +164,16 @@ def create_siim_fold_partitions(fold_config, args):
             if isinstance(path, str) and not os.path.isabs(path):
                 # Convert relative path to absolute path using data_root
                 resolved_path = os.path.join(data_root, path)
+                
+                # Handle the case where there's an extra folder with the same filename
+                if not os.path.exists(resolved_path) and path.endswith('.nii.gz'):
+                    # Extract filename from path
+                    filename = os.path.basename(path)
+                    # Try the nested structure: path/filename
+                    nested_path = os.path.join(data_root, path, filename)
+                    if os.path.exists(nested_path):
+                        resolved_path = nested_path
+                
                 resolved_sample[key] = resolved_path
             else:
                 resolved_sample[key] = path
