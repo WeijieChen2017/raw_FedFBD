@@ -110,25 +110,16 @@ def get_siim_model(architecture="unet", in_channels=1, out_channels=1, model_siz
         raise ValueError(f"Unsupported architecture for SIIM: {architecture}")
     
     if model_size == 'small':
-        # Halve the number of features for a smaller model
-        features = (16, 32, 64, 128, 256)
+        # Use smaller feature size for reduced memory usage
+        features = 64
     elif model_size == 'standard':
-        # Default features
-        features = (32, 64, 128, 256, 512)
+        # Default feature size
+        features = 128
     else:
         raise ValueError(f"Unsupported model_size: {model_size}. Choose 'standard' or 'small'.")
     
-    # Define strides based on the number of feature levels
-    strides = [2] * (len(features) - 1)
-    
-    model = UNet(
-        spatial_dims=2,
-        in_channels=in_channels,
-        out_channels=out_channels,
-        channels=features,
-        strides=strides,
-        num_res_units=2
-    )
+    # Return FBDUNet which has the necessary FBD methods
+    model = FBDUNet(in_channels=in_channels, out_channels=out_channels, features=features)
     return model
 
 
