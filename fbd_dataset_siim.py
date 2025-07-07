@@ -26,7 +26,6 @@ class SIIMSegmentationDataset(Dataset):
     
     def __init__(self, data_list, transforms=None):
         self.data_list = data_list
-        self.data = data_list  # For debugging access
         self.transforms = transforms
         
     def __len__(self):

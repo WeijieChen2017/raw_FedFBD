@@ -229,26 +229,6 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         from monai.losses import DiceCELoss
         from monai.metrics import DiceMetric
         
-        # Debug: Check test dataset files before creating loader
-        print(f"Debugging test dataset with {len(test_dataset)} samples:")
-        
-        # Check first few samples for file existence
-        for i in range(min(3, len(test_dataset))):
-            try:
-                sample = test_dataset.data[i] if hasattr(test_dataset, 'data') else test_dataset.data_list[i]
-                print(f"  Sample {i}:")
-                for key, path in sample.items():
-                    if isinstance(path, str):
-                        exists = os.path.exists(path)
-                        print(f"    {key}: {path} (exists: {exists})")
-                        if not exists:
-                            # Check parent directory
-                            parent_dir = os.path.dirname(path)
-                            parent_exists = os.path.exists(parent_dir)
-                            print(f"      Parent dir: {parent_dir} (exists: {parent_exists})")
-            except Exception as e:
-                print(f"    Error checking sample {i}: {e}")
-        
         # Create test loader, ensuring num_workers=0 to prevent deadlocks
         test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
         criterion = DiceCELoss(to_onehot_y=False, sigmoid=True).to(device)
