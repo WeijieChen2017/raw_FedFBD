@@ -512,18 +512,13 @@ def main():
         client_models = []
         
         if args.experiment_name == "siim":
-            # Use smaller features for parallel mode
-            if args.model_size == 'small':
-                model_features = 32  # Even smaller for parallel
-            else:
-                model_features = 64  # Half the standard features for parallel
-            
+            # In parallel mode, always use 'small' model size to save memory
             for i in range(args.num_clients):
                 model = get_siim_model(
                     architecture=args.model_flag,
                     in_channels=args.n_channels,
                     out_channels=args.num_classes,
-                    features=model_features
+                    model_size='small'
                 )
                 client_models.append(model)
         else:
@@ -541,17 +536,11 @@ def main():
     else:
         # Create a single reusable model instance to save memory
         if args.experiment_name == "siim":
-            # Determine features based on model size
-            if args.model_size == 'small':
-                model_features = 64  # Half the standard features
-            else:
-                model_features = getattr(args, 'features', 128)
-
             reusable_model = get_siim_model(
                 architecture=args.model_flag,
                 in_channels=args.n_channels,
                 out_channels=args.num_classes,
-                features=model_features
+                model_size=args.model_size
             )
         else:
             # This path is not expected for siim, but as a fallback:

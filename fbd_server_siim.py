@@ -598,7 +598,7 @@ def initialize_server_simulation(args):
             architecture=args.model_flag,
             in_channels=args.n_channels,
             out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
+            model_size=getattr(args, 'model_size', 'standard')
         )
     else:
         model_template = get_pretrained_fbd_model(

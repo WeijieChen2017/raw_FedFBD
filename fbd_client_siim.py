@@ -135,7 +135,7 @@ def build_regularizer_model(regularizer_spec, global_warehouse, args, device):
             architecture=args.model_flag,
             in_channels=args.n_channels,
             out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
+            model_size=getattr(args, 'model_size', 'standard')
         )
     else:
         reg_model = get_pretrained_fbd_model(
@@ -466,7 +466,7 @@ def create_model_for_evaluation(args, device):
             architecture=args.model_flag,
             in_channels=args.n_channels,
             out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
+            model_size=getattr(args, 'model_size', 'standard')
         )
     else:
         model = get_pretrained_fbd_model(
