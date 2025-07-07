@@ -12,22 +12,23 @@ class FBDUNet(nn.Module):
         super(FBDUNet, self).__init__()
         
         # Determine UNet channel configuration based on 'features'
+        # For SIIM data with roi_size [128, 128, 32], use different strides for Z dimension
         if features == 128:
             channels = (128, 256, 512)
-            strides = (2, 2)
+            strides = ((2, 2, 1), (2, 2, 2))  # Less aggressive downsampling in Z
         elif features == 64:
             channels = (64, 128, 256)
-            strides = (2, 2)
+            strides = ((2, 2, 1), (2, 2, 2))  # Less aggressive downsampling in Z
         elif features == 32:
             channels = (32, 64, 128)
-            strides = (2, 2)
+            strides = ((2, 2, 1), (2, 2, 2))  # Less aggressive downsampling in Z
         else:
             # Default to a reasonable configuration if features is not one of the presets
             channels = (features, features * 2, features * 4)
-            strides = (2, 2)
+            strides = ((2, 2, 1), (2, 2, 2))  # Less aggressive downsampling in Z
 
         self.unet = UNet(
-            spatial_dims=2,
+            spatial_dims=3,  # Changed to 3D for SIIM volume data
             in_channels=in_channels,
             out_channels=out_channels,
             channels=channels,
