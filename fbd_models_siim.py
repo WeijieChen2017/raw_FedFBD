@@ -70,7 +70,7 @@ def get_siim_model(architecture="unet", in_channels=1, out_channels=1, model_siz
     
     if model_size == 'small':
         # Use smaller feature size for reduced memory usage
-        features = 128
+        features = 64
     elif model_size == 'standard':
         # Default feature size
         features = 128
