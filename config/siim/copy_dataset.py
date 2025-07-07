@@ -12,15 +12,19 @@ os.makedirs(dup_data_dir, exist_ok=True)
 
 commands = []
 
-for client in data['train']:
-    for item in data['train'][client]:
-        # new image path is to add the dup_data_dir to the image path
-        old_image_path = f"{original_data_dir}/{item['image']}"
-        old_label_path = f"{original_data_dir}/{item['label']}"
-        new_image_path = f"{dup_data_dir}/{item['image']}"
-        new_label_path = f"{dup_data_dir}/{item['label']}"
-        commands.append(f"cp {old_image_path} {new_image_path}")
-        commands.append(f"cp {old_label_path} {new_label_path}")
+copy_data_keys = ['train', 'val', 'test']
+
+for copy_data_key in copy_data_keys:
+    for client in data[copy_data_key]:
+        for item in data[copy_data_key][client]:
+            # new image path is to add the dup_data_dir to the image path
+            old_image_path = f"{original_data_dir}/{item['image']}"
+            old_label_path = f"{original_data_dir}/{item['label']}"
+            new_image_path = f"{dup_data_dir}/{item['image']}"
+            new_label_path = f"{dup_data_dir}/{item['label']}"
+            commands.append(f"cp {old_image_path} {new_image_path}")
+            commands.append(f"cp {old_label_path} {new_label_path}")
+
 
 # start a task report and wait for user to approve
 print(f"We are about to copy the dataset using {len(commands)} commands.")
