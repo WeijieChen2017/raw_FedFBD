@@ -624,11 +624,23 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
         criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
     
     # Create optimizer with only trainable parameters
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
+    trainable_params = list(filter(lambda p: p.requires_grad, model.parameters()))
+    
+    # In round 0, if no parameters are trainable (empty update plan), make all parameters trainable
+    if round_num == 0 and len(trainable_params) == 0:
+        print(f"Client {client_id}: Round 0 with no trainable parameters. Making all parameters trainable.")
+        for param in model.parameters():
+            param.requires_grad = True
+        trainable_params = list(model.parameters())
+    
+    # Ensure we have trainable parameters before creating optimizer
+    if len(trainable_params) == 0:
+        raise ValueError(f"Client {client_id}: No trainable parameters found. Cannot create optimizer.")
+    
     optimizer = build_optimizer_with_state(
         model, 
         optimizer_states, 
-        list(trainable_params), 
+        trainable_params, 
         device, 
         default_lr=args.local_learning_rate
     )
