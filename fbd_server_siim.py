@@ -96,9 +96,86 @@ def fix_state_dict_prefixes(saved_state_dict, model):
     
     return fixed_state_dict
 
+def detect_model_size_from_weights(model_path):
+    """
+    Detect model size (small/standard) from saved weights by checking tensor dimensions.
+    
+    Args:
+        model_path: Path to saved model state dict
+    
+    Returns:
+        str: 'small' or 'standard'
+    """
+    try:
+        state_dict = torch.load(model_path, map_location='cpu')
+        return detect_model_size_from_state_dict(state_dict)
+        
+    except Exception as e:
+        print(f"Warning: Could not detect model size from weights: {e}")
+        return 'standard'
+
+def detect_model_size_from_state_dict(state_dict):
+    """
+    Detect model size from state dict by checking tensor dimensions.
+    
+    Args:
+        state_dict: PyTorch state dict
+    
+    Returns:
+        str: 'small' or 'standard'
+    """
+    try:
+        # Check the first conv layer to determine feature size
+        # Small models have 64 features, standard have 128
+        first_conv_key = None
+        for key in state_dict.keys():
+            if 'conv.unit0.conv.weight' in key and 'model.0' in key:
+                first_conv_key = key
+                break
+        
+        if first_conv_key and first_conv_key in state_dict:
+            # Shape should be [features, in_channels, ...] 
+            # Small: [64, 1, 3, 3, 3], Standard: [128, 1, 3, 3, 3]
+            first_conv_shape = state_dict[first_conv_key].shape
+            if first_conv_shape[0] == 64:
+                return 'small'
+            elif first_conv_shape[0] == 128:
+                return 'standard'
+        
+        # Fallback: assume standard if we can't detect
+        return 'standard'
+        
+    except Exception as e:
+        print(f"Warning: Could not detect model size from state dict: {e}")
+        return 'standard'
+
+def detect_model_size_from_warehouse(warehouse):
+    """
+    Detect model size from warehouse by checking any available model weights.
+    
+    Args:
+        warehouse: FBDWarehouse instance
+    
+    Returns:
+        str: 'small' or 'standard'
+    """
+    try:
+        # Try to get M0 weights first, then any available model
+        for model_color in ['M0', 'M1', 'M2', 'M3', 'M4', 'M5']:
+            model_weights = warehouse.get_model_weights(model_color)
+            if model_weights:
+                return detect_model_size_from_state_dict(model_weights)
+        
+        # Fallback: assume standard if no weights found
+        return 'standard'
+        
+    except Exception as e:
+        print(f"Warning: Could not detect model size from warehouse: {e}")
+        return 'standard'
+
 def load_server_model_from_disk(model_path, args, experiment_name, device):
     """
-    Load server model state dict from disk.
+    Load server model state dict from disk with automatic model size detection.
     
     Args:
         model_path: Path to saved model state dict
@@ -109,13 +186,19 @@ def load_server_model_from_disk(model_path, args, experiment_name, device):
     Returns:
         PyTorch model with loaded weights
     """
-    # Create model instance
+    # For SIIM, auto-detect model size from saved weights to avoid dimension mismatches
     if experiment_name == "siim":
+        detected_size = detect_model_size_from_weights(model_path)
+        current_size = getattr(args, 'model_size', 'standard')
+        
+        if detected_size != current_size:
+            print(f"Model size mismatch detected: weights are '{detected_size}' but args specify '{current_size}'. Using '{detected_size}' to match weights.")
+        
         model = get_siim_model(
             architecture=args.model_flag,
             in_channels=args.n_channels,
             out_channels=args.num_classes,
-            model_size=getattr(args, 'model_size', 'standard')
+            model_size=detected_size  # Use detected size instead of args
         )
     else:
         model = get_pretrained_fbd_model(
@@ -241,12 +324,18 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         criterion = DiceCELoss(to_onehot_y=False, sigmoid=True).to(device)
         dice_metric = DiceMetric(include_background=True, reduction="mean")
         
-        # Create model
+        # Create model with auto-detected size to match existing weights
+        detected_size = detect_model_size_from_warehouse(warehouse)
+        current_size = getattr(args, 'model_size', 'standard')
+        
+        if detected_size != current_size:
+            print(f"Auto-detected model size '{detected_size}' from warehouse (args specify '{current_size}')")
+        
         model = get_siim_model(
             architecture=args.model_flag,
             in_channels=args.n_channels,
             out_channels=args.num_classes,
-            model_size=getattr(args, 'model_size', 'standard')
+            model_size=detected_size
         )
     else:
         # Original MedMNIST handling
@@ -411,11 +500,13 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 
                 # Create and evaluate hybrid model
                 if experiment_name == "siim":
+                    # Use the same detected size for consistency
+                    detected_size = detect_model_size_from_state_dict(hybrid_weights)
                     hybrid_model = get_siim_model(
                         architecture=args.model_flag,
                         in_channels=args.n_channels,
                         out_channels=args.num_classes,
-                        model_size=getattr(args, 'model_size', 'standard')
+                        model_size=detected_size
                     )
                 else:
                     hybrid_model = get_pretrained_fbd_model(

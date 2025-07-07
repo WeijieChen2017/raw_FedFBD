@@ -309,6 +309,7 @@ def main():
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
     parser.add_argument("--model_size", type=str, choices=["standard", "small"], default="standard", help="Size of the model ('standard' or 'small').")
+    parser.add_argument("--auto_detect_size", action="store_true", help="Automatically detect model size from saved weights (useful when switching between standard/small)")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
