@@ -147,10 +147,17 @@ def _get_scores(model, data_loader, task, device):
     model.eval()
     y_score = torch.tensor([]).to(device)
     with torch.no_grad():
-        for inputs, _ in data_loader:
-            outputs = model(inputs.to(device))
+        for batch_data in data_loader:
+            # Handle both dictionary format (SIIM) and tuple format (MedMNIST)
+            if isinstance(batch_data, dict):
+                inputs = batch_data["image"].to(device)
+            else:
+                inputs, _ = batch_data
+                inputs = inputs.to(device)
+                
+            outputs = model(inputs)
             
-            if task == 'multi-label, binary-class':
+            if task == 'multi-label, binary-class' or task == 'segmentation':
                 m = nn.Sigmoid()
                 outputs = m(outputs)
             else:
