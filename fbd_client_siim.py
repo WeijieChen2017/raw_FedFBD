@@ -16,8 +16,8 @@ from fbd_utils import (
     setup_logger,
     FBDWarehouse
 )
-from fbd_model_ckpt import get_model_parameters, set_model_parameters, save_fbd_model, load_fbd_model
 from fbd_models_siim import get_siim_model
+from fbd_models import get_pretrained_fbd_model
 from monai.losses import DiceCELoss
 from monai.inferers import sliding_window_inference
 from monai.data import DataLoader
@@ -33,8 +33,6 @@ SIIM_INFO = {
     }
 }
 
-from fbd_model_ckpt import get_pretrained_fbd_model
-from fbd_models_siim import get_siim_model
 from fbd_dataset import get_data_loader, DATASET_SPECIFIC_RULES
 from fbd_dataset_siim import get_siim_data_loader
 
@@ -471,7 +469,6 @@ def create_model_for_evaluation(args, device):
             features=getattr(args, 'features', 128)
         )
     else:
-        from fbd_models import get_pretrained_fbd_model
         model = get_pretrained_fbd_model(
             architecture=args.model_flag,
             norm=args.norm,
