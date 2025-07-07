@@ -58,6 +58,43 @@ def save_server_model_to_disk(model, model_color, round_num, output_dir):
     
     return model_path
 
+def fix_state_dict_prefixes(saved_state_dict, model):
+    """
+    Fix state dict key prefix mismatches.
+    
+    Args:
+        saved_state_dict: The state dict loaded from disk
+        model: The target model
+        
+    Returns:
+        Fixed state dict with corrected key names
+    """
+    model_state_dict = model.state_dict()
+    fixed_state_dict = {}
+    
+    for model_key in model_state_dict.keys():
+        # Try different prefix variations
+        possible_keys = [
+            model_key,  # Exact match
+            model_key.replace("unet.", ""),  # Remove unet prefix
+            "model." + model_key,  # Add model prefix
+            model_key.replace("unet.", "model."),  # Replace unet with model
+        ]
+        
+        key_found = False
+        for possible_key in possible_keys:
+            if possible_key in saved_state_dict:
+                fixed_state_dict[model_key] = saved_state_dict[possible_key]
+                key_found = True
+                break
+        
+        if not key_found:
+            print(f"Warning: Could not find mapping for key: {model_key}")
+            # Keep the original parameter (random initialization)
+            fixed_state_dict[model_key] = model_state_dict[model_key]
+    
+    return fixed_state_dict
+
 def load_server_model_from_disk(model_path, args, experiment_name, device):
     """
     Load server model state dict from disk.
@@ -94,36 +131,8 @@ def load_server_model_from_disk(model_path, args, experiment_name, device):
     except RuntimeError as e:
         if "Missing key(s) in state_dict" in str(e):
             print(f"Warning: State dict mismatch detected. Attempting to fix key prefixes...")
-            
-            # Load the state dict
             saved_state_dict = torch.load(model_path, map_location=device)
-            model_state_dict = model.state_dict()
-            
-            # Try to map saved keys to model keys
-            fixed_state_dict = {}
-            
-            for model_key in model_state_dict.keys():
-                # Try different prefix variations
-                possible_keys = [
-                    model_key,  # Exact match
-                    model_key.replace("unet.", ""),  # Remove unet prefix
-                    "model." + model_key,  # Add model prefix
-                    model_key.replace("unet.", "model."),  # Replace unet with model
-                ]
-                
-                key_found = False
-                for possible_key in possible_keys:
-                    if possible_key in saved_state_dict:
-                        fixed_state_dict[model_key] = saved_state_dict[possible_key]
-                        key_found = True
-                        break
-                
-                if not key_found:
-                    print(f"Warning: Could not find mapping for key: {model_key}")
-                    # Keep the original parameter (random initialization)
-                    fixed_state_dict[model_key] = model_state_dict[model_key]
-            
-            # Load the fixed state dict
+            fixed_state_dict = fix_state_dict_prefixes(saved_state_dict, model)
             model.load_state_dict(fixed_state_dict, strict=False)
             print("Successfully loaded state dict with prefix corrections.")
         else:
@@ -286,7 +295,16 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                         if not first_tensor.dtype.is_floating_point and not key.endswith('num_batches_tracked'):
                             print(f"Warning: Cannot average non-floating point tensor '{key}' (dtype: {first_tensor.dtype}). Using first model's weights.")
                 
-                model.load_state_dict(averaged_weights)
+                # Load averaged weights with error handling for prefix mismatches
+                try:
+                    model.load_state_dict(averaged_weights)
+                except RuntimeError as e:
+                    if "Missing key(s) in state_dict" in str(e):
+                        print(f"Warning: State dict mismatch in averaging. Attempting to fix key prefixes...")
+                        averaged_weights = fix_state_dict_prefixes(averaged_weights, model)
+                        model.load_state_dict(averaged_weights, strict=False)
+                    else:
+                        raise e
                 
                 # Save averaged model to disk and clean up GPU memory
                 model_path = save_server_model_to_disk(model, model_color, getattr(args, 'current_round', 0), args.output_dir)
@@ -296,7 +314,16 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             else:
                 # Fallback to M0 if averaging fails
                 model_weights = warehouse.get_model_weights("M0")
-                model.load_state_dict(model_weights)
+                # Load M0 weights with error handling for prefix mismatches
+                try:
+                    model.load_state_dict(model_weights)
+                except RuntimeError as e:
+                    if "Missing key(s) in state_dict" in str(e):
+                        print(f"Warning: State dict mismatch in M0 fallback. Attempting to fix key prefixes...")
+                        model_weights = fix_state_dict_prefixes(model_weights, model)
+                        model.load_state_dict(model_weights, strict=False)
+                    else:
+                        raise e
                 
                 # Save M0 model to disk and clean up GPU memory
                 model_path = save_server_model_to_disk(model, model_color, getattr(args, 'current_round', 0), args.output_dir)
