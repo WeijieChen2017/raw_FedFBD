@@ -76,9 +76,10 @@ def fix_state_dict_prefixes(saved_state_dict, model):
         # Try different prefix variations
         possible_keys = [
             model_key,  # Exact match
-            model_key.replace("unet.", ""),  # Remove unet prefix
-            "model." + model_key,  # Add model prefix
-            model_key.replace("unet.", "model."),  # Replace unet with model
+            model_key.replace("unet.", ""),  # Remove unet prefix -> "model.0.conv..."
+            model_key.replace("unet.", "model."),  # Replace unet with model -> "model.model.0.conv..." 
+            model_key.replace("unet.model.", "model."),  # Replace "unet.model." with "model." -> "model.0.conv..."
+            model_key.replace("unet.model.", ""),  # Remove "unet.model." -> "0.conv..."
         ]
         
         key_found = False

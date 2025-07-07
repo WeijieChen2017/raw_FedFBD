@@ -36,9 +36,6 @@ class FBDUNet(nn.Module):
             num_res_units=2
         )
         
-        # Store the entire model for easy access
-        self.model = self.unet
-        
     def forward(self, x):
         # For standard forward pass, use the complete UNet
         return self.unet(x)
