@@ -308,7 +308,7 @@ def main():
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
-    parser.add_argument("--model_size", type=str, choices=["standard", "small"], default="standard", help="Size of the model ('standard' or 'small').")
+    parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge"], default="standard", help="Size of the model: 'small' (64 features), 'standard' (128 features), 'large' (256 features), 'xlarge' (512 features).")
     parser.add_argument("--auto_detect_size", action="store_true", help="Automatically detect model size from saved weights (useful when switching between standard/small)")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
@@ -454,7 +454,13 @@ def main():
     print(f"   - Input channels: {args.n_channels}")
     if args.experiment_name == "siim":
         print(f"   - ROI size: {args.roi_size}")
-        print(f"   - Architecture features: {args.features}")
+        print(f"   - Model size: {args.model_size}")
+        
+        # Add memory estimate
+        memory_estimates = {'small': '85MB', 'standard': '340MB', 'large': '1.3GB', 'xlarge': '5.3GB'}
+        memory_str = memory_estimates.get(args.model_size, 'Unknown')
+        print(f"   - Estimated memory per model: {memory_str}")
+        
         if args.fold is not None:
             print(f"   - Cross-validation fold: {args.fold}")
     
@@ -469,7 +475,7 @@ def main():
         print(f"   - Sample variation: ±30% from equal distribution")
     else:
         print(f"   - Data partitioning: Pre-defined fold configuration")
-    print(f"   - Parallel mode: {'ENABLED (smaller models)' if args.parallel else 'DISABLED (single model)'}")
+    print(f"   - Parallel mode: {'ENABLED (' + args.model_size + ' models)' if args.parallel else 'DISABLED (single model)'}")
     
     print(f"\n3. REGULARIZATION:")
     # Determine regularization settings for display
@@ -528,18 +534,30 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     if args.parallel:
-        # Create multiple smaller models for parallel execution
-        print(f"Creating {args.num_clients} smaller models for parallel execution...")
+        # Create multiple models for parallel execution
+        print(f"Creating {args.num_clients} models for parallel execution...")
         client_models = []
         
         if args.experiment_name == "siim":
-            # In parallel mode, always use 'small' model size to save memory
+            # Use the specified model size, but warn if it might not fit
+            parallel_model_size = args.model_size
+            
+            # Estimate memory usage for parallel training
+            if parallel_model_size == 'xlarge':
+                total_memory_gb = args.num_clients * 5.31  # XLarge uses ~5.3GB per model
+                if total_memory_gb > 20:  # Leave some headroom on 24GB GPU
+                    print(f"⚠️  Warning: {args.num_clients} xlarge models may use ~{total_memory_gb:.1f}GB. Consider using 'large' size.")
+            elif parallel_model_size == 'large':
+                total_memory_gb = args.num_clients * 1.33  # Large uses ~1.3GB per model
+                if total_memory_gb > 20:
+                    print(f"⚠️  Warning: {args.num_clients} large models may use ~{total_memory_gb:.1f}GB.")
+            
             for i in range(args.num_clients):
                 model = get_siim_model(
                     architecture=args.model_flag,
                     in_channels=args.n_channels,
                     out_channels=args.num_classes,
-                    model_size='small'
+                    model_size=parallel_model_size
                 )
                 client_models.append(model)
         else:

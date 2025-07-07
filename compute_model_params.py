@@ -62,10 +62,12 @@ def main():
     print("🔍 SIIM UNet Model Parameter Analysis")
     print("=" * 60)
     
-    # Test both model sizes
+    # Test all model sizes
     model_configs = [
         ("Small Model", "small"),
-        ("Standard Model", "standard")
+        ("Standard Model", "standard"),
+        ("Large Model", "large"),
+        ("XLarge Model", "xlarge")
     ]
     
     results = {}
@@ -121,75 +123,98 @@ def main():
     
     # Comparison
     print(f"\n📈 COMPARISON")
-    print("=" * 40)
+    print("=" * 50)
     
     small_params = results['small']['total_params']
-    standard_params = results['standard']['total_params']
-    
-    ratio = standard_params / small_params if small_params > 0 else 1
-    
-    print(f"Standard model is {ratio:.1f}x larger than small model")
-    print(f"Parameter difference: {format_number(standard_params - small_params)}")
-    
     small_memory = results['small']['memory_mb']
-    standard_memory = results['standard']['memory_mb']
-    memory_ratio = standard_memory / small_memory if small_memory > 0 else 1
     
-    print(f"Standard model uses {memory_ratio:.1f}x more memory than small model")
-    print(f"Memory difference: {standard_memory - small_memory:.1f} MB")
+    print(f"{'Model':<10} {'Parameters':<15} {'Memory':<12} {'vs Small':<12}")
+    print("-" * 50)
+    for size in ['small', 'standard', 'large', 'xlarge']:
+        if size in results:
+            params = results[size]['total_params']
+            memory = results[size]['memory_mb']
+            ratio = params / small_params if small_params > 0 else 1
+            memory_ratio = memory / small_memory if small_memory > 0 else 1
+            
+            print(f"{size:<10} {format_number(params):<15} {memory:<8.0f}MB {ratio:<8.1f}x")
     
     # GPU memory context
-    print(f"\n🖥️  GPU Memory Context:")
-    print(f"For a 16GB GPU: Small model uses {small_memory/16384*100:.1f}% | Standard model uses {standard_memory/16384*100:.1f}%")
-    print(f"For a 24GB GPU: Small model uses {small_memory/24576*100:.1f}% | Standard model uses {standard_memory/24576*100:.1f}%")
-    
-    # How many models can fit?
-    print(f"\n🔢 Parallel Model Capacity:")
+    print(f"\n🖥️  GPU Memory Context (per model):")
     gpu_16gb = 16384
     gpu_24gb = 24576
     
-    small_capacity_16gb = int(gpu_16gb / small_memory)
-    standard_capacity_16gb = int(gpu_16gb / standard_memory)
-    small_capacity_24gb = int(gpu_24gb / small_memory)
-    standard_capacity_24gb = int(gpu_24gb / standard_memory)
+    print(f"{'Model':<10} {'16GB Usage':<12} {'24GB Usage':<12} {'Max on 16GB':<12} {'Max on 24GB':<12}")
+    print("-" * 60)
     
-    print(f"16GB GPU can fit: {small_capacity_16gb} small models OR {standard_capacity_16gb} standard models")
-    print(f"24GB GPU can fit: {small_capacity_24gb} small models OR {standard_capacity_24gb} standard models")
+    for size in ['small', 'standard', 'large', 'xlarge']:
+        if size in results:
+            memory = results[size]['memory_mb']
+            usage_16gb = memory / gpu_16gb * 100
+            usage_24gb = memory / gpu_24gb * 100
+            capacity_16gb = int(gpu_16gb / memory)
+            capacity_24gb = int(gpu_24gb / memory)
+            
+            print(f"{size:<10} {usage_16gb:<8.1f}%    {usage_24gb:<8.1f}%    {capacity_16gb:<8d}     {capacity_24gb:<8d}")
     
-    # FedBD simulation context
-    print(f"\n⚡ FedBD Simulation Context:")
-    print(f"With 6 clients (typical FedBD setup):")
-    print(f"  - Small models: ✅ Fits easily on 16GB+ GPUs")
-    print(f"  - Standard models: {'✅' if standard_capacity_16gb >= 6 else '❌'} {'Fits' if standard_capacity_16gb >= 6 else 'May not fit'} on 16GB GPU")
-    print(f"  - For parallel training of 6 clients: {6 * small_memory:.0f}MB (small) vs {6 * standard_memory:.0f}MB (standard)")
+    # FedBD simulation context for 24GB GPU
+    print(f"\n⚡ FedBD Simulation Context (6 clients parallel):")
+    print(f"{'Model':<10} {'Total Memory':<15} {'24GB Fit?':<10} {'Recommendation'}")
+    print("-" * 55)
+    
+    for size in ['small', 'standard', 'large', 'xlarge']:
+        if size in results:
+            memory = results[size]['memory_mb']
+            total_6_clients = 6 * memory
+            fits_24gb = total_6_clients < gpu_24gb
+            
+            if fits_24gb and total_6_clients < gpu_24gb * 0.8:  # Leave 20% headroom
+                recommendation = "✅ Recommended"
+            elif fits_24gb:
+                recommendation = "⚠️  Tight fit"
+            else:
+                recommendation = "❌ Too large"
+                
+            print(f"{size:<10} {total_6_clients:<11.0f}MB   {'✅' if fits_24gb else '❌':<8s}  {recommendation}")
     
     # Model data transfer
-    single_small_mb = small_params * 4 / (1024 * 1024)  # Just model weights, no gradients/optimizer
-    single_standard_mb = standard_params * 4 / (1024 * 1024)
-    
     print(f"\n📡 Model Weight Transfer Sizes:")
-    print(f"Small model weights: {single_small_mb:.1f}MB")
-    print(f"Standard model weights: {single_standard_mb:.1f}MB")
-    print(f"Ratio: Standard is {single_standard_mb/single_small_mb:.1f}x larger for network transfer")
+    print(f"{'Model':<10} {'Weight Size':<12} {'vs Small'}")
+    print("-" * 30)
+    
+    small_weight_mb = small_params * 4 / (1024 * 1024)
+    
+    for size in ['small', 'standard', 'large', 'xlarge']:
+        if size in results:
+            params = results[size]['total_params']
+            weight_mb = params * 4 / (1024 * 1024)
+            ratio = weight_mb / small_weight_mb if small_weight_mb > 0 else 1
+            
+            print(f"{size:<10} {weight_mb:<8.1f}MB   {ratio:<8.1f}x")
     
     # Check actual model features
     print(f"\n🔧 Model Architecture Details:")
-    small_model = get_siim_model(model_size="small")
-    standard_model = get_siim_model(model_size="standard")
+    print(f"{'Model':<10} {'Features':<10} {'First Conv Shape'}")
+    print("-" * 40)
     
-    # Get first conv layer to see actual feature sizes
-    for name, param in small_model.named_parameters():
-        if 'conv.unit0.conv.weight' in name and 'model.0' in name:
-            small_features = param.shape[0]
-            break
+    for size in ['small', 'standard', 'large', 'xlarge']:
+        try:
+            model = get_siim_model(model_size=size)
+            # Get first conv layer to see actual feature sizes
+            for name, param in model.named_parameters():
+                if 'conv.unit0.conv.weight' in name and 'model.0' in name:
+                    features = param.shape[0]
+                    shape_str = f"{param.shape}"
+                    print(f"{size:<10} {features:<10} {shape_str}")
+                    break
+        except Exception as e:
+            print(f"{size:<10} ERROR: {e}")
     
-    for name, param in standard_model.named_parameters():
-        if 'conv.unit0.conv.weight' in name and 'model.0' in name:
-            standard_features = param.shape[0]
-            break
-    
-    print(f"Small model features:    {small_features}")
-    print(f"Standard model features: {standard_features}")
+    print(f"\n💡 For 24GB GPU Recommendations:")
+    print(f"   🔥 LARGE model (256 features) - Great balance of size and performance")
+    print(f"   🚀 XLARGE model (512 features) - Maximum utilization for research")
+    print(f"   ⚡ Use --parallel mode with large/xlarge for multi-client training")
+    print(f"   📊 Monitor GPU memory usage during training")
 
 if __name__ == "__main__":
     main()

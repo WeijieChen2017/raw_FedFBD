@@ -135,12 +135,17 @@ def detect_model_size_from_state_dict(state_dict):
         
         if first_conv_key and first_conv_key in state_dict:
             # Shape should be [features, in_channels, ...] 
-            # Small: [64, 1, 3, 3, 3], Standard: [128, 1, 3, 3, 3]
+            # Small: [64, 1, 3, 3, 3], Standard: [128, 1, 3, 3, 3], Large: [256, 1, 3, 3, 3], XLarge: [512, 1, 3, 3, 3]
             first_conv_shape = state_dict[first_conv_key].shape
-            if first_conv_shape[0] == 64:
+            features = first_conv_shape[0]
+            if features == 64:
                 return 'small'
-            elif first_conv_shape[0] == 128:
+            elif features == 128:
                 return 'standard'
+            elif features == 256:
+                return 'large'
+            elif features == 512:
+                return 'xlarge'
         
         # Fallback: assume standard if we can't detect
         return 'standard'
