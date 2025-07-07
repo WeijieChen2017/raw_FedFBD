@@ -65,6 +65,26 @@ def get_dataset_stats(data_partition):
     }
     return stats
 
+def assemble_model_from_plan(model, received_weights, update_plan):
+    """
+    Assembles a model by loading weights according to a specific update plan.
+    
+    Args:
+        model (torch.nn.Module): The base model to load weights into.
+        received_weights (dict): A dictionary of all weights received from the server.
+        update_plan (dict): The specific plan for this client, detailing how to use the weights.
+    """
+    full_state_dict = {}
+    
+    if 'model_to_update' in update_plan:
+        for component_name, info in update_plan['model_to_update'].items():
+            # component_name is the model_part, e.g., 'layer1'
+            for param_name, param_value in received_weights.items():
+                if param_name.startswith(component_name):
+                    full_state_dict[param_name] = param_value
+    
+    model.load_state_dict(full_state_dict, strict=False)
+
 def train(model, train_loader, task, criterion, optimizer, epochs, device):
     """
     Trains the model for a specified number of epochs.
@@ -96,26 +116,6 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device):
             total_loss += (epoch_loss / num_batches)
 
     return total_loss / epochs if epochs > 0 else 0
-
-def assemble_model_from_plan(model, received_weights, update_plan):
-    """
-    Assembles a model by loading weights according to a specific update plan.
-    
-    Args:
-        model (torch.nn.Module): The base model to load weights into.
-        received_weights (dict): A dictionary of all weights received from the server.
-        update_plan (dict): The specific plan for this client, detailing how to use the weights.
-    """
-    full_state_dict = {}
-    
-    if 'model_to_update' in update_plan:
-        for component_name, info in update_plan['model_to_update'].items():
-            # component_name is the model_part, e.g., 'layer1'
-            for param_name, param_value in received_weights.items():
-                if param_name.startswith(component_name):
-                    full_state_dict[param_name] = param_value
-    
-    model.load_state_dict(full_state_dict, strict=False)
 
 def client_task(client_id, data_partition, args):
     """Client process that actively polls for round-based files, processes them, and sends a response."""

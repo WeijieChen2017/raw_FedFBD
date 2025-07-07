@@ -306,6 +306,10 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
                 continue  # Skip this batch
             
             loss.backward()
+            
+            # Add gradient clipping to prevent divergence
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            
             optimizer.step()
             
             epoch_loss += loss.item()
@@ -357,7 +361,7 @@ def assemble_model_from_plan(model, received_weights, update_plan):
 
 def build_optimizer_with_state(model, optimizer_states, trainable_params, device, default_lr=0.001):
     """Build optimizer with state if available"""
-    optimizer = optim.Adam(trainable_params, lr=default_lr)
+    optimizer = optim.Adam(trainable_params, lr=default_lr, weight_decay=1e-5)
     
     if not optimizer_states:
         return optimizer
