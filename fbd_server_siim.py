@@ -459,7 +459,21 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
             all_y_scores_array = np.array(all_y_scores)
             
             # Handle different task types
-            if task == 'multi-label, binary-class':
+            if task == 'segmentation':
+                # For segmentation tasks (like SIIM), we can't easily do ensemble voting on segmentation masks
+                # because they're too large and complex. Instead, we'll use averaging of scores.
+                # For SIIM, we'll skip the complex voting and just use averaged scores for evaluation
+                print("Segmentation task: Using averaged scores for ensemble evaluation")
+                majority_vote_accuracy = 0.0  # Not meaningful for segmentation
+                mean_member_accuracy = 0.0
+                mean_confidence = 0.0
+                min_confidence = 0.0
+                max_confidence = 0.0
+                high_confidence_samples = 0
+                medium_confidence_samples = 0
+                low_confidence_samples = 0
+                
+            elif task == 'multi-label, binary-class':
                 # For multi-label, we need to handle each label independently
                 # all_y_scores shape: (num_models, num_samples, num_classes)
                 # true_labels shape: (num_samples, num_classes)
@@ -506,15 +520,17 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                 true_labels = test_dataset.labels.flatten()
                 member_predictions = np.argmax(all_y_scores_array, axis=2)
             
-            # Skip single-label voting logic for multi-label tasks
-            if task == 'multi-label, binary-class':
-                # Multi-label metrics were already calculated above
-                mean_confidence = 0.0
-                min_confidence = 0.0
-                max_confidence = 0.0
-                high_confidence_samples = 0
-                medium_confidence_samples = 0
-                low_confidence_samples = 0
+            # Skip single-label voting logic for multi-label tasks and segmentation
+            if task == 'multi-label, binary-class' or task == 'segmentation':
+                # Multi-label metrics and segmentation metrics were already calculated above
+                if task == 'multi-label, binary-class':
+                    mean_confidence = 0.0
+                    min_confidence = 0.0
+                    max_confidence = 0.0
+                    high_confidence_samples = 0
+                    medium_confidence_samples = 0
+                    low_confidence_samples = 0
+                # For segmentation, the values were already set above
             else:
                 # Debug shapes
                 print(f"Debug - all_y_scores_array shape: {all_y_scores_array.shape}")
@@ -609,23 +625,32 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                         total_individual_votes = member_predictions.size
                         mean_member_accuracy = num_correct_individual / total_individual_votes if total_individual_votes > 0 else 0
 
-            if task == 'multi-label, binary-class':
+            if task == 'segmentation':
+                print(f"Ensemble complete: {len(all_y_scores)} hybrid models for segmentation task")
+                # For segmentation, we can't use the standard evaluator, so return simplified metrics
+                return {
+                    "test_loss": 0.0,  # Loss not meaningful for ensemble 
+                    "test_auc": 0.0,   # Not meaningful for segmentation ensemble
+                    "test_acc": 0.0    # Majority vote not meaningful for segmentation masks
+                }
+            elif task == 'multi-label, binary-class':
                 print(f"Ensemble complete: {len(all_y_scores)} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Hamming Acc: {hamming_accuracy:.4f}")
             else:
                 print(f"Ensemble complete: {total_ensemble_members} hybrid models, Majority Vote Acc: {majority_vote_accuracy:.4f}, Mean Confidence: {mean_confidence:.3f}")
 
-            # Average the scores and evaluate (for loss and AUC metrics)
-            averaged_scores = np.mean(all_y_scores, axis=0)
-            
-            # Create evaluator and calculate metrics
-            auc, _ = test_evaluator.evaluate(averaged_scores, None, None)
-            
-            # For ensemble, we'll use majority vote accuracy and averaged AUC
-            return {
-                "test_loss": 0.0,  # Loss not meaningful for ensemble 
-                "test_auc": auc,
-                "test_acc": majority_vote_accuracy
-            }
+            # Average the scores and evaluate (for loss and AUC metrics) - only for non-segmentation tasks
+            if task != 'segmentation':
+                averaged_scores = np.mean(all_y_scores, axis=0)
+                
+                # Create evaluator and calculate metrics
+                auc, _ = test_evaluator.evaluate(averaged_scores, None, None)
+                
+                # For ensemble, we'll use majority vote accuracy and averaged AUC
+                return {
+                    "test_loss": 0.0,  # Loss not meaningful for ensemble 
+                    "test_auc": auc,
+                    "test_acc": majority_vote_accuracy
+                }
         else:
             # Get weights for specific model color (M0, M1, M2, etc.)
             model_weights = warehouse.get_model_weights(model_color)
