@@ -296,6 +296,7 @@ def main():
     parser.add_argument("--ensemble_size", type=int, default=None,
                         help="Ensemble size for evaluation (overrides config if specified)")
     parser.add_argument("--parallel", action="store_true", help="Run multiple client models in parallel (uses smaller models)")
+    parser.add_argument("--auto_approval", action="store_true", help="Automatically approve the training plan")
     args = parser.parse_args()
     
     # Handle SIIM dataset configuration
@@ -495,10 +496,11 @@ def main():
     print("\n" + "="*80)
     
     # Ask for user approval
-    approval = input("\nDo you want to proceed with this training plan? (yes/no): ").strip().lower()
-    if approval not in ['yes', 'y']:
-        print("Training cancelled by user.")
-        return
+    if not args.auto_approval:
+        approval = input("\nDo you want to proceed with this training plan? (yes/no): ").strip().lower()
+        if approval not in ['yes', 'y']:
+            print("Training cancelled by user.")
+            return
     
     print(f"\nServer: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
 
