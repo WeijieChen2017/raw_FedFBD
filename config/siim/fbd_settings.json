@@ -27,7 +27,7 @@
     "distance_type": "L2",
     "coefficient": 0.1
   },
-  "ENSEMBLE_SIZE": 32,
+  "ENSEMBLE_SIZE": 4,
   "ENSEMBLE_COLORS": ["M0", "M1", "M2", "M3", "M4", "M5"],
   "FINAL_TEST_COLORS": ["M0", "M1", "M2", "M3", "M4", "M5"],
   "FINAL_TEST_SIZE": 128,
