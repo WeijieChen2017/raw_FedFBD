@@ -274,6 +274,13 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
                     reg_loss_value = regularizer_coefficient * weights_distance
                     loss = loss + reg_loss_value
             
+            # Validate loss before backward pass
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"⚠️  Client {client_id} Round {round_num}: Invalid loss detected: {loss.item():.6f} (main: {main_loss:.6f}, reg: {reg_loss:.6f})")
+                print(f"   Input range: [{inputs.min():.3f}, {inputs.max():.3f}], Label range: [{labels.min():.3f}, {labels.max():.3f}]")
+                print(f"   Output range: [{outputs.min():.3f}, {outputs.max():.3f}]")
+                continue  # Skip this batch
+            
             loss.backward()
             optimizer.step()
             
@@ -644,6 +651,11 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
         for param in model.parameters():
             param.requires_grad = True
         trainable_params = list(model.parameters())
+    
+    # Debug: Print number of trainable parameters
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_count = sum(p.numel() for p in trainable_params)
+    print(f"Client {client_id} Round {round_num}: {trainable_count}/{total_params} parameters trainable ({trainable_count/total_params*100:.1f}%)")
     
     # Ensure we have trainable parameters before creating optimizer
     if len(trainable_params) == 0:

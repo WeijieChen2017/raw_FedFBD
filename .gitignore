@@ -1,2 +1,24 @@
 code_template/
-code_template/
+
+# Large model weight files
+siim_unet_initial_weights_*.pth
+siim_unet_pretrained_*.pth
+siim_unet_weights.pth
+
+# Training outputs and caches
+cache/
+eval_results/
+experiments/
+fbd_run/
+fbd_sim_*/
+__pycache__/
+*.pyc
+
+# Data files
+*.nii.gz
+*.json
+!config/**/*.json
+
+# System files
+.DS_Store
+Thumbs.db

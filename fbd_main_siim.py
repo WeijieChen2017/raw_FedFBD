@@ -550,6 +550,14 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
+    # Set random seed for reproducible model initialization
+    # This ensures all clients start with the same initial weights
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+    print(f"Set random seed to {args.seed} for reproducible model initialization")
+    
     if args.parallel:
         # Create multiple models for parallel execution
         print(f"Creating {args.num_clients} models for parallel execution...")

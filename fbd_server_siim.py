@@ -824,15 +824,39 @@ def initialize_server_simulation(args):
     fbd_settings_path = f"config/{args.experiment_name}/fbd_settings.json"
     fbd_trace, _, _ = load_fbd_settings(fbd_settings_path)
     
-    # Create model template directly without loading from file
-    # In simulation, we don't need to save/load - just create fresh each time
+    # Create model template with shared initial weights for reproducible federated learning
     if args.experiment_name == "siim":
+        model_size = getattr(args, 'model_size', 'standard')
         model_template = get_siim_model(
             architecture=args.model_flag,
             in_channels=args.n_channels,
             out_channels=args.num_classes,
-            model_size=getattr(args, 'model_size', 'standard')
+            model_size=model_size
         )
+        
+        # Try to load pretrained weights in order of preference
+        weight_files_to_try = [
+            f"siim_unet_pretrained_monai_{model_size}.pth",  # Medical imaging optimized
+            f"siim_unet_pretrained_lungmask_{model_size}.pth",  # Lung-specific
+            f"siim_unet_pretrained_chest_foundation_{model_size}.pth",  # Chest imaging
+            f"siim_unet_initial_weights_{model_size}.pth"  # Basic shared weights
+        ]
+        
+        weights_loaded = False
+        for weights_file in weight_files_to_try:
+            if os.path.exists(weights_file):
+                try:
+                    initial_weights = torch.load(weights_file, map_location='cpu')
+                    model_template.load_state_dict(initial_weights)
+                    print(f"✅ Loaded pretrained weights from {weights_file}")
+                    weights_loaded = True
+                    break
+                except Exception as e:
+                    print(f"⚠️  Could not load weights from {weights_file}: {e}")
+        
+        if not weights_loaded:
+            print(f"📌 No pretrained weights found, using random initialization")
+            print("   All clients will still start with same weights due to seed")
     else:
         model_template = get_pretrained_fbd_model(
             architecture=args.model_flag,
