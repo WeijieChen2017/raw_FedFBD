@@ -403,13 +403,21 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
                     continue
                 
                 # Create and evaluate hybrid model
-                hybrid_model = get_pretrained_fbd_model(
-                    architecture=args.model_flag,
-                    norm=args.norm, 
-                    in_channels=args.in_channels, 
-                    num_classes=args.num_classes,
-                    use_pretrained=False
-                )
+                if experiment_name == "siim":
+                    hybrid_model = get_siim_model(
+                        architecture=args.model_flag,
+                        in_channels=args.n_channels,
+                        out_channels=args.num_classes,
+                        model_size=getattr(args, 'model_size', 'standard')
+                    )
+                else:
+                    hybrid_model = get_pretrained_fbd_model(
+                        architecture=args.model_flag,
+                        norm=args.norm, 
+                        in_channels=args.in_channels, 
+                        num_classes=args.num_classes,
+                        use_pretrained=False
+                    )
                 hybrid_model.load_state_dict(hybrid_weights)
                 hybrid_model.to(device)
                 
