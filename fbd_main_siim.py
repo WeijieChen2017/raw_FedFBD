@@ -63,7 +63,7 @@ def create_siim_fold_partitions(fold_config, args):
     max_intensity = 1976
     
     # Set normalization range based on user choice
-    if args.norm_range == "-1to1":
+    if args.norm_range == "neg1to1":
         norm_min, norm_max = -1.0, 1.0
     else:  # "0to1"
         norm_min, norm_max = 0.0, 1.0
@@ -319,8 +319,8 @@ def main():
     parser.add_argument("--eval_on_cpu", action="store_true", help="Force model evaluation on CPU to save GPU memory (useful for large models)")
     parser.add_argument("--init_method", type=str, choices=["pretrained", "shared_random", "random"], default="pretrained", 
                         help="Model initialization method: 'pretrained' uses medical weights, 'shared_random' uses same random seed for all clients, 'random' uses different random initialization")
-    parser.add_argument("--norm_range", type=str, choices=["0to1", "-1to1"], default="0to1",
-                        help="Input intensity normalization range: '0to1' normalizes to [0,1], '-1to1' normalizes to [-1,1]")
+    parser.add_argument("--norm_range", type=str, choices=["0to1", "neg1to1"], default="0to1",
+                        help="Input intensity normalization range: '0to1' normalizes to [0,1], 'neg1to1' normalizes to [-1,1]")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
@@ -481,7 +481,7 @@ def main():
         
         # Add normalization range info
         norm_range = getattr(args, 'norm_range', '0to1')
-        norm_desc = "[-1, 1]" if norm_range == "-1to1" else "[0, 1]"
+        norm_desc = "[-1, 1]" if norm_range == "neg1to1" else "[0, 1]"
         print(f"   - Input normalization: {norm_desc} range")
         
         # Memory usage warning for large models on GPU

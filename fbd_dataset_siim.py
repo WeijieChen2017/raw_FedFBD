@@ -119,7 +119,7 @@ def load_siim_data(args, norm_range="0to1"):
     max_intensity = 1976
     
     # Set normalization range based on parameter
-    if norm_range == "-1to1":
+    if norm_range == "neg1to1":
         norm_min, norm_max = -1.0, 1.0
     else:  # "0to1" default
         norm_min, norm_max = 0.0, 1.0
