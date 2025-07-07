@@ -8,18 +8,31 @@ class FBDUNet(nn.Module):
     UNet model for SIIM segmentation that can be split into FBD parts.
     Based on MONAI UNet with 5 levels.
     """
-    def __init__(self, in_channels=1, out_channels=1, features=128):
+    def __init__(self, in_channels, out_channels, features):
         super(FBDUNet, self).__init__()
         
-        # Create the full UNet model
+        # Determine UNet channel configuration based on 'features'
+        if features == 128:
+            channels = (128, 256, 512)
+            strides = (2, 2)
+        elif features == 64:
+            channels = (64, 128, 256)
+            strides = (2, 2)
+        elif features == 32:
+            channels = (32, 64, 128)
+            strides = (2, 2)
+        else:
+            # Default to a reasonable configuration if features is not one of the presets
+            channels = (features, features * 2, features * 4)
+            strides = (2, 2)
+
         self.unet = UNet(
-            spatial_dims=3,
+            spatial_dims=2,
             in_channels=in_channels,
             out_channels=out_channels,
-            channels=(features, features*2, features*4, features*8, features*16),
-            strides=(2, 2, 2, 2),
-            num_res_units=4,
-            dropout=0.2
+            channels=channels,
+            strides=strides,
+            num_res_units=2
         )
         
         # Define FBD model parts based on actual MONAI UNet structure
@@ -80,14 +93,43 @@ class FBDUNet(nn.Module):
         }
 
 
-def get_siim_model(architecture="unet", in_channels=1, out_channels=1, features=128):
+def get_siim_model(architecture="unet", in_channels=1, out_channels=1, model_size="standard"):
     """
-    Factory function to create SIIM models.
+    Returns a U-Net model for the SIIM dataset.
+    
+    Args:
+        architecture (str): The model architecture to use (only "unet" supported).
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        model_size (str): 'standard' or 'small' to select feature set.
+        
+    Returns:
+        A PyTorch model.
     """
-    if architecture.lower() == "unet":
-        return FBDUNet(in_channels=in_channels, out_channels=out_channels, features=features)
+    if architecture != "unet":
+        raise ValueError(f"Unsupported architecture for SIIM: {architecture}")
+    
+    if model_size == 'small':
+        # Halve the number of features for a smaller model
+        features = (16, 32, 64, 128, 256)
+    elif model_size == 'standard':
+        # Default features
+        features = (32, 64, 128, 256, 512)
     else:
-        raise ValueError(f"Unknown architecture: {architecture}")
+        raise ValueError(f"Unsupported model_size: {model_size}. Choose 'standard' or 'small'.")
+    
+    # Define strides based on the number of feature levels
+    strides = [2] * (len(features) - 1)
+    
+    model = UNet(
+        spatial_dims=2,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        channels=features,
+        strides=strides,
+        num_res_units=2
+    )
+    return model
 
 
 # For compatibility with FBD framework

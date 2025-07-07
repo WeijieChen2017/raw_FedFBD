@@ -11,6 +11,21 @@ from collections import Counter
 import os
 import numpy as np
 import gc
+import copy
+from fbd_utils import (
+    load_model_from_warehouse,
+    update_warehouse_with_model,
+    get_model_from_warehouse_by_name,
+    load_model_from_goods,
+    save_model_to_goods,
+    lock_file, 
+    release_file
+)
+from fbd_model_ckpt import get_model_parameters, set_model_parameters, save_fbd_model, load_fbd_model
+from fbd_models_siim import get_siim_model
+from monai.losses import DiceCELoss
+from monai.inferers import sliding_window_inference
+from monai.data import DataLoader
 
 # Define SIIM-specific INFO entry since SIIM is not a MedMNIST dataset
 SIIM_INFO = {
@@ -473,9 +488,34 @@ def create_model_for_evaluation(args, device):
     model.to(device)
     return model
 
-def simulate_client_task(model, client_id, data_partition, args, round_num, global_warehouse, client_shipping_list, client_update_plan):
-    """Simulated client task that processes one round using a reusable model."""
+def simulate_client_task(model_or_reusable_model, client_id, client_dataset, args, round_num, warehouse, shipping_list, update_plan, use_disk=False):
+    """
+    Simulates a single client's task for a given round, now with a flag to control model copying.
+    
+    Args:
+        model_or_reusable_model: Either a client-specific model instance (if use_disk=False) 
+                                 or a reusable model to be copied (if use_disk=True).
+        client_id (int): The client's ID.
+        client_dataset: The client's local dataset.
+        args: Configuration arguments.
+        round_num (int): The current round number.
+        warehouse: The central warehouse object.
+        shipping_list (list): List of models to be shipped from the warehouse.
+        update_plan (dict): Plan for updating models after training.
+        use_disk (bool): If True, model_or_reusable_model is copied. If False, it's used directly.
+        
+    Returns:
+        A dictionary containing the client's response.
+    """
+    if use_disk:
+        # Disk mode: copy the reusable model for this client task
+        model = copy.deepcopy(model_or_reusable_model)
+    else:
+        # In-memory mode: use the provided model instance directly
+        model = model_or_reusable_model
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
     
     # Get info from MedMNIST INFO or SIIM_INFO
     if args.experiment_name in INFO:
@@ -503,9 +543,9 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     fbd_trace = fbd_settings.get('FBD_TRACE', {})
     assigned_model_color = None
     
-    if client_update_plan and 'model_to_update' in client_update_plan:
+    if update_plan and 'model_to_update' in update_plan:
         # Find the model color from the first trainable block in update_plan
-        for component_name, component_info in client_update_plan['model_to_update'].items():
+        for component_name, component_info in update_plan['model_to_update'].items():
             if component_info.get('status') == 'trainable':
                 block_id = component_info.get('block_id')
                 if block_id in fbd_trace:
@@ -518,20 +558,22 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     
     # Create the DataLoader for the client's partition
     if args.experiment_name == "siim":
-        train_loader = get_siim_data_loader(data_partition, args.batch_size)
+        train_loader = get_siim_data_loader(client_dataset, args.batch_size)
     else:
-        train_loader = get_data_loader(data_partition, args.batch_size)
-    
-    if not client_shipping_list:
-        print(f"Client {client_id}: No shipping plan for round {round_num}. Skipping.")
-        return None
-    
+        DataClass = getattr(medmnist, info['python_class'])
+        as_rgb = getattr(args, 'as_rgb', False)
+        data_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])
+        ])
+        train_loader = DataLoader(DataClass(split='train', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size), batch_size=args.batch_size, shuffle=True)
+        test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+
     # Get model weights and optimizer states from the warehouse
-    model_weights = global_warehouse.get_shipping_weights(client_shipping_list)
-    all_optimizer_states = global_warehouse.get_shipping_optimizer_states(client_shipping_list)
+    model_weights = warehouse.get_shipping_weights(shipping_list)
+    all_optimizer_states = warehouse.get_shipping_optimizer_states(shipping_list)
     
     # Filter optimizer states to only include blocks for the assigned model color
-    fbd_trace = fbd_settings.get('FBD_TRACE', {})
     assigned_model_blocks = [block_id for block_id, info in fbd_trace.items() 
                            if info.get('color') == assigned_model_color]
     
@@ -540,8 +582,8 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     
     # Assemble the model using the received plan and weights
     num_tensors = 0
-    if client_update_plan:
-        assemble_model_from_plan(model, model_weights, client_update_plan)
+    if update_plan:
+        assemble_model_from_plan(model, model_weights, update_plan)
         num_tensors = len(model.state_dict())
     
     # Set trainability of parameters and configure optimizer
@@ -552,7 +594,7 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
         param.requires_grad = False
     
     # Unfreeze parameters of trainable parts that belong to the assigned model color
-    model_to_update = client_update_plan.get('model_to_update', {})
+    model_to_update = update_plan.get('model_to_update', {})
     trainable_block_ids = []
     trainable_components = []
     
@@ -585,7 +627,6 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
                             param.requires_grad = True
     
     if args.experiment_name == "siim":
-        from monai.losses import DiceCELoss
         criterion = DiceCELoss(to_onehot_y=False, sigmoid=True)
     else:
         criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
@@ -601,7 +642,7 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     )
     
     # Train the model
-    loss, main_loss, reg_loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device, client_update_plan, global_warehouse, args)
+    loss, main_loss, reg_loss = train(model, train_loader, task, criterion, optimizer, args.local_epochs, device, update_plan, warehouse, args)
     
     # Save model state after training
     model_state_info = save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_model_color, args.output_dir)
@@ -610,31 +651,16 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     model.load_state_dict(torch.load(model_state_info["model_path"]))
     model.to(device)
 
-    # Prepare test dataset for evaluations
-    if args.experiment_name == "siim":
-        test_dataset = args.test_dataset
-        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
-    else:
-        DataClass = getattr(medmnist, info['python_class'])
-        as_rgb = getattr(args, 'as_rgb', False)
-        data_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[.5], std=[.5])
-        ])
-        test_dataset = DataClass(split='test', transform=data_transform, download=True, as_rgb=as_rgb, size=args.size)
-        test_loader = data.DataLoader(dataset=test_dataset, batch_size=args.batch_size, shuffle=False)
-        test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
-
     # Evaluate the model on the test set
     if args.experiment_name == "siim":
         from monai.metrics import DiceMetric
         dice_metric = DiceMetric(include_background=True, reduction="mean")
-        test_metrics = _test_siim_model(model, test_loader, criterion, dice_metric, device)
+        test_metrics = _test_siim_model(model, train_loader, criterion, dice_metric, device)
         test_loss, test_dice, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
         test_auc = test_dice  # Use dice score as AUC placeholder
     else:
         test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
-        test_metrics = _test_model(model, test_evaluator, test_loader, task, criterion, device)
+        test_metrics = _test_model(model, test_evaluator, train_loader, task, criterion, device)
         test_loss, test_auc, test_acc = test_metrics[0], test_metrics[1], test_metrics[2]
     
     # Clean up GPU memory before the next client
@@ -648,7 +674,7 @@ def simulate_client_task(model, client_id, data_partition, args, round_num, glob
     trained_state_dict = torch.load(model_state_info["model_path"], map_location='cpu')
     
     # Combined comprehensive output line
-    print(f"Client {client_id} Round {round_num}: {len(data_partition)} samples, {len(client_shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
+    print(f"Client {client_id} Round {round_num}: {len(client_dataset)} samples, {len(shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
     
     # Send back weights according to request_plan (all requested blocks)
     # Also include metadata about which blocks were trainable

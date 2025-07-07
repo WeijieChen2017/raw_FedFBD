@@ -288,12 +288,14 @@ def main():
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
+    parser.add_argument("--model_size", type=str, choices=["standard", "small"], default="standard", help="Size of the model ('standard' or 'small').")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
                         help="Regularization coefficient (overrides config if specified)")
     parser.add_argument("--ensemble_size", type=int, default=None,
                         help="Ensemble size for evaluation (overrides config if specified)")
+    parser.add_argument("--parallel", action="store_true", help="Run multiple client models in parallel (uses smaller models)")
     args = parser.parse_args()
     
     # Handle SIIM dataset configuration
@@ -445,6 +447,7 @@ def main():
         print(f"   - Sample variation: ±30% from equal distribution")
     else:
         print(f"   - Data partitioning: Pre-defined fold configuration")
+    print(f"   - Parallel mode: {'ENABLED (smaller models)' if args.parallel else 'DISABLED (single model)'}"))
     
     print(f"\n3. REGULARIZATION:")
     # Determine regularization settings for display
@@ -499,25 +502,65 @@ def main():
     
     print(f"\nServer: Starting {args.num_rounds}-round simulation for {args.num_clients} clients.")
 
-    # Create a single reusable model instance to save memory
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args.experiment_name == "siim":
-        reusable_model = get_siim_model(
-            architecture=args.model_flag,
-            in_channels=args.n_channels,
-            out_channels=args.num_classes,
-            features=getattr(args, 'features', 128)
-        )
+    
+    if args.parallel:
+        # Create multiple smaller models for parallel execution
+        print(f"Creating {args.num_clients} smaller models for parallel execution...")
+        client_models = []
+        
+        if args.experiment_name == "siim":
+            # Use smaller features for parallel mode
+            if args.model_size == 'small':
+                model_features = 32  # Even smaller for parallel
+            else:
+                model_features = 64  # Half the standard features for parallel
+            
+            for i in range(args.num_clients):
+                model = get_siim_model(
+                    architecture=args.model_flag,
+                    in_channels=args.n_channels,
+                    out_channels=args.num_classes,
+                    features=model_features
+                )
+                client_models.append(model)
+        else:
+            # This path is not expected for siim, but as a fallback:
+            from fbd_models import get_pretrained_fbd_model
+            for i in range(args.num_clients):
+                model = get_pretrained_fbd_model(
+                    architecture=args.model_flag,
+                    norm=args.norm,
+                    in_channels=args.n_channels,
+                    num_classes=args.num_classes,
+                    use_pretrained=False
+                )
+                client_models.append(model)
     else:
-        # This path is not expected for siim, but as a fallback:
-        from fbd_models import get_pretrained_fbd_model
-        reusable_model = get_pretrained_fbd_model(
-            architecture=args.model_flag,
-            norm=args.norm,
-            in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False
-        )
+        # Create a single reusable model instance to save memory
+        if args.experiment_name == "siim":
+            # Determine features based on model size
+            if args.model_size == 'small':
+                model_features = 64  # Half the standard features
+            else:
+                model_features = getattr(args, 'features', 128)
+
+            reusable_model = get_siim_model(
+                architecture=args.model_flag,
+                in_channels=args.n_channels,
+                out_channels=args.num_classes,
+                features=model_features
+            )
+        else:
+            # This path is not expected for siim, but as a fallback:
+            from fbd_models import get_pretrained_fbd_model
+            reusable_model = get_pretrained_fbd_model(
+                architecture=args.model_flag,
+                norm=args.norm,
+                in_channels=args.n_channels,
+                num_classes=args.num_classes,
+                use_pretrained=False
+            )
     
     # Run simulation rounds
     server_evaluation_history = []
@@ -527,17 +570,49 @@ def main():
         # Collect client responses for this round
         client_responses = {}
         
-        # Simulate all clients for this round
-        for client_id in range(args.num_clients):
-            client_shipping_list, client_update_plan = get_client_plans_for_round(
-                r, client_id, shipping_plans, update_plans
-            )
+        if args.parallel:
+            # Run clients in parallel using concurrent.futures
+            import concurrent.futures
             
-            response = simulate_client_task(
-                reusable_model, client_id, partitions[client_id], args, r, 
-                warehouse, client_shipping_list, client_update_plan
-            )
-            client_responses[client_id] = response
+            def run_client(client_id, model):
+                client_shipping_list, client_update_plan = get_client_plans_for_round(
+                    r, client_id, shipping_plans, update_plans
+                )
+                return simulate_client_task(
+                    model, client_id, partitions[client_id], args, r, 
+                    warehouse, client_shipping_list, client_update_plan, use_disk=False
+                )
+            
+            # Use ThreadPoolExecutor for I/O-bound tasks or ProcessPoolExecutor for CPU-bound
+            # Using ThreadPoolExecutor here since PyTorch models may have issues with multiprocessing
+            with concurrent.futures.ThreadPoolExecutor(max_workers=args.num_clients) as executor:
+                # Submit all client tasks
+                future_to_client = {
+                    executor.submit(run_client, client_id, client_models[client_id]): client_id 
+                    for client_id in range(args.num_clients)
+                }
+                
+                # Collect results as they complete
+                for future in concurrent.futures.as_completed(future_to_client):
+                    client_id = future_to_client[future]
+                    try:
+                        response = future.result()
+                        client_responses[client_id] = response
+                    except Exception as e:
+                        print(f"Client {client_id} generated an exception: {e}")
+                        raise
+        else:
+            # Simulate all clients for this round sequentially
+            for client_id in range(args.num_clients):
+                client_shipping_list, client_update_plan = get_client_plans_for_round(
+                    r, client_id, shipping_plans, update_plans
+                )
+                
+                response = simulate_client_task(
+                    reusable_model, client_id, partitions[client_id], args, r, 
+                    warehouse, client_shipping_list, client_update_plan, use_disk=True
+                )
+                client_responses[client_id] = response
         
         # Server collects responses and evaluates
         round_eval_results = collect_and_evaluate_round(r, args, warehouse, client_responses)
