@@ -12,6 +12,7 @@ import os
 import numpy as np
 import gc
 import copy
+import shutil
 from fbd_utils import (
     setup_logger,
     FBDWarehouse
@@ -406,9 +407,20 @@ def save_optimizer_state_by_request_plan(optimizer, model, client_request_list, 
 def save_model_state_to_disk(model, optimizer, client_id, round_num, assigned_model_color, output_dir):
     """
     Save model state dict and optimizer state dict to disk.
-    This version avoids deleting the model to allow for reuse.
+    Only keeps the latest round to save disk space.
     """
-    # Create client-specific directory
+    import glob
+    
+    # Clean up old client directories for this client
+    old_client_pattern = os.path.join(output_dir, f"client_{client_id}_round_*")
+    old_client_dirs = glob.glob(old_client_pattern)
+    for old_dir in old_client_dirs:
+        try:
+            shutil.rmtree(old_dir)
+        except Exception as e:
+            print(f"Warning: Could not remove old client directory {old_dir}: {e}")
+    
+    # Create client-specific directory for current round
     client_dir = os.path.join(output_dir, f"client_{client_id}_round_{round_num}")
     os.makedirs(client_dir, exist_ok=True)
     

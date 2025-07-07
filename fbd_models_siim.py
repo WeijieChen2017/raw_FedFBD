@@ -70,22 +70,22 @@ def get_siim_model(architecture="unet", in_channels=1, out_channels=1, model_siz
     
     if model_size == 'small':
         # Use smaller feature size for reduced memory usage
-        features = 64
+        features = 48
     elif model_size == 'standard':
         # Default feature size
-        features = 128
+        features = 96
     elif model_size == 'large':
         # Larger feature size for high-end GPUs (24GB+)
-        features = 256
+        features = 192
     elif model_size == 'xlarge':
         # Extra large feature size for maximum GPU utilization
-        features = 512
+        features = 384
     elif model_size == 'xxlarge':
         # Extra extra large - push GPU utilization even further
-        features = 768
+        features = 576
     elif model_size == 'mega':
         # Mega model - for maximum 24GB GPU utilization
-        features = 1024
+        features = 768
     else:
         raise ValueError(f"Unsupported model_size: {model_size}. Choose 'small', 'standard', 'large', 'xlarge', 'xxlarge', or 'mega'.")
     

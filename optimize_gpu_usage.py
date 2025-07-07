@@ -7,14 +7,14 @@ def main():
     print("🎯 SIIM Model GPU Optimization for 24GB GPU")
     print("=" * 60)
     
-    # Actual measured memory usage per model (in GB)
+    # Actual measured memory usage per model (in GB) - smaller models
     memory_per_model = {
-        'small': 0.085,
-        'standard': 0.340,
-        'large': 1.361,
-        'xlarge': 5.441,
-        'xxlarge': 12.242,
-        'mega': 21.763
+        'small': 0.048,
+        'standard': 0.192,
+        'large': 0.766,
+        'xlarge': 3.06,
+        'xxlarge': 6.89,
+        'mega': 12.24
     }
     
     gpu_memory = 24.0  # 24GB GPU
@@ -85,20 +85,21 @@ def main():
     
     # Large model calculations
     large_memory = memory_per_model['large']
-    large_8_clients = 8 * large_memory
-    large_9_clients = 9 * large_memory
+    large_15_clients = 15 * large_memory
+    large_16_clients = 16 * large_memory
     
     print(f"🎪 BEST BALANCE:")
-    print(f"   8 × LARGE models = {large_8_clients:.2f}GB (fits comfortably)")
-    print(f"   9 × LARGE models = {large_9_clients:.2f}GB (close to target)")
+    print(f"   15 × LARGE models = {large_15_clients:.2f}GB (fits comfortably)")
+    print(f"   16 × LARGE models = {large_16_clients:.2f}GB (close to target)")
     print(f"   Command: python fbd_main_siim.py --model_size large --parallel")
     print(f"   (Note: Default is 6 clients, you might need to modify config)")
     
     # XXLarge model
     xxlarge_memory = memory_per_model['xxlarge']
     print(f"\n💪 AGGRESSIVE UTILIZATION:")
-    print(f"   1 × XXLARGE model = {xxlarge_memory:.2f}GB (perfect fit!)")
-    print(f"   Command: python fbd_main_siim.py --model_size xxlarge")
+    print(f"   1 × XXLARGE model = {xxlarge_memory:.2f}GB (great fit!)")
+    print(f"   2 × XXLARGE models = {2 * xxlarge_memory:.2f}GB (perfect fit!)")
+    print(f"   Command: python fbd_main_siim.py --model_size xxlarge --num_clients 2 --parallel")
     
     # Mixed strategies
     print(f"\n⚡ HYBRID STRATEGIES:")
@@ -123,12 +124,12 @@ def main():
     print("• Default FedBD uses 6 clients - you may need to modify config")
     print("• Use --eval_on_cpu to save GPU memory during evaluation")
     print("• Monitor actual GPU usage with nvidia-smi during training")
-    print("• Start with 8 × LARGE models for best balance")
+    print("• Start with 15 × LARGE models for best balance")
     
     print(f"\n🚀 RECOMMENDED COMMANDS:")
-    print(f"python fbd_main_siim.py --model_size large --parallel --auto_approval")
-    print(f"python fbd_main_siim.py --model_size xxlarge --auto_approval")
-    print(f"python fbd_main_siim.py --model_size large --parallel --eval_on_cpu --auto_approval")
+    print(f"python fbd_main_siim.py --model_size large --parallel --num_clients 15 --auto_approval")
+    print(f"python fbd_main_siim.py --model_size xxlarge --parallel --num_clients 2 --auto_approval")
+    print(f"python fbd_main_siim.py --model_size large --parallel --num_clients 15 --eval_on_cpu --auto_approval")
 
 if __name__ == "__main__":
     main()

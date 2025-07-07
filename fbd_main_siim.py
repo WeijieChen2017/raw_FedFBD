@@ -308,7 +308,7 @@ def main():
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
-    parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge", "xxlarge", "mega"], default="standard", help="Size of the model: 'small' (64), 'standard' (128), 'large' (256), 'xlarge' (512), 'xxlarge' (768), 'mega' (1024 features).")
+    parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge", "xxlarge", "mega"], default="standard", help="Size of the model: 'small' (48), 'standard' (96), 'large' (192), 'xlarge' (384), 'xxlarge' (576), 'mega' (768 features).")
     parser.add_argument("--auto_detect_size", action="store_true", help="Automatically detect model size from saved weights (useful when switching between standard/small)")
     parser.add_argument("--eval_on_cpu", action="store_true", help="Force model evaluation on CPU to save GPU memory (useful for large models)")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
@@ -457,10 +457,10 @@ def main():
         print(f"   - ROI size: {args.roi_size}")
         print(f"   - Model size: {args.model_size}")
         
-        # Add memory estimate (based on actual measurements)
+        # Add memory estimate (based on actual measurements - smaller models)
         memory_estimates = {
-            'small': '85MB', 'standard': '340MB', 'large': '1.36GB', 
-            'xlarge': '5.44GB', 'xxlarge': '12.24GB', 'mega': '21.76GB'
+            'small': '48MB', 'standard': '192MB', 'large': '766MB', 
+            'xlarge': '3.06GB', 'xxlarge': '6.89GB', 'mega': '12.24GB'
         }
         memory_str = memory_estimates.get(args.model_size, 'Unknown')
         print(f"   - Estimated memory per model: {memory_str}")
@@ -559,10 +559,10 @@ def main():
             # Use the specified model size, but warn if it might not fit
             parallel_model_size = args.model_size
             
-            # Estimate memory usage for parallel training (based on actual measurements)
+            # Estimate memory usage for parallel training (based on actual measurements - smaller models)
             memory_per_model = {
-                'small': 0.085, 'standard': 0.34, 'large': 1.36, 
-                'xlarge': 5.44, 'xxlarge': 12.24, 'mega': 21.76
+                'small': 0.048, 'standard': 0.192, 'large': 0.766, 
+                'xlarge': 3.06, 'xxlarge': 6.89, 'mega': 12.24
             }
             
             model_memory = memory_per_model.get(parallel_model_size, 1.0)

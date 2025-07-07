@@ -32,6 +32,7 @@ logging.getLogger('fbd_model_ckpt').setLevel(logging.WARNING)
 def save_server_model_to_disk(model, model_color, round_num, output_dir):
     """
     Save server model state dict to disk to free GPU memory.
+    Only keeps the latest round to save disk space.
     
     Args:
         model: PyTorch model
@@ -42,7 +43,19 @@ def save_server_model_to_disk(model, model_color, round_num, output_dir):
     Returns:
         str: Path to saved model file
     """
-    # Create server model directory
+    import glob
+    import shutil
+    
+    # Clean up old server directories
+    old_server_pattern = os.path.join(output_dir, "server_round_*")
+    old_server_dirs = glob.glob(old_server_pattern)
+    for old_dir in old_server_dirs:
+        try:
+            shutil.rmtree(old_dir)
+        except Exception as e:
+            print(f"Warning: Could not remove old server directory {old_dir}: {e}")
+    
+    # Create server model directory for current round
     server_dir = os.path.join(output_dir, f"server_round_{round_num}")
     os.makedirs(server_dir, exist_ok=True)
     
@@ -135,21 +148,32 @@ def detect_model_size_from_state_dict(state_dict):
         
         if first_conv_key and first_conv_key in state_dict:
             # Shape should be [features, in_channels, ...] 
-            # Small: [64, 1, 3, 3, 3], Standard: [128, 1, 3, 3, 3], Large: [256, 1, 3, 3, 3], XLarge: [512, 1, 3, 3, 3]
+            # Small: [48, 1, 3, 3, 3], Standard: [96, 1, 3, 3, 3], Large: [192, 1, 3, 3, 3], etc.
             first_conv_shape = state_dict[first_conv_key].shape
             features = first_conv_shape[0]
-            if features == 64:
+            if features == 48:
                 return 'small'
-            elif features == 128:
+            elif features == 96:
                 return 'standard'
-            elif features == 256:
+            elif features == 192:
                 return 'large'
-            elif features == 512:
+            elif features == 384:
                 return 'xlarge'
-            elif features == 768:
+            elif features == 576:
                 return 'xxlarge'
-            elif features == 1024:
+            elif features == 768:
                 return 'mega'
+            # Legacy support for old feature sizes
+            elif features == 64:
+                return 'small'  # Old small
+            elif features == 128:
+                return 'standard'  # Old standard
+            elif features == 256:
+                return 'large'  # Old large
+            elif features == 512:
+                return 'xlarge'  # Old xlarge
+            elif features == 1024:
+                return 'mega'  # Old mega
         
         # Fallback: assume standard if we can't detect
         return 'standard'
