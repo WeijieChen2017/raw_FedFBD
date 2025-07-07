@@ -2,7 +2,7 @@
   "dataset": "octmnist",
   "num_clients": 6,
   "num_classes": 4,
-  "alpha": 0.5,
+  "alpha": 0.8,
   "class_names": [
     "choroidal neovascularization",
     "diabetic macular edema",
@@ -12,86 +12,86 @@
   "client_distributions": {
     "client_0": {
       "class_percentages": [
-        6.65,
-        27.83,
-        3.13,
-        24.04
+        12.86,
+        33.51,
+        5.18,
+        13.85
       ],
       "class_distribution": {
-        "choroidal neovascularization": 6.65,
-        "diabetic macular edema": 27.83,
-        "drusen": 3.13,
-        "normal": 24.04
+        "choroidal neovascularization": 12.86,
+        "diabetic macular edema": 33.51,
+        "drusen": 5.18,
+        "normal": 13.85
       }
     },
     "client_1": {
       "class_percentages": [
-        67.4,
-        1.81,
-        1.3,
-        1.45
+        34.16,
+        1.91,
+        1.23,
+        42.21
       ],
       "class_distribution": {
-        "choroidal neovascularization": 67.4,
-        "diabetic macular edema": 1.81,
-        "drusen": 1.3,
-        "normal": 1.45
+        "choroidal neovascularization": 34.16,
+        "diabetic macular edema": 1.91,
+        "drusen": 1.23,
+        "normal": 42.21
       }
     },
     "client_2": {
       "class_percentages": [
-        8.92,
-        18.22,
-        45.08,
-        0.43
+        11.94,
+        14.6,
+        24.62,
+        12.77
       ],
       "class_distribution": {
-        "choroidal neovascularization": 8.92,
-        "diabetic macular edema": 18.22,
-        "drusen": 45.08,
-        "normal": 0.43
+        "choroidal neovascularization": 11.94,
+        "diabetic macular edema": 14.6,
+        "drusen": 24.62,
+        "normal": 12.77
       }
     },
     "client_3": {
       "class_percentages": [
-        1.2,
-        35.75,
-        0.47,
-        22.8
+        3.6,
+        25.57,
+        26.83,
+        2.71
       ],
       "class_distribution": {
-        "choroidal neovascularization": 1.2,
-        "diabetic macular edema": 35.75,
-        "drusen": 0.47,
-        "normal": 22.8
+        "choroidal neovascularization": 3.6,
+        "diabetic macular edema": 25.57,
+        "drusen": 26.83,
+        "normal": 2.71
       }
     },
     "client_4": {
       "class_percentages": [
-        15.75,
-        8.83,
-        45.14,
-        3.88
+        37.12,
+        19.82,
+        0.51,
+        14.27
       ],
       "class_distribution": {
-        "choroidal neovascularization": 15.75,
-        "diabetic macular edema": 8.83,
-        "drusen": 45.14,
-        "normal": 3.88
+        "choroidal neovascularization": 37.12,
+        "diabetic macular edema": 19.82,
+        "drusen": 0.51,
+        "normal": 14.27
       }
     },
     "client_5": {
       "class_percentages": [
-        0.08,
-        7.56,
-        4.88,
-        47.4
+        0.32,
+        4.59,
+        41.64,
+        14.18
       ],
       "class_distribution": {
-        "choroidal neovascularization": 0.08,
-        "diabetic macular edema": 7.56,
-        "drusen": 4.88,
-        "normal": 47.4
+        "choroidal neovascularization": 0.32,
+        "diabetic macular edema": 4.59,
+        "drusen": 41.64,
+        "normal": 14.18
       }
     }
   },
@@ -99,8 +99,8 @@
     "class_totals": [
       100.0,
       100.0,
-      100.0,
-      100.0
+      100.01,
+      99.99
     ]
   }
 }

@@ -152,7 +152,7 @@ def create_summary_statistics(df):
 def main():
     parser = argparse.ArgumentParser(description="Analyze SIIM dataset NIfTI files and create Excel summary")
     parser.add_argument("--data_dir", type=str, 
-                        default="./code_template/siim-101/SIIM_Fed_Learning_Phase1Data",
+                        default="siim-101/SIIM_Fed_Learning_Phase1Data",
                         help="Path to SIIM dataset directory")
     parser.add_argument("--output_file", type=str, 
                         default="siim_dataset_analysis.xlsx",

@@ -155,6 +155,51 @@ def create_siim_fold_partitions(fold_config, args):
     
     print(f"Total training samples: {total_samples}")
     
+    # Create validation datasets for each client
+    val_partitions = []
+    val_data = fold_config.get('val', {})
+    
+    print(f"\nCreating SIIM validation partitions for fold {args.fold}:")
+    total_val_samples = 0
+    
+    for client_id in range(args.num_clients):
+        client_key = f"client_{client_id}"
+        if client_key in val_data:
+            client_val_samples = val_data[client_key]
+            
+            # Resolve relative paths using data_root (same as training)
+            resolved_val_samples = []
+            for sample in client_val_samples:
+                resolved_sample = {}
+                for key, path in sample.items():
+                    if isinstance(path, str) and not os.path.isabs(path):
+                        resolved_path = os.path.join(data_root, path)
+                        
+                        if not os.path.exists(resolved_path) and path.endswith('.nii.gz'):
+                            filename = os.path.basename(path)
+                            nested_path = os.path.join(data_root, path, filename)
+                            if os.path.exists(nested_path):
+                                resolved_path = nested_path
+                        
+                        resolved_sample[key] = resolved_path
+                    else:
+                        resolved_sample[key] = path
+                resolved_val_samples.append(resolved_sample)
+            
+            print(f"  Client {client_id}: {len(resolved_val_samples)} validation samples")
+            total_val_samples += len(resolved_val_samples)
+            
+            # Create validation dataset for this client with test transforms (no augmentation)
+            client_val_dataset = SIIMSegmentationDataset(resolved_val_samples, transforms=test_transforms)
+            val_partitions.append(client_val_dataset)
+        else:
+            print(f"  Client {client_id}: No validation data found")
+            # Create empty dataset
+            client_val_dataset = SIIMSegmentationDataset([], transforms=test_transforms)
+            val_partitions.append(client_val_dataset)
+    
+    print(f"Total validation samples: {total_val_samples}")
+    
     # Create test dataset
     test_data = []
     for client_id in range(args.num_clients):
@@ -188,7 +233,7 @@ def create_siim_fold_partitions(fold_config, args):
     test_dataset = SIIMSegmentationDataset(resolved_test_data, transforms=test_transforms)
     print(f"Test dataset: {len(test_dataset)} samples")
     
-    return client_partitions, test_dataset
+    return client_partitions, val_partitions, test_dataset
 
 def client_dataset_distribution(total_samples, num_clients, variation_ratio=0.3, seed=None):
     """
@@ -435,7 +480,7 @@ def main():
             
             print(f"Loading SIIM data using fold configuration {args.fold}")
             fold_config = load_fold_config(args.fold)
-            partitions, test_dataset = create_siim_fold_partitions(fold_config, args)
+            partitions, val_partitions, test_dataset = create_siim_fold_partitions(fold_config, args)
             args.test_dataset = test_dataset
         else:
             # Use original loading method
@@ -443,6 +488,8 @@ def main():
             train_dataset, test_dataset = load_siim_data(args, norm_range=args.norm_range)
             partitions = partition_siim_data(train_dataset, args.num_clients, args.iid)
             args.test_dataset = test_dataset
+            # Create empty validation partitions for compatibility
+            val_partitions = [None] * args.num_clients
     else:
         from fbd_dataset import load_data, partition_data
         train_dataset, _ = load_data(args)
@@ -454,6 +501,8 @@ def main():
             seed=args.seed + 100  # Different seed for partition variation
         )
         args.test_dataset = prepare_test_dataset(args)
+        # Create empty validation partitions for non-SIIM datasets
+        val_partitions = [None] * args.num_clients
     
     # Generate and display training plan
     print("\n" + "="*80)
@@ -697,7 +746,8 @@ def main():
                 )
                 return simulate_client_task(
                     model, client_id, partitions[client_id], args, r, 
-                    warehouse, client_shipping_list, client_update_plan, use_disk=False
+                    warehouse, client_shipping_list, client_update_plan, use_disk=False,
+                    val_dataset=val_partitions[client_id]
                 )
             
             # Use ThreadPoolExecutor for I/O-bound tasks or ProcessPoolExecutor for CPU-bound
@@ -727,7 +777,8 @@ def main():
                 
                 response = simulate_client_task(
                     reusable_model, client_id, partitions[client_id], args, r, 
-                    warehouse, client_shipping_list, client_update_plan, use_disk=True
+                    warehouse, client_shipping_list, client_update_plan, use_disk=True,
+                    val_dataset=val_partitions[client_id]
                 )
                 client_responses[client_id] = response
         

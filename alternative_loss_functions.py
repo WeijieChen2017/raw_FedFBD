@@ -42,6 +42,16 @@ def get_siim_loss_function(loss_type="dice_ce"):
         pos_weight = torch.tensor([10.0])  # Adjust based on your data
         return nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     
+    elif loss_type == "dice_ce_no_sigmoid":
+        # Try DiceCE without internal sigmoid
+        from monai.losses import DiceCELoss
+        return DiceCELoss(to_onehot_y=False, sigmoid=False)
+    
+    elif loss_type == "tversky":
+        # Tversky loss (good for imbalanced data)
+        from monai.losses import TverskyLoss
+        return TverskyLoss(sigmoid=True, alpha=0.3, beta=0.7)
+    
     elif loss_type == "combined":
         # Custom combination of losses
         class CombinedLoss(nn.Module):

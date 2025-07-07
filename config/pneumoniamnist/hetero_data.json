@@ -2,7 +2,7 @@
   "dataset": "pneumoniamnist",
   "num_clients": 6,
   "num_classes": 2,
-  "alpha": 0.5,
+  "alpha": 0.8,
   "class_names": [
     "normal",
     "pneumonia"
@@ -10,68 +10,68 @@
   "client_distributions": {
     "client_0": {
       "class_percentages": [
-        8.1,
-        21.16
+        9.89,
+        20.78
       ],
       "class_distribution": {
-        "normal": 8.1,
-        "pneumonia": 21.16
+        "normal": 9.89,
+        "pneumonia": 20.78
       }
     },
     "client_1": {
       "class_percentages": [
-        46.95,
-        0.79
+        41.06,
+        1.85
       ],
       "class_distribution": {
-        "normal": 46.95,
-        "pneumonia": 0.79
+        "normal": 41.06,
+        "pneumonia": 1.85
       }
     },
     "client_2": {
       "class_percentages": [
-        14.12,
-        18.0
+        16.81,
+        16.58
       ],
       "class_distribution": {
-        "normal": 14.12,
-        "pneumonia": 18.0
+        "normal": 16.81,
+        "pneumonia": 16.58
       }
     },
     "client_3": {
       "class_percentages": [
-        1.33,
-        24.71
+        4.23,
+        24.22
       ],
       "class_distribution": {
-        "normal": 1.33,
-        "pneumonia": 24.71
+        "normal": 4.23,
+        "pneumonia": 24.22
       }
     },
     "client_4": {
       "class_percentages": [
-        29.07,
-        10.16
+        25.81,
+        11.11
       ],
       "class_distribution": {
-        "normal": 29.07,
-        "pneumonia": 10.16
+        "normal": 25.81,
+        "pneumonia": 11.11
       }
     },
     "client_5": {
       "class_percentages": [
-        0.43,
-        25.18
+        2.19,
+        25.46
       ],
       "class_distribution": {
-        "normal": 0.43,
-        "pneumonia": 25.18
+        "normal": 2.19,
+        "pneumonia": 25.46
       }
     }
   },
   "validation": {
     "class_totals": [
-      100.0,
+      99.99,
       100.0
     ]
   }

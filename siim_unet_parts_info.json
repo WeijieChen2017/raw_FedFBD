@@ -1,0 +1,38 @@
+{
+  "initial_conv": {
+    "type": "ResidualUnit",
+    "parameters": 1334660
+  },
+  "encoder_level1": {
+    "type": "ResidualUnit",
+    "parameters": 7079172
+  },
+  "encoder_level2": {
+    "type": "ResidualUnit",
+    "parameters": 28314116
+  },
+  "encoder_level3": {
+    "type": "ResidualUnit",
+    "parameters": 113251332
+  },
+  "bottleneck": {
+    "type": "ResidualUnit",
+    "parameters": 398469124
+  },
+  "decoder_level3": {
+    "type": "Sequential",
+    "parameters": 49546242
+  },
+  "decoder_level2": {
+    "type": "Sequential",
+    "parameters": 8847874
+  },
+  "decoder_level1": {
+    "type": "Sequential",
+    "parameters": 2212098
+  },
+  "final_layers": {
+    "type": "Sequential",
+    "parameters": 6942
+  }
+}

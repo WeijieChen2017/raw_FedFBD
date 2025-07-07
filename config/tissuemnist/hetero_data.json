@@ -2,7 +2,7 @@
   "dataset": "tissuemnist",
   "num_clients": 6,
   "num_classes": 8,
-  "alpha": 0.5,
+  "alpha": 0.8,
   "class_names": [
     "collecting_duct_connecting_tubule",
     "distal_convoluted_tubule",
@@ -16,134 +16,134 @@
   "client_distributions": {
     "client_0": {
       "class_percentages": [
-        8.0,
-        30.77,
-        3.5,
-        23.71,
-        39.87,
-        46.65,
-        4.72,
-        0.27
+        18.96,
+        45.1,
+        7.49,
+        20.03,
+        8.43,
+        12.75,
+        0.04,
+        18.11
       ],
       "class_distribution": {
-        "collecting_duct_connecting_tubule": 8.0,
-        "distal_convoluted_tubule": 30.77,
-        "glomerular_tuft": 3.5,
-        "interstitial_endothelium": 23.71,
-        "interstitium": 39.87,
-        "proximal_tubule": 46.65,
-        "thick_ascending_limb": 4.72,
-        "vascular_pole": 0.27
+        "collecting_duct_connecting_tubule": 18.96,
+        "distal_convoluted_tubule": 45.1,
+        "glomerular_tuft": 7.49,
+        "interstitial_endothelium": 20.03,
+        "interstitium": 8.43,
+        "proximal_tubule": 12.75,
+        "thick_ascending_limb": 0.04,
+        "vascular_pole": 18.11
       }
     },
     "client_1": {
       "class_percentages": [
-        59.72,
-        1.48,
-        1.07,
-        1.06,
-        42.5,
-        5.46,
-        10.13,
-        22.41
+        30.5,
+        1.56,
+        1.08,
+        36.98,
+        24.19,
+        27.76,
+        10.46,
+        15.74
       ],
       "class_distribution": {
-        "collecting_duct_connecting_tubule": 59.72,
-        "distal_convoluted_tubule": 1.48,
-        "glomerular_tuft": 1.07,
-        "interstitial_endothelium": 1.06,
-        "interstitium": 42.5,
-        "proximal_tubule": 5.46,
-        "thick_ascending_limb": 10.13,
-        "vascular_pole": 22.41
+        "collecting_duct_connecting_tubule": 30.5,
+        "distal_convoluted_tubule": 1.56,
+        "glomerular_tuft": 1.08,
+        "interstitial_endothelium": 36.98,
+        "interstitium": 24.19,
+        "proximal_tubule": 27.76,
+        "thick_ascending_limb": 10.46,
+        "vascular_pole": 15.74
       }
     },
     "client_2": {
       "class_percentages": [
-        3.73,
-        7.0,
-        17.48,
-        0.15,
-        11.02,
-        2.33,
-        28.48,
-        39.87
+        7.14,
+        7.96,
+        14.44,
+        7.48,
+        48.08,
+        9.63,
+        34.22,
+        1.41
       ],
       "class_distribution": {
-        "collecting_duct_connecting_tubule": 3.73,
-        "distal_convoluted_tubule": 7.0,
-        "glomerular_tuft": 17.48,
-        "interstitial_endothelium": 0.15,
-        "interstitium": 11.02,
-        "proximal_tubule": 2.33,
-        "thick_ascending_limb": 28.48,
-        "vascular_pole": 39.87
+        "collecting_duct_connecting_tubule": 7.14,
+        "distal_convoluted_tubule": 7.96,
+        "glomerular_tuft": 14.44,
+        "interstitial_endothelium": 7.48,
+        "interstitium": 48.08,
+        "proximal_tubule": 9.63,
+        "thick_ascending_limb": 34.22,
+        "vascular_pole": 1.41
       }
     },
     "client_3": {
       "class_percentages": [
-        1.4,
-        38.27,
-        0.5,
-        21.77,
-        0.63,
-        1.75,
-        5.69,
-        37.39
+        3.17,
+        20.48,
+        23.09,
+        2.33,
+        18.38,
+        6.07,
+        12.2,
+        37.14
       ],
       "class_distribution": {
-        "collecting_duct_connecting_tubule": 1.4,
-        "distal_convoluted_tubule": 38.27,
-        "glomerular_tuft": 0.5,
-        "interstitial_endothelium": 21.77,
-        "interstitium": 0.63,
-        "proximal_tubule": 1.75,
-        "thick_ascending_limb": 5.69,
-        "vascular_pole": 37.39
+        "collecting_duct_connecting_tubule": 3.17,
+        "distal_convoluted_tubule": 20.48,
+        "glomerular_tuft": 23.09,
+        "interstitial_endothelium": 2.33,
+        "interstitium": 18.38,
+        "proximal_tubule": 6.07,
+        "thick_ascending_limb": 12.2,
+        "vascular_pole": 37.14
       }
     },
     "client_4": {
       "class_percentages": [
-        27.05,
-        13.93,
-        71.88,
-        5.46,
-        0.04,
-        43.8,
-        6.61,
-        0.02
+        39.81,
+        19.42,
+        0.53,
+        15.02,
+        0.65,
+        1.4,
+        38.34,
+        19.65
       ],
       "class_distribution": {
-        "collecting_duct_connecting_tubule": 27.05,
-        "distal_convoluted_tubule": 13.93,
-        "glomerular_tuft": 71.88,
-        "interstitial_endothelium": 5.46,
-        "interstitium": 0.04,
-        "proximal_tubule": 43.8,
-        "thick_ascending_limb": 6.61,
-        "vascular_pole": 0.02
+        "collecting_duct_connecting_tubule": 39.81,
+        "distal_convoluted_tubule": 19.42,
+        "glomerular_tuft": 0.53,
+        "interstitial_endothelium": 15.02,
+        "interstitium": 0.65,
+        "proximal_tubule": 1.4,
+        "thick_ascending_limb": 38.34,
+        "vascular_pole": 19.65
       }
     },
     "client_5": {
       "class_percentages": [
-        0.1,
-        8.55,
-        5.57,
-        47.86,
-        5.94,
-        0.0,
-        44.36,
-        0.06
+        0.42,
+        5.48,
+        53.37,
+        18.17,
+        0.26,
+        42.39,
+        4.74,
+        7.95
       ],
       "class_distribution": {
-        "collecting_duct_connecting_tubule": 0.1,
-        "distal_convoluted_tubule": 8.55,
-        "glomerular_tuft": 5.57,
-        "interstitial_endothelium": 47.86,
-        "interstitium": 5.94,
-        "proximal_tubule": 0.0,
-        "thick_ascending_limb": 44.36,
-        "vascular_pole": 0.06
+        "collecting_duct_connecting_tubule": 0.42,
+        "distal_convoluted_tubule": 5.48,
+        "glomerular_tuft": 53.37,
+        "interstitial_endothelium": 18.17,
+        "interstitium": 0.26,
+        "proximal_tubule": 42.39,
+        "thick_ascending_limb": 4.74,
+        "vascular_pole": 7.95
       }
     }
   },
@@ -153,10 +153,10 @@
       100.0,
       100.0,
       100.01,
+      99.99,
       100.0,
-      99.99,
-      99.99,
-      100.02
+      100.0,
+      100.0
     ]
   }
 }

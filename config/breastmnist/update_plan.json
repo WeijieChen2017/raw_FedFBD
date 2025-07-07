@@ -1,0 +1,5006 @@
+{
+  "1": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "2": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "3": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    }
+  },
+  "4": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "5": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "6": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    }
+  },
+  "7": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "8": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "9": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    }
+  },
+  "10": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "11": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "12": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    }
+  },
+  "13": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "14": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "15": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    }
+  },
+  "16": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "17": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    }
+  },
+  "18": {
+    "0": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ALT34",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVP97",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CNF57",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DWJ41",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EGO46",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FBI78",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        }
+      ]
+    },
+    "1": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AFA79",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BFF56",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CAA77",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DSC60",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EJJ91",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FXR03",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "2": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "ASN90",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BXG86",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CPM83",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPU42",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN11",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FWC09",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AFA79",
+          "layer1": "BFF56",
+          "layer2": "CAA77",
+          "layer3": "DSC60",
+          "layer4": "EJJ91",
+          "out_layer": "FXR03"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "3": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AKY64",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BVD88",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CGV29",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DQM27",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVZ66",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FPC91",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AOC39",
+          "layer1": "BWW19",
+          "layer2": "COO30",
+          "layer3": "DHK75",
+          "layer4": "EYT34",
+          "out_layer": "FGM06"
+        },
+        {
+          "in_layer": "ASN90",
+          "layer1": "BXG86",
+          "layer2": "CPM83",
+          "layer3": "DPU42",
+          "layer4": "EVN11",
+          "out_layer": "FWC09"
+        }
+      ]
+    },
+    "4": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AOC39",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BWW19",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "COO30",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DHK75",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EYT34",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FGM06",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        },
+        {
+          "in_layer": "AUV29",
+          "layer1": "BYM04",
+          "layer2": "CRZ52",
+          "layer3": "DPX98",
+          "layer4": "EVN36",
+          "out_layer": "FSY05"
+        }
+      ]
+    },
+    "5": {
+      "model_to_update": {
+        "in_layer": {
+          "block_id": "AUV29",
+          "status": "trainable"
+        },
+        "layer1": {
+          "block_id": "BYM04",
+          "status": "trainable"
+        },
+        "layer2": {
+          "block_id": "CRZ52",
+          "status": "trainable"
+        },
+        "layer3": {
+          "block_id": "DPX98",
+          "status": "trainable"
+        },
+        "layer4": {
+          "block_id": "EVN36",
+          "status": "trainable"
+        },
+        "out_layer": {
+          "block_id": "FSY05",
+          "status": "trainable"
+        }
+      },
+      "model_as_regularizer": [
+        {
+          "in_layer": "AKY64",
+          "layer1": "BVD88",
+          "layer2": "CGV29",
+          "layer3": "DQM27",
+          "layer4": "EVZ66",
+          "out_layer": "FPC91"
+        },
+        {
+          "in_layer": "ALT34",
+          "layer1": "BVP97",
+          "layer2": "CNF57",
+          "layer3": "DWJ41",
+          "layer4": "EGO46",
+          "out_layer": "FBI78"
+        }
+      ]
+    }
+  }
+}

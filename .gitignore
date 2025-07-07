@@ -16,8 +16,7 @@ __pycache__/
 
 # Data files
 *.nii.gz
-*.json
-!config/**/*.json
+*.pth
 
 # System files
 .DS_Store

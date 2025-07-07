@@ -1,0 +1,44 @@
+2025-07-03 22:59:28,040 - FBD_Test - INFO - Starting final ensemble prediction...
+2025-07-03 22:59:28,042 - FBD_Test - INFO - Using warehouse file: fbd_run/organsmnist_resnet18_20250703_070137/fbd_warehouse_round_29.pth
+2025-07-03 22:59:28,042 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 22:59:28,896 - FBD_Test - INFO - Loaded warehouse from fbd_run/organsmnist_resnet18_20250703_070137/fbd_warehouse_round_29.pth
+2025-07-03 23:00:18,835 - FBD_Test - INFO - Using device: cuda:0
+2025-07-03 23:00:18,835 - FBD_Test - INFO - Task: multi-class
+2025-07-03 23:00:18,835 - FBD_Test - INFO - Test dataset size: 8827
+2025-07-03 23:00:18,835 - FBD_Test - INFO - Ensemble colors: ['M0', 'M1', 'M2', 'M3', 'M4', 'M5']
+2025-07-03 23:00:18,835 - FBD_Test - INFO - Gathering predictions from ensemble models...
+2025-07-03 23:00:18,835 - FBD_Test - INFO - Processing model M0...
+2025-07-03 23:00:18,835 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:00:54,949 - FBD_Test - INFO - Starting final ensemble prediction...
+2025-07-03 23:00:54,949 - FBD_Test - INFO - Using warehouse file: fbd_run/organsmnist_resnet18_20250703_070137/fbd_warehouse_round_29.pth
+2025-07-03 23:00:54,950 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:00:55,747 - FBD_Test - INFO - Loaded warehouse from fbd_run/organsmnist_resnet18_20250703_070137/fbd_warehouse_round_29.pth
+2025-07-03 23:00:59,942 - FBD_Test - INFO - Using device: cuda:0
+2025-07-03 23:00:59,942 - FBD_Test - INFO - Task: multi-class
+2025-07-03 23:00:59,943 - FBD_Test - INFO - Test dataset size: 8827
+2025-07-03 23:00:59,943 - FBD_Test - INFO - Ensemble colors: ['M0', 'M1', 'M2', 'M3', 'M4', 'M5']
+2025-07-03 23:00:59,943 - FBD_Test - INFO - Gathering predictions from ensemble models...
+2025-07-03 23:00:59,943 - FBD_Test - INFO - Processing model M0...
+2025-07-03 23:00:59,943 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:03:40,260 - FBD_Test - INFO - Got predictions from M0, shape: (8827, 11)
+2025-07-03 23:03:40,260 - FBD_Test - INFO - Processing model M1...
+2025-07-03 23:03:40,261 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:06:18,274 - FBD_Test - INFO - Got predictions from M1, shape: (8827, 11)
+2025-07-03 23:06:18,274 - FBD_Test - INFO - Processing model M2...
+2025-07-03 23:06:18,274 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:08:57,710 - FBD_Test - INFO - Got predictions from M2, shape: (8827, 11)
+2025-07-03 23:08:57,710 - FBD_Test - INFO - Processing model M3...
+2025-07-03 23:08:57,710 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:11:40,301 - FBD_Test - INFO - Got predictions from M3, shape: (8827, 11)
+2025-07-03 23:11:40,301 - FBD_Test - INFO - Processing model M4...
+2025-07-03 23:11:40,302 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:14:22,819 - FBD_Test - INFO - Got predictions from M4, shape: (8827, 11)
+2025-07-03 23:14:22,819 - FBD_Test - INFO - Processing model M5...
+2025-07-03 23:14:22,819 - fbd_model_ckpt - INFO - ✅ Created RESNET18 FBD model without pretrained weights
+2025-07-03 23:17:02,761 - FBD_Test - INFO - Got predictions from M5, shape: (8827, 11)
+2025-07-03 23:17:02,761 - FBD_Test - INFO - Calculating ensemble predictions...
+2025-07-03 23:17:02,840 - FBD_Test - INFO - Final ensemble results:
+2025-07-03 23:17:02,840 - FBD_Test - INFO -   Overall accuracy: 0.1612
+2025-07-03 23:17:02,840 - FBD_Test - INFO -   Mean confidence: 0.6261
+2025-07-03 23:17:02,840 - FBD_Test - INFO -   Number of samples: 8827
+2025-07-03 23:17:02,840 - FBD_Test - INFO -   Number of models: 6

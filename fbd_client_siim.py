@@ -527,7 +527,7 @@ def create_model_for_evaluation(args, device):
     model.to(device)
     return model
 
-def simulate_client_task(model_or_reusable_model, client_id, client_dataset, args, round_num, warehouse, shipping_list, update_plan, use_disk=False):
+def simulate_client_task(model_or_reusable_model, client_id, client_dataset, args, round_num, warehouse, shipping_list, update_plan, use_disk=False, val_dataset=None):
     """
     Simulates a single client's task for a given round, now with a flag to control model copying.
     
@@ -542,6 +542,7 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
         shipping_list (list): List of models to be shipped from the warehouse.
         update_plan (dict): Plan for updating models after training.
         use_disk (bool): If True, model_or_reusable_model is copied. If False, it's used directly.
+        val_dataset: Optional validation dataset for this client.
         
     Returns:
         A dictionary containing the client's response.
@@ -715,7 +716,27 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
     model.load_state_dict(torch.load(model_state_info["model_path"]))
     model.to(device)
 
-    # Evaluate the model on the test set
+    # Evaluate the model on validation set if available, otherwise use training set
+    val_metrics = None
+    if val_dataset is not None and len(val_dataset) > 0:
+        # Create validation data loader
+        if args.experiment_name == "siim":
+            val_loader = get_siim_data_loader(val_dataset, args.batch_size, shuffle=False)
+            from monai.metrics import DiceMetric
+            dice_metric_val = DiceMetric(include_background=True, reduction="mean")
+            val_metrics = _test_siim_model(model, val_loader, criterion, dice_metric_val, device)
+            val_loss, val_dice, val_acc = val_metrics[0], val_metrics[1], val_metrics[2]
+            val_auc = val_dice  # Use dice score as AUC placeholder
+            print(f"Client {client_id} Validation: Loss: {val_loss:.4f}, Dice: {val_dice:.4f}")
+        else:
+            # For non-SIIM datasets, create validation loader
+            val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+            test_evaluator = Evaluator(args.experiment_name, 'test', size=args.size)
+            val_metrics = _test_model(model, test_evaluator, val_loader, task, criterion, device)
+            val_loss, val_auc, val_acc = val_metrics[0], val_metrics[1], val_metrics[2]
+            print(f"Client {client_id} Validation: Loss: {val_loss:.4f}, AUC: {val_auc:.4f}, ACC: {val_acc:.4f}")
+    
+    # Also evaluate on training set for comparison (using last few batches)
     if args.experiment_name == "siim":
         from monai.metrics import DiceMetric
         dice_metric = DiceMetric(include_background=True, reduction="mean")
@@ -738,7 +759,17 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
     trained_state_dict = torch.load(model_state_info["model_path"], map_location='cpu')
     
     # Combined comprehensive output line
-    print(f"Client {client_id} Round {round_num}: {len(client_dataset)} samples, {len(shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Test Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f} | Color: {assigned_model_color} | Trainable: {trainable_components}")
+    output_str = f"Client {client_id} Round {round_num}: {len(client_dataset)} samples, {len(shipping_list)} parts, {num_tensors} tensors | Train Loss: {loss:.4f} (Main: {main_loss:.4f}, Reg: {reg_loss:.4f}) | Train Eval: Loss: {test_loss:.4f}, AUC: {test_auc:.4f}, ACC: {test_acc:.4f}"
+    
+    # Add validation metrics if available
+    if val_metrics is not None:
+        if args.experiment_name == "siim":
+            output_str += f" | Val: Loss: {val_loss:.4f}, Dice: {val_dice:.4f}"
+        else:
+            output_str += f" | Val: Loss: {val_loss:.4f}, AUC: {val_auc:.4f}, ACC: {val_acc:.4f}"
+    
+    output_str += f" | Color: {assigned_model_color} | Trainable: {trainable_components}"
+    print(output_str)
     
     # Send back weights according to request_plan (all requested blocks)
     # Also include metadata about which blocks were trainable
@@ -787,7 +818,7 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
     updated_optimizer_states = save_optimizer_state_by_request_plan(dummy_optimizer, model, client_request_list, fbd_trace)
     
     # Return client response
-    return {
+    response = {
         "train_loss": loss,
         "test_metrics": test_metrics,
         "updated_weights": updated_weights,
@@ -796,3 +827,9 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
         "round": round_num,
         "model_state_info": model_state_info
     }
+    
+    # Add validation metrics if available
+    if val_metrics is not None:
+        response["val_metrics"] = val_metrics
+    
+    return response

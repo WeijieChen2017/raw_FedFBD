@@ -2,7 +2,7 @@
   "dataset": "pathmnist",
   "num_clients": 6,
   "num_classes": 9,
-  "alpha": 0.5,
+  "alpha": 0.8,
   "class_names": [
     "adipose",
     "background",
@@ -17,160 +17,160 @@
   "client_distributions": {
     "client_0": {
       "class_percentages": [
-        9.11,
-        32.39,
-        3.61,
-        29.8,
-        44.94,
-        47.23,
-        6.0,
-        0.29,
-        1.24
+        20.05,
+        51.98,
+        8.88,
+        20.81,
+        9.71,
+        13.55,
+        0.04,
+        23.13,
+        0.38
       ],
       "class_distribution": {
-        "adipose": 9.11,
-        "background": 32.39,
-        "debris": 3.61,
-        "lymphocytes": 29.8,
-        "mucus": 44.94,
-        "smooth_muscle": 47.23,
-        "normal_colon_mucosa": 6.0,
-        "cancer-associated_stroma": 0.29,
-        "colorectal_adenocarcinoma_epithelium": 1.24
+        "adipose": 20.05,
+        "background": 51.98,
+        "debris": 8.88,
+        "lymphocytes": 20.81,
+        "mucus": 9.71,
+        "smooth_muscle": 13.55,
+        "normal_colon_mucosa": 0.04,
+        "cancer-associated_stroma": 23.13,
+        "colorectal_adenocarcinoma_epithelium": 0.38
       }
     },
     "client_1": {
       "class_percentages": [
-        54.37,
-        1.23,
-        0.88,
-        1.06,
-        38.33,
-        4.42,
-        10.3,
-        19.2,
-        28.99
+        32.29,
+        1.8,
+        1.28,
+        38.48,
+        27.9,
+        29.56,
+        11.94,
+        20.12,
+        0.22
       ],
       "class_distribution": {
-        "adipose": 54.37,
-        "background": 1.23,
-        "debris": 0.88,
-        "lymphocytes": 1.06,
-        "mucus": 38.33,
-        "smooth_muscle": 4.42,
-        "normal_colon_mucosa": 10.3,
-        "cancer-associated_stroma": 19.2,
-        "colorectal_adenocarcinoma_epithelium": 28.99
+        "adipose": 32.29,
+        "background": 1.8,
+        "debris": 1.28,
+        "lymphocytes": 38.48,
+        "mucus": 27.9,
+        "smooth_muscle": 29.56,
+        "normal_colon_mucosa": 11.94,
+        "cancer-associated_stroma": 20.12,
+        "colorectal_adenocarcinoma_epithelium": 0.22
       }
     },
     "client_2": {
       "class_percentages": [
-        4.12,
-        7.14,
-        17.48,
-        0.17,
-        12.04,
-        2.3,
-        35.06,
-        41.39,
-        5.54
+        7.01,
+        8.53,
+        15.92,
+        7.22,
+        51.44,
+        9.52,
+        36.2,
+        1.67,
+        9.94
       ],
       "class_distribution": {
-        "adipose": 4.12,
-        "background": 7.14,
-        "debris": 17.48,
-        "lymphocytes": 0.17,
-        "mucus": 12.04,
-        "smooth_muscle": 2.3,
-        "normal_colon_mucosa": 35.06,
-        "cancer-associated_stroma": 41.39,
-        "colorectal_adenocarcinoma_epithelium": 5.54
+        "adipose": 7.01,
+        "background": 8.53,
+        "debris": 15.92,
+        "lymphocytes": 7.22,
+        "mucus": 51.44,
+        "smooth_muscle": 9.52,
+        "normal_colon_mucosa": 36.2,
+        "cancer-associated_stroma": 1.67,
+        "colorectal_adenocarcinoma_epithelium": 9.94
       }
     },
     "client_3": {
       "class_percentages": [
-        1.55,
-        39.28,
-        0.5,
-        26.67,
-        0.7,
-        1.73,
-        7.04,
-        39.06,
-        4.71
+        1.57,
+        11.12,
+        12.93,
+        1.14,
+        9.98,
+        3.05,
+        6.55,
+        22.36,
+        71.49
       ],
       "class_distribution": {
-        "adipose": 1.55,
-        "background": 39.28,
-        "debris": 0.5,
-        "lymphocytes": 26.67,
-        "mucus": 0.7,
-        "smooth_muscle": 1.73,
-        "normal_colon_mucosa": 7.04,
-        "cancer-associated_stroma": 39.06,
-        "colorectal_adenocarcinoma_epithelium": 4.71
+        "adipose": 1.57,
+        "background": 11.12,
+        "debris": 12.93,
+        "lymphocytes": 1.14,
+        "mucus": 9.98,
+        "smooth_muscle": 3.05,
+        "normal_colon_mucosa": 6.55,
+        "cancer-associated_stroma": 22.36,
+        "colorectal_adenocarcinoma_epithelium": 71.49
       }
     },
     "client_4": {
       "class_percentages": [
-        30.78,
-        14.65,
-        74.13,
-        6.86,
-        0.04,
-        44.33,
-        8.39,
-        0.02,
-        1.34
+        38.66,
+        20.56,
+        0.58,
+        14.34,
+        0.69,
+        1.35,
+        40.11,
+        23.05,
+        11.35
       ],
       "class_distribution": {
-        "adipose": 30.78,
-        "background": 14.65,
-        "debris": 74.13,
-        "lymphocytes": 6.86,
-        "mucus": 0.04,
-        "smooth_muscle": 44.33,
-        "normal_colon_mucosa": 8.39,
-        "cancer-associated_stroma": 0.02,
-        "colorectal_adenocarcinoma_epithelium": 1.34
+        "adipose": 38.66,
+        "background": 20.56,
+        "debris": 0.58,
+        "lymphocytes": 14.34,
+        "mucus": 0.69,
+        "smooth_muscle": 1.35,
+        "normal_colon_mucosa": 40.11,
+        "cancer-associated_stroma": 23.05,
+        "colorectal_adenocarcinoma_epithelium": 11.35
       }
     },
     "client_5": {
       "class_percentages": [
-        0.06,
-        5.3,
-        3.4,
-        35.44,
-        3.95,
-        0.0,
-        33.21,
-        0.04,
-        58.17
+        0.43,
+        6.01,
+        60.41,
+        18.01,
+        0.29,
+        42.97,
+        5.16,
+        9.68,
+        6.62
       ],
       "class_distribution": {
-        "adipose": 0.06,
-        "background": 5.3,
-        "debris": 3.4,
-        "lymphocytes": 35.44,
-        "mucus": 3.95,
-        "smooth_muscle": 0.0,
-        "normal_colon_mucosa": 33.21,
-        "cancer-associated_stroma": 0.04,
-        "colorectal_adenocarcinoma_epithelium": 58.17
+        "adipose": 0.43,
+        "background": 6.01,
+        "debris": 60.41,
+        "lymphocytes": 18.01,
+        "mucus": 0.29,
+        "smooth_muscle": 42.97,
+        "normal_colon_mucosa": 5.16,
+        "cancer-associated_stroma": 9.68,
+        "colorectal_adenocarcinoma_epithelium": 6.62
       }
     }
   },
   "validation": {
     "class_totals": [
-      99.99,
-      99.99,
+      100.00999999999999,
       100.0,
       100.0,
       100.0,
       100.00999999999999,
       100.0,
       100.0,
-      99.99
+      100.01,
+      100.0
     ]
   }
 }
