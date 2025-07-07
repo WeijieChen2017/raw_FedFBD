@@ -447,7 +447,7 @@ def main():
         print(f"   - Sample variation: ±30% from equal distribution")
     else:
         print(f"   - Data partitioning: Pre-defined fold configuration")
-    print(f"   - Parallel mode: {'ENABLED (smaller models)' if args.parallel else 'DISABLED (single model)'}"))
+    print(f"   - Parallel mode: {'ENABLED (smaller models)' if args.parallel else 'DISABLED (single model)'}")
     
     print(f"\n3. REGULARIZATION:")
     # Determine regularization settings for display
