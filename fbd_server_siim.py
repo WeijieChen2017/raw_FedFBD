@@ -146,6 +146,10 @@ def detect_model_size_from_state_dict(state_dict):
                 return 'large'
             elif features == 512:
                 return 'xlarge'
+            elif features == 768:
+                return 'xxlarge'
+            elif features == 1024:
+                return 'mega'
         
         # Fallback: assume standard if we can't detect
         return 'standard'

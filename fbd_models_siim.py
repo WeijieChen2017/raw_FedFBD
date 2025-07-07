@@ -80,8 +80,14 @@ def get_siim_model(architecture="unet", in_channels=1, out_channels=1, model_siz
     elif model_size == 'xlarge':
         # Extra large feature size for maximum GPU utilization
         features = 512
+    elif model_size == 'xxlarge':
+        # Extra extra large - push GPU utilization even further
+        features = 768
+    elif model_size == 'mega':
+        # Mega model - for maximum 24GB GPU utilization
+        features = 1024
     else:
-        raise ValueError(f"Unsupported model_size: {model_size}. Choose 'small', 'standard', 'large', or 'xlarge'.")
+        raise ValueError(f"Unsupported model_size: {model_size}. Choose 'small', 'standard', 'large', 'xlarge', 'xxlarge', or 'mega'.")
     
     # Return FBDUNet which has the necessary FBD methods
     model = FBDUNet(in_channels=in_channels, out_channels=out_channels, features=features)

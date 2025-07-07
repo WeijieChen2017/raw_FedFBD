@@ -67,7 +67,9 @@ def main():
         ("Small Model", "small"),
         ("Standard Model", "standard"),
         ("Large Model", "large"),
-        ("XLarge Model", "xlarge")
+        ("XLarge Model", "xlarge"),
+        ("XXLarge Model", "xxlarge"),
+        ("Mega Model", "mega")
     ]
     
     results = {}
@@ -130,7 +132,7 @@ def main():
     
     print(f"{'Model':<10} {'Parameters':<15} {'Memory':<12} {'vs Small':<12}")
     print("-" * 50)
-    for size in ['small', 'standard', 'large', 'xlarge']:
+    for size in ['small', 'standard', 'large', 'xlarge', 'xxlarge', 'mega']:
         if size in results:
             params = results[size]['total_params']
             memory = results[size]['memory_mb']
@@ -147,7 +149,7 @@ def main():
     print(f"{'Model':<10} {'16GB Usage':<12} {'24GB Usage':<12} {'Max on 16GB':<12} {'Max on 24GB':<12}")
     print("-" * 60)
     
-    for size in ['small', 'standard', 'large', 'xlarge']:
+    for size in ['small', 'standard', 'large', 'xlarge', 'xxlarge', 'mega']:
         if size in results:
             memory = results[size]['memory_mb']
             usage_16gb = memory / gpu_16gb * 100
@@ -162,7 +164,7 @@ def main():
     print(f"{'Model':<10} {'Total Memory':<15} {'24GB Fit?':<10} {'Recommendation'}")
     print("-" * 55)
     
-    for size in ['small', 'standard', 'large', 'xlarge']:
+    for size in ['small', 'standard', 'large', 'xlarge', 'xxlarge', 'mega']:
         if size in results:
             memory = results[size]['memory_mb']
             total_6_clients = 6 * memory
@@ -184,7 +186,7 @@ def main():
     
     small_weight_mb = small_params * 4 / (1024 * 1024)
     
-    for size in ['small', 'standard', 'large', 'xlarge']:
+    for size in ['small', 'standard', 'large', 'xlarge', 'xxlarge', 'mega']:
         if size in results:
             params = results[size]['total_params']
             weight_mb = params * 4 / (1024 * 1024)
@@ -197,7 +199,7 @@ def main():
     print(f"{'Model':<10} {'Features':<10} {'First Conv Shape'}")
     print("-" * 40)
     
-    for size in ['small', 'standard', 'large', 'xlarge']:
+    for size in ['small', 'standard', 'large', 'xlarge', 'xxlarge', 'mega']:
         try:
             model = get_siim_model(model_size=size)
             # Get first conv layer to see actual feature sizes
@@ -211,10 +213,26 @@ def main():
             print(f"{size:<10} ERROR: {e}")
     
     print(f"\n💡 For 24GB GPU Recommendations:")
-    print(f"   🔥 LARGE model (256 features) - Great balance of size and performance")
-    print(f"   🚀 XLARGE model (512 features) - Maximum utilization for research")
-    print(f"   ⚡ Use --parallel mode with large/xlarge for multi-client training")
+    print(f"   🔥 LARGE model (256 features) - Great balance, fits 6 parallel clients")
+    print(f"   🚀 XLARGE model (512 features) - High performance, 3-4 parallel clients")
+    print(f"   💪 XXLARGE model (768 features) - Aggressive utilization, 1-2 parallel clients")
+    print(f"   🏆 MEGA model (1024 features) - Maximum single model performance")
+    print(f"   ⚡ Use --parallel mode for multi-client training")
     print(f"   📊 Monitor GPU memory usage during training")
+    
+    # Add specific recommendations for 12GB target
+    print(f"\n🎯 For ~12GB GPU Utilization Target:")
+    if 'xxlarge' in results:
+        xxlarge_memory = results['xxlarge']['memory_mb']
+        clients_12gb = int(12000 / xxlarge_memory)
+        print(f"   • XXLARGE: {clients_12gb} parallel clients = {clients_12gb * xxlarge_memory:.0f}MB")
+    
+    if 'large' in results:
+        large_memory = results['large']['memory_mb']
+        clients_12gb_large = int(12000 / large_memory)
+        print(f"   • LARGE: {clients_12gb_large} parallel clients = {clients_12gb_large * large_memory:.0f}MB")
+    
+    print(f"   🎪 Best balance: 8-9 LARGE models or 1 XXLARGE model for ~12GB usage")
 
 if __name__ == "__main__":
     main()

@@ -308,7 +308,7 @@ def main():
     parser.add_argument("--cache_dir", type=str, default="", help="Path to the model and weights cache.")
     parser.add_argument("--iid", action="store_true", help="Use IID data distribution.")
     parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
-    parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge"], default="standard", help="Size of the model: 'small' (64 features), 'standard' (128 features), 'large' (256 features), 'xlarge' (512 features).")
+    parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge", "xxlarge", "mega"], default="standard", help="Size of the model: 'small' (64), 'standard' (128), 'large' (256), 'xlarge' (512), 'xxlarge' (768), 'mega' (1024 features).")
     parser.add_argument("--auto_detect_size", action="store_true", help="Automatically detect model size from saved weights (useful when switching between standard/small)")
     parser.add_argument("--eval_on_cpu", action="store_true", help="Force model evaluation on CPU to save GPU memory (useful for large models)")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
@@ -457,8 +457,11 @@ def main():
         print(f"   - ROI size: {args.roi_size}")
         print(f"   - Model size: {args.model_size}")
         
-        # Add memory estimate
-        memory_estimates = {'small': '85MB', 'standard': '340MB', 'large': '1.3GB', 'xlarge': '5.3GB'}
+        # Add memory estimate (based on actual measurements)
+        memory_estimates = {
+            'small': '85MB', 'standard': '340MB', 'large': '1.36GB', 
+            'xlarge': '5.44GB', 'xxlarge': '12.24GB', 'mega': '21.76GB'
+        }
         memory_str = memory_estimates.get(args.model_size, 'Unknown')
         print(f"   - Estimated memory per model: {memory_str}")
         
@@ -556,15 +559,26 @@ def main():
             # Use the specified model size, but warn if it might not fit
             parallel_model_size = args.model_size
             
-            # Estimate memory usage for parallel training
-            if parallel_model_size == 'xlarge':
-                total_memory_gb = args.num_clients * 5.31  # XLarge uses ~5.3GB per model
-                if total_memory_gb > 20:  # Leave some headroom on 24GB GPU
-                    print(f"⚠️  Warning: {args.num_clients} xlarge models may use ~{total_memory_gb:.1f}GB. Consider using 'large' size.")
-            elif parallel_model_size == 'large':
-                total_memory_gb = args.num_clients * 1.33  # Large uses ~1.3GB per model
-                if total_memory_gb > 20:
-                    print(f"⚠️  Warning: {args.num_clients} large models may use ~{total_memory_gb:.1f}GB.")
+            # Estimate memory usage for parallel training (based on actual measurements)
+            memory_per_model = {
+                'small': 0.085, 'standard': 0.34, 'large': 1.36, 
+                'xlarge': 5.44, 'xxlarge': 12.24, 'mega': 21.76
+            }
+            
+            model_memory = memory_per_model.get(parallel_model_size, 1.0)
+            total_memory_gb = args.num_clients * model_memory
+            
+            if total_memory_gb > 20:  # Leave some headroom on 24GB GPU
+                print(f"⚠️  Warning: {args.num_clients} {parallel_model_size} models may use ~{total_memory_gb:.1f}GB.")
+                print(f"💡 Consider reducing --num_clients or using --eval_on_cpu")
+            elif total_memory_gb > 12:
+                print(f"📊 {args.num_clients} {parallel_model_size} models will use ~{total_memory_gb:.1f}GB GPU memory")
+            
+            # Suggest optimal configurations
+            if parallel_model_size in ['xxlarge', 'mega']:
+                optimal_clients = int(20 / model_memory)  # Leave 4GB headroom
+                if optimal_clients < args.num_clients:
+                    print(f"💡 For {parallel_model_size} models, consider --num_clients {optimal_clients} for optimal GPU usage")
             
             for i in range(args.num_clients):
                 model = get_siim_model(
