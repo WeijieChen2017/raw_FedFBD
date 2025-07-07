@@ -834,29 +834,44 @@ def initialize_server_simulation(args):
             model_size=model_size
         )
         
-        # Try to load pretrained weights in order of preference
-        weight_files_to_try = [
-            f"siim_unet_pretrained_monai_{model_size}.pth",  # Medical imaging optimized
-            f"siim_unet_pretrained_lungmask_{model_size}.pth",  # Lung-specific
-            f"siim_unet_pretrained_chest_foundation_{model_size}.pth",  # Chest imaging
-            f"siim_unet_initial_weights_{model_size}.pth"  # Basic shared weights
-        ]
+        # Handle different initialization methods
+        init_method = getattr(args, 'init_method', 'pretrained')
         
-        weights_loaded = False
-        for weights_file in weight_files_to_try:
-            if os.path.exists(weights_file):
-                try:
-                    initial_weights = torch.load(weights_file, map_location='cpu')
-                    model_template.load_state_dict(initial_weights)
-                    print(f"✅ Loaded pretrained weights from {weights_file}")
-                    weights_loaded = True
-                    break
-                except Exception as e:
-                    print(f"⚠️  Could not load weights from {weights_file}: {e}")
+        if init_method == "pretrained":
+            # Try to load pretrained weights in order of preference
+            weight_files_to_try = [
+                f"siim_unet_pretrained_monai_{model_size}.pth",  # Medical imaging optimized
+                f"siim_unet_pretrained_lungmask_{model_size}.pth",  # Lung-specific
+                f"siim_unet_pretrained_chest_foundation_{model_size}.pth",  # Chest imaging
+                f"siim_unet_initial_weights_{model_size}.pth"  # Basic shared weights
+            ]
+            
+            weights_loaded = False
+            for weights_file in weight_files_to_try:
+                if os.path.exists(weights_file):
+                    try:
+                        initial_weights = torch.load(weights_file, map_location='cpu')
+                        model_template.load_state_dict(initial_weights)
+                        print(f"✅ Loaded pretrained weights from {weights_file}")
+                        weights_loaded = True
+                        break
+                    except Exception as e:
+                        print(f"⚠️  Could not load weights from {weights_file}: {e}")
+            
+            if not weights_loaded:
+                print(f"📌 No pretrained weights found, falling back to shared random initialization")
+                print("   All clients will start with same random weights due to shared seed")
         
-        if not weights_loaded:
-            print(f"📌 No pretrained weights found, using random initialization")
-            print("   All clients will still start with same weights due to seed")
+        elif init_method == "shared_random":
+            print(f"🎲 Using shared random initialization (seed: {getattr(args, 'seed', 42)})")
+            print("   All clients will start with identical random weights")
+        
+        elif init_method == "random":
+            print(f"🎰 Using different random initialization for each client")
+            print("   Each client will start with different random weights")
+        
+        else:
+            print(f"⚠️  Unknown initialization method: {init_method}, using shared random")
     else:
         model_template = get_pretrained_fbd_model(
             architecture=args.model_flag,

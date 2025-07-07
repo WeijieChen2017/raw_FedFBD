@@ -9,6 +9,7 @@ from monai.transforms import (
     EnsureChannelFirstd,
     ScaleIntensityRanged,
     CenterSpatialCropd,
+    DivisiblePadd,
     RandFlipd,
     RandRotate90d,
     RandShiftIntensityd,
@@ -124,6 +125,7 @@ def load_siim_data(args):
         ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
+        DivisiblePadd(keys=["image", "label"], k=16),
         RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
         RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1),
         RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=2),
@@ -141,6 +143,7 @@ def load_siim_data(args):
         ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
+        DivisiblePadd(keys=["image", "label"], k=16),
         ToTensord(keys=["image", "label"]),
         EnsureTyped(keys=["image", "label"]),
     ])

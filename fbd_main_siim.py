@@ -311,6 +311,8 @@ def main():
     parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge", "xxlarge", "mega"], default="standard", help="Size of the model: 'small' (48), 'standard' (96), 'large' (192), 'xlarge' (384), 'xxlarge' (576), 'mega' (768 features).")
     parser.add_argument("--auto_detect_size", action="store_true", help="Automatically detect model size from saved weights (useful when switching between standard/small)")
     parser.add_argument("--eval_on_cpu", action="store_true", help="Force model evaluation on CPU to save GPU memory (useful for large models)")
+    parser.add_argument("--init_method", type=str, choices=["pretrained", "shared_random", "random"], default="pretrained", 
+                        help="Model initialization method: 'pretrained' uses medical weights, 'shared_random' uses same random seed for all clients, 'random' uses different random initialization")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
@@ -494,6 +496,15 @@ def main():
         print(f"   - Data partitioning: Pre-defined fold configuration")
     print(f"   - Parallel mode: {'ENABLED (' + args.model_size + ' models)' if args.parallel else 'DISABLED (single model)'}")
     
+    # Add initialization method info
+    init_method = getattr(args, 'init_method', 'pretrained')
+    init_descriptions = {
+        'pretrained': 'Medical pretrained weights (MONAI/lungmask)',
+        'shared_random': f'Shared random initialization (seed: {args.seed})',
+        'random': 'Different random weights per client'
+    }
+    print(f"   - Initialization: {init_descriptions.get(init_method, init_method)}")
+    
     print(f"\n3. REGULARIZATION:")
     # Determine regularization settings for display
     if args.reg is not None:
@@ -550,13 +561,18 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Set random seed for reproducible model initialization
-    # This ensures all clients start with the same initial weights
-    torch.manual_seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(args.seed)
-        torch.cuda.manual_seed_all(args.seed)
-    print(f"Set random seed to {args.seed} for reproducible model initialization")
+    # Set random seed based on initialization method
+    if args.init_method in ["shared_random", "pretrained"]:
+        # Use same seed for all clients to ensure identical starting weights
+        torch.manual_seed(args.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(args.seed)
+            torch.cuda.manual_seed_all(args.seed)
+        print(f"🎯 Initialization method: {args.init_method}")
+        print(f"🎲 Set shared random seed to {args.seed} for reproducible model initialization")
+    else:
+        print(f"🎯 Initialization method: {args.init_method} (different random weights per client)")
+        print(f"🎲 Using different random initialization for each client")
     
     if args.parallel:
         # Create multiple models for parallel execution
@@ -589,6 +605,15 @@ def main():
                     print(f"💡 For {parallel_model_size} models, consider --num_clients {optimal_clients} for optimal GPU usage")
             
             for i in range(args.num_clients):
+                # Set different seed for each client if using random initialization
+                if args.init_method == "random":
+                    client_seed = args.seed + i + 1000  # Offset to avoid conflicts
+                    torch.manual_seed(client_seed)
+                    if torch.cuda.is_available():
+                        torch.cuda.manual_seed(client_seed)
+                        torch.cuda.manual_seed_all(client_seed)
+                    print(f"  Client {i}: Using random seed {client_seed}")
+                
                 model = get_siim_model(
                     architecture=args.model_flag,
                     in_channels=args.n_channels,
