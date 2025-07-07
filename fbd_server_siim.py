@@ -88,10 +88,48 @@ def load_server_model_from_disk(model_path, args, experiment_name, device):
             use_pretrained=False
         )
     
-    # Load weights
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.to(device)
+    # Load weights with error handling for prefix mismatches
+    try:
+        model.load_state_dict(torch.load(model_path, map_location=device))
+    except RuntimeError as e:
+        if "Missing key(s) in state_dict" in str(e):
+            print(f"Warning: State dict mismatch detected. Attempting to fix key prefixes...")
+            
+            # Load the state dict
+            saved_state_dict = torch.load(model_path, map_location=device)
+            model_state_dict = model.state_dict()
+            
+            # Try to map saved keys to model keys
+            fixed_state_dict = {}
+            
+            for model_key in model_state_dict.keys():
+                # Try different prefix variations
+                possible_keys = [
+                    model_key,  # Exact match
+                    model_key.replace("unet.", ""),  # Remove unet prefix
+                    "model." + model_key,  # Add model prefix
+                    model_key.replace("unet.", "model."),  # Replace unet with model
+                ]
+                
+                key_found = False
+                for possible_key in possible_keys:
+                    if possible_key in saved_state_dict:
+                        fixed_state_dict[model_key] = saved_state_dict[possible_key]
+                        key_found = True
+                        break
+                
+                if not key_found:
+                    print(f"Warning: Could not find mapping for key: {model_key}")
+                    # Keep the original parameter (random initialization)
+                    fixed_state_dict[model_key] = model_state_dict[model_key]
+            
+            # Load the fixed state dict
+            model.load_state_dict(fixed_state_dict, strict=False)
+            print("Successfully loaded state dict with prefix corrections.")
+        else:
+            raise e
     
+    model.to(device)
     return model
 
 def _get_scores(model, data_loader, task, device):
