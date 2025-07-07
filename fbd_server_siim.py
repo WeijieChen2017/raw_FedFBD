@@ -188,12 +188,11 @@ def evaluate_server_model(args, model_color, model_flag, experiment_name, test_d
         dice_metric = DiceMetric(include_background=True, reduction="mean")
         
         # Create model
-        model = get_pretrained_fbd_model(
+        model = get_siim_model(
             architecture=args.model_flag,
-            norm=None,
             in_channels=args.n_channels,
-            num_classes=args.num_classes,
-            use_pretrained=False
+            out_channels=args.num_classes,
+            model_size=getattr(args, 'model_size', 'standard')
         )
     else:
         # Original MedMNIST handling
