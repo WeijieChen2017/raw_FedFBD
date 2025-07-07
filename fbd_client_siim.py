@@ -687,18 +687,32 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
         if component_info['status'] == 'trainable':
             trainable_block_ids_set.add(component_info['block_id'])
     
-    for block_id in client_request_list:
-        if block_id in fbd_trace:
-            model_part = fbd_trace[block_id]['model_part']
-            block_weights = {}
-            
-            # Extract parameters for this specific block
-            for param_name, param_tensor in trained_state_dict.items():
-                if param_name.startswith(model_part):
-                    block_weights[param_name] = param_tensor.detach().clone()
-            
-            if block_weights:
-                updated_weights[block_id] = block_weights
+    # For SIIM UNet, we treat the entire model as one unit
+    # Since our get_fbd_parts() returns {'unet': self.unet}, we need to handle this specially
+    if args.experiment_name == "siim" and client_request_list:
+        # Send all model weights for any requested block (since we can't decompose the UNet properly)
+        all_weights = {}
+        for param_name, param_tensor in trained_state_dict.items():
+            all_weights[param_name] = param_tensor.detach().clone()
+        
+        # Assign the same weights to all requested blocks
+        for block_id in client_request_list:
+            if block_id in fbd_trace:
+                updated_weights[block_id] = all_weights.copy()
+    else:
+        # Original logic for other datasets
+        for block_id in client_request_list:
+            if block_id in fbd_trace:
+                model_part = fbd_trace[block_id]['model_part']
+                block_weights = {}
+                
+                # Extract parameters for this specific block
+                for param_name, param_tensor in trained_state_dict.items():
+                    if param_name.startswith(model_part):
+                        block_weights[param_name] = param_tensor.detach().clone()
+                
+                if block_weights:
+                    updated_weights[block_id] = block_weights
     
     # Create a dummy optimizer to save state from (model is on CPU)
     # The state was already saved to disk during training
