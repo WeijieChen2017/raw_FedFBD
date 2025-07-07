@@ -316,7 +316,12 @@ def _test_siim_model(model, data_loader, criterion, dice_metric, device):
 
 def evaluate_server_model(args, model_color, model_flag, experiment_name, test_dataset, warehouse):
     """Evaluate a server model"""
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Allow forcing evaluation on CPU to save GPU memory
+    if getattr(args, 'eval_on_cpu', False):
+        device = torch.device("cpu")
+        print(f"  Evaluating {model_color} on CPU (--eval_on_cpu enabled)")
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Handle SIIM dataset separately
     if experiment_name == "siim":

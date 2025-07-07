@@ -310,6 +310,7 @@ def main():
     parser.add_argument("--fold", type=int, default=None, help="Fold number for cross-validation (0-3). If not specified, uses original dataset loading.")
     parser.add_argument("--model_size", type=str, choices=["small", "standard", "large", "xlarge"], default="standard", help="Size of the model: 'small' (64 features), 'standard' (128 features), 'large' (256 features), 'xlarge' (512 features).")
     parser.add_argument("--auto_detect_size", action="store_true", help="Automatically detect model size from saved weights (useful when switching between standard/small)")
+    parser.add_argument("--eval_on_cpu", action="store_true", help="Force model evaluation on CPU to save GPU memory (useful for large models)")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
@@ -460,6 +461,19 @@ def main():
         memory_estimates = {'small': '85MB', 'standard': '340MB', 'large': '1.3GB', 'xlarge': '5.3GB'}
         memory_str = memory_estimates.get(args.model_size, 'Unknown')
         print(f"   - Estimated memory per model: {memory_str}")
+        
+        # Add evaluation device info
+        eval_device = "CPU" if getattr(args, 'eval_on_cpu', False) else "GPU"
+        print(f"   - Evaluation device: {eval_device}")
+        
+        # Memory usage warning for large models on GPU
+        if args.model_size in ['large', 'xlarge'] and not getattr(args, 'eval_on_cpu', False):
+            total_eval_memory = memory_str
+            if args.parallel:
+                print(f"   ⚠️  Training + Evaluation on GPU may use significant memory")
+                print(f"   💡 Consider --eval_on_cpu for GPU memory savings")
+            else:
+                print(f"   💡 Large model evaluation uses {total_eval_memory} GPU memory")
         
         if args.fold is not None:
             print(f"   - Cross-validation fold: {args.fold}")
