@@ -90,7 +90,7 @@ def filter_invalid_samples(data_list, min_z_dim=16, logger=None):
     return valid_data, invalid_data
 
 
-def load_siim_data(args):
+def load_siim_data(args, norm_range="0to1"):
     """
     Load SIIM dataset for training and testing.
     Returns train and test datasets.
@@ -118,11 +118,17 @@ def load_siim_data(args):
     min_intensity = -1024
     max_intensity = 1976
     
+    # Set normalization range based on parameter
+    if norm_range == "-1to1":
+        norm_min, norm_max = -1.0, 1.0
+    else:  # "0to1" default
+        norm_min, norm_max = 0.0, 1.0
+    
     # Training transforms with augmentation
     train_transforms = Compose([
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys=["image", "label"]),
-        ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
+        ScaleIntensityRanged(keys=["image"], b_min=norm_min, b_max=norm_max, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
         DivisiblePadd(keys=["image", "label"], k=16),
@@ -140,7 +146,7 @@ def load_siim_data(args):
     test_transforms = Compose([
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys=["image", "label"]),
-        ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
+        ScaleIntensityRanged(keys=["image"], b_min=norm_min, b_max=norm_max, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
         DivisiblePadd(keys=["image", "label"], k=16),

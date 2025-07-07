@@ -927,7 +927,8 @@ def prepare_test_dataset(args):
     if args.experiment_name == "siim":
         # Load SIIM test dataset
         from fbd_dataset_siim import load_siim_data
-        _, test_dataset = load_siim_data(args)
+        norm_range = getattr(args, 'norm_range', '0to1')
+        _, test_dataset = load_siim_data(args, norm_range=norm_range)
     else:
         # Original MedMNIST handling
         if args.experiment_name in INFO:

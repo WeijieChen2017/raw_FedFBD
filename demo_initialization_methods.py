@@ -59,6 +59,7 @@ def main():
     
     print(f"\n⚙️  Configuration Options:")
     print(f"   --init_method: pretrained | shared_random | random")
+    print(f"   --norm_range: 0to1 | -1to1 (input intensity normalization)")
     print(f"   --model_size: small | standard | large | xlarge | xxlarge | mega") 
     print(f"   --parallel: Use multiple models for parallel training")
     print(f"   --reg: w (weights) | y (consistency) | none")
@@ -69,11 +70,30 @@ def main():
     print(f"   Shared random: All clients use seed 42")
     print(f"   Random mode: Client 0 uses seed 1042, Client 1 uses seed 1043, etc.")
     
+    print(f"\n🎨 Normalization Range Options:")
+    print(f"   --norm_range 0to1:   Normalizes CT intensities to [0, 1] (default)")
+    print(f"   --norm_range -1to1:  Normalizes CT intensities to [-1, 1]")
+    print(f"   ")
+    print(f"   Impact on training:")
+    print(f"   • [0, 1]: Works well with ReLU activations, standard approach")
+    print(f"   • [-1, 1]: Better for models trained on ImageNet, tanh-like activations")
+    print(f"   • [-1, 1]: Can provide better gradient flow in some architectures")
+    
     print(f"\n💡 Recommendations:")
     print(f"   • Start with 'shared_random' to establish baseline performance")
     print(f"   • Try 'pretrained' for potentially better/faster convergence")
     print(f"   • Use 'random' to test robustness across different initializations")
-    print(f"   • Compare all three methods with same other parameters")
+    print(f"   • Test both [0,1] and [-1,1] normalization ranges")
+    print(f"   • Compare all methods with same other parameters")
+    
+    print(f"\n🧪 Experimental Combinations:")
+    print(f"   # Baseline comparison")
+    print(f"   python fbd_main_siim.py --init_method shared_random --norm_range 0to1")
+    print(f"   python fbd_main_siim.py --init_method shared_random --norm_range -1to1")
+    print(f"   ")
+    print(f"   # Pretrained comparison")  
+    print(f"   python fbd_main_siim.py --init_method pretrained --norm_range 0to1")
+    print(f"   python fbd_main_siim.py --init_method pretrained --norm_range -1to1")
 
 if __name__ == "__main__":
     main()

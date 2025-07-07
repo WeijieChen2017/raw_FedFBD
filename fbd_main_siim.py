@@ -62,10 +62,16 @@ def create_siim_fold_partitions(fold_config, args):
     min_intensity = -1024
     max_intensity = 1976
     
+    # Set normalization range based on user choice
+    if args.norm_range == "-1to1":
+        norm_min, norm_max = -1.0, 1.0
+    else:  # "0to1"
+        norm_min, norm_max = 0.0, 1.0
+    
     train_transforms = Compose([
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys=["image", "label"]),
-        ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
+        ScaleIntensityRanged(keys=["image"], b_min=norm_min, b_max=norm_max, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
         DivisiblePadd(keys=["image", "label"], k=16),
@@ -82,7 +88,7 @@ def create_siim_fold_partitions(fold_config, args):
     test_transforms = Compose([
         LoadImaged(keys=["image", "label"]),
         EnsureChannelFirstd(keys=["image", "label"]),
-        ScaleIntensityRanged(keys=["image"], b_min=0.0, b_max=1.0, 
+        ScaleIntensityRanged(keys=["image"], b_min=norm_min, b_max=norm_max, 
                            a_min=min_intensity, a_max=max_intensity, clip=True),
         CenterSpatialCropd(keys=["image", "label"], roi_size=args.roi_size),
         DivisiblePadd(keys=["image", "label"], k=16),
@@ -313,6 +319,8 @@ def main():
     parser.add_argument("--eval_on_cpu", action="store_true", help="Force model evaluation on CPU to save GPU memory (useful for large models)")
     parser.add_argument("--init_method", type=str, choices=["pretrained", "shared_random", "random"], default="pretrained", 
                         help="Model initialization method: 'pretrained' uses medical weights, 'shared_random' uses same random seed for all clients, 'random' uses different random initialization")
+    parser.add_argument("--norm_range", type=str, choices=["0to1", "-1to1"], default="0to1",
+                        help="Input intensity normalization range: '0to1' normalizes to [0,1], '-1to1' normalizes to [-1,1]")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
@@ -430,7 +438,7 @@ def main():
         else:
             # Use original loading method
             print("Loading SIIM data using original method")
-            train_dataset, test_dataset = load_siim_data(args)
+            train_dataset, test_dataset = load_siim_data(args, norm_range=args.norm_range)
             partitions = partition_siim_data(train_dataset, args.num_clients, args.iid)
             args.test_dataset = test_dataset
     else:
@@ -470,6 +478,11 @@ def main():
         # Add evaluation device info
         eval_device = "CPU" if getattr(args, 'eval_on_cpu', False) else "GPU"
         print(f"   - Evaluation device: {eval_device}")
+        
+        # Add normalization range info
+        norm_range = getattr(args, 'norm_range', '0to1')
+        norm_desc = "[-1, 1]" if norm_range == "-1to1" else "[0, 1]"
+        print(f"   - Input normalization: {norm_desc} range")
         
         # Memory usage warning for large models on GPU
         if args.model_size in ['large', 'xlarge'] and not getattr(args, 'eval_on_cpu', False):
