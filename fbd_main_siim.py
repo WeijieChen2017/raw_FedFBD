@@ -321,6 +321,8 @@ def main():
                         help="Model initialization method: 'pretrained' uses medical weights, 'shared_random' uses same random seed for all clients, 'random' uses different random initialization")
     parser.add_argument("--norm_range", type=str, choices=["0to1", "neg1to1"], default="0to1",
                         help="Input intensity normalization range: '0to1' normalizes to [0,1], 'neg1to1' normalizes to [-1,1]")
+    parser.add_argument("--loss_type", type=str, choices=["dice_ce", "dice_only", "bce_only", "focal", "weighted_bce"], default="dice_ce",
+                        help="Loss function type: 'dice_ce' (default), 'dice_only', 'bce_only', 'focal', 'weighted_bce'")
     parser.add_argument("--reg", type=str, choices=["w", "y", "none"], default=None, 
                         help="Regularizer type: 'w' for weights distance, 'y' for consistency loss, 'none' for no regularizer")
     parser.add_argument("--reg_coef", type=float, default=None, 
@@ -483,6 +485,17 @@ def main():
         norm_range = getattr(args, 'norm_range', '0to1')
         norm_desc = "[-1, 1]" if norm_range == "neg1to1" else "[0, 1]"
         print(f"   - Input normalization: {norm_desc} range")
+        
+        # Add loss function info
+        loss_type = getattr(args, 'loss_type', 'dice_ce')
+        loss_descriptions = {
+            'dice_ce': 'Dice + Cross-Entropy (default)',
+            'dice_only': 'Dice Loss only',
+            'bce_only': 'Binary Cross-Entropy with Logits',
+            'focal': 'Focal Loss (for imbalanced data)',
+            'weighted_bce': 'Weighted BCE (class imbalance)'
+        }
+        print(f"   - Loss function: {loss_descriptions.get(loss_type, loss_type)}")
         
         # Memory usage warning for large models on GPU
         if args.model_size in ['large', 'xlarge'] and not getattr(args, 'eval_on_cpu', False):

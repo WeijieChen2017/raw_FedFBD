@@ -207,6 +207,9 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
         epoch_main_loss = 0
         epoch_reg_loss = 0
         num_batches = 0
+        total_batches = len(train_loader)
+        print(f"📊 Starting epoch {epoch+1}/{epochs} with {total_batches} batches")
+        
         for batch_data in train_loader:
             # Handle different data formats
             if isinstance(batch_data, dict):
@@ -226,7 +229,28 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
             elif task == 'segmentation':
                 # For segmentation tasks (like SIIM), keep targets as float
                 targets = targets.to(torch.float32).to(device)
+                
+                # Debug: Print tensor properties
+                if num_batches == 0:  # Only print for first batch to avoid spam
+                    print(f"🔍 Debug - Batch shapes and ranges:")
+                    print(f"   Inputs: {inputs.shape}, range [{inputs.min():.3f}, {inputs.max():.3f}]")
+                    print(f"   Targets: {targets.shape}, unique values: {torch.unique(targets)}")
+                    print(f"   Outputs: {outputs.shape}, range [{outputs.min():.3f}, {outputs.max():.3f}]")
+                    print(f"   Positive target voxels: {(targets > 0.5).sum().item()} / {targets.numel()} ({(targets > 0.5).sum().item() / targets.numel() * 100:.2f}%)")
+                
                 main_loss = criterion(outputs, targets)
+                
+                # Debug: Check loss value
+                if num_batches == 0:
+                    loss_type = getattr(args, 'loss_type', 'dice_ce')
+                    print(f"   Loss function: {loss_type}")
+                    print(f"   Computed loss: {main_loss.item():.6f}")
+                    if main_loss.item() < 0.001:
+                        print("   ⚠️  WARNING: Loss is extremely small!")
+                    elif main_loss.item() > 10:
+                        print("   ⚠️  WARNING: Loss is very large!")
+                    else:
+                        print("   ✅ Loss value seems normal")
             else:
                 # For classification tasks
                 targets = torch.squeeze(targets, 1).long().to(device)
@@ -638,7 +662,15 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
                             param.requires_grad = True
     
     if args.experiment_name == "siim":
-        criterion = DiceCELoss(to_onehot_y=False, sigmoid=True)
+        # Import alternative loss functions
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from alternative_loss_functions import get_siim_loss_function
+        
+        loss_type = getattr(args, 'loss_type', 'dice_ce')
+        criterion = get_siim_loss_function(loss_type)
+        print(f"🎯 Using loss function: {loss_type}")
     else:
         criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
     
