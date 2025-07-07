@@ -99,7 +99,7 @@ def create_siim_fold_partitions(fold_config, args):
     
     # Get the data root directory from args
     # The fold paths are relative to the parent directory of SIIM_Fed_Learning_Phase1Data
-    data_root = getattr(args, 'data_root', './code_template/siim-101')
+    data_root = getattr(args, 'data_root', 'siim-101')
     
     # If data_root ends with SIIM_Fed_Learning_Phase1Data, use its parent directory
     if data_root.endswith('SIIM_Fed_Learning_Phase1Data'):
