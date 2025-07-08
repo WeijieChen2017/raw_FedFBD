@@ -243,10 +243,28 @@ def partition_siim_data(dataset, num_clients, iid=True):
     return partitions
 
 
-def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True):
+def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True, balanced=False, positive_ratio=0.3):
     """
     Create a DataLoader for the SIIM dataset.
-    Uses MONAI's DataLoader.
+    Uses MONAI's DataLoader with optional balanced sampling.
+    
+    Args:
+        dataset: SIIM dataset
+        batch_size: Batch size
+        num_workers: Number of worker processes
+        shuffle: Whether to shuffle data
+        balanced: Whether to use balanced sampling for class imbalance
+        positive_ratio: Ratio of positive samples when balanced=True
     """
-    # Using num_workers=0 to prevent multiprocessing issues in some environments
-    return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle)
+    if balanced and shuffle and batch_size > 1:
+        # Use balanced sampling for training
+        from balanced_siim_dataloader import get_balanced_siim_data_loader
+        return get_balanced_siim_data_loader(
+            dataset, 
+            batch_size, 
+            positive_ratio=positive_ratio,
+            max_positive_per_batch=min(batch_size, 2)  # At most 2 positive per batch
+        )
+    else:
+        # Standard DataLoader for validation/testing or when balanced=False
+        return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle)
