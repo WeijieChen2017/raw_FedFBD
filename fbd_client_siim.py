@@ -78,8 +78,24 @@ def _test_siim_model(model, data_loader, criterion, dice_metric, device):
     
     with torch.no_grad():
         for batch_data in data_loader:
-            inputs = batch_data["image"].to(device)
-            labels = batch_data["label"].to(device)
+            # Handle different data formats (same as training loop)
+            if isinstance(batch_data, dict):
+                # Dictionary format (SIIM dataset)
+                inputs = batch_data["image"]
+                labels = batch_data["label"]
+            elif isinstance(batch_data, (list, tuple)) and len(batch_data) == 1 and isinstance(batch_data[0], dict):
+                # MONAI dataset returns [dict] instead of dict
+                batch_dict = batch_data[0]
+                inputs = batch_dict["image"]
+                labels = batch_dict["label"]
+            elif isinstance(batch_data, (list, tuple)) and len(batch_data) == 2:
+                # Tuple format (original datasets)
+                inputs, labels = batch_data
+            else:
+                raise ValueError(f"Unsupported batch_data format in test: {type(batch_data)}")
+            
+            inputs = inputs.to(device)
+            labels = labels.to(device)
             
             outputs = model(inputs)
             loss = criterion(outputs, labels)
