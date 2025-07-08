@@ -24,13 +24,62 @@ import nibabel as nib
 import logging
 
 
+def filter_siim_data_by_size(data_list, min_spatial_size):
+    """
+    Filter out SIIM data entries that are too small for the requested ROI size.
+    
+    Args:
+        data_list: List of data dictionaries
+        min_spatial_size: Minimum required spatial size [H, W, D]
+    
+    Returns:
+        Filtered data list, removed count
+    """
+    import nibabel as nib
+    filtered_data = []
+    removed_count = 0
+    
+    for data_entry in data_list:
+        try:
+            # Load the label to check dimensions
+            label_path = data_entry.get("label", "")
+            if label_path and os.path.exists(label_path):
+                nii = nib.load(label_path)
+                spatial_shape = nii.header.get_data_shape()
+                
+                # Check if all dimensions are sufficient
+                if (len(spatial_shape) >= 3 and 
+                    spatial_shape[0] >= min_spatial_size[0] and 
+                    spatial_shape[1] >= min_spatial_size[1] and 
+                    spatial_shape[2] >= min_spatial_size[2]):
+                    filtered_data.append(data_entry)
+                else:
+                    removed_count += 1
+                    print(f"   ⚠️  Skipping image with size {spatial_shape} < required {min_spatial_size}")
+            else:
+                # Keep entries without label path (shouldn't happen in SIIM)
+                filtered_data.append(data_entry)
+        except Exception as e:
+            print(f"   ❌ Error checking {data_entry}: {e}")
+            removed_count += 1
+    
+    print(f"📊 Filtered dataset: kept {len(filtered_data)}, removed {removed_count} too-small images")
+    return filtered_data, removed_count
+
 class SIIMForegroundDataset(Dataset):
     """
     SIIM Dataset with MONAI foreground-focused transforms for extreme class imbalance.
     Uses RandCropByPosNegLabeld to ensure good positive/negative balance.
     """
     def __init__(self, data_list, args, norm_range="0to1", is_training=True):
-        self.data_list = data_list
+        # Filter out images that are too small for ROI size
+        if is_training:
+            self.data_list, removed = filter_siim_data_by_size(data_list, args.roi_size)
+            if removed > 0:
+                print(f"   🔧 Removed {removed} images too small for ROI size {args.roi_size}")
+        else:
+            self.data_list = data_list
+            
         self.args = args
         self.is_training = is_training
         self.transforms = get_monai_foreground_transforms(args, norm_range, is_training)
@@ -139,6 +188,14 @@ def get_monai_foreground_transforms(args, norm_range="0to1", is_training=True):
     ]
     
     if is_training:
+        # First resize to ensure minimum size, then use foreground-focused cropping
+        # This ensures all images are large enough for the requested ROI size
+        resize_transform = Resized(
+            keys=["image", "label"], 
+            spatial_size=[max(args.roi_size[0], 256), max(args.roi_size[1], 256), max(args.roi_size[2], 64)],
+            mode=["bilinear", "nearest"]
+        )
+        
         # Use foreground-focused cropping for training
         # This ensures 80% of patches contain foreground (positive) regions
         crop_transform = RandCropByPosNegLabeld(
@@ -154,7 +211,8 @@ def get_monai_foreground_transforms(args, norm_range="0to1", is_training=True):
         
         # Training transforms with augmentation
         transforms_list = base_transforms + [
-            crop_transform,
+            resize_transform,  # Ensure minimum size first
+            crop_transform,    # Then crop foreground regions
             RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=0),
             RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=1),
             RandFlipd(keys=["image", "label"], prob=0.5, spatial_axis=2),
@@ -164,7 +222,9 @@ def get_monai_foreground_transforms(args, norm_range="0to1", is_training=True):
             ToTensord(keys=["image", "label"]),
             EnsureTyped(keys=["image", "label"]),
         ]
-        print("🎯 Using MONAI RandCropByPosNegLabeld for foreground-focused training (80% positive patches)")
+        print("🎯 Using MONAI Resize + RandCropByPosNegLabeld for foreground-focused training (80% positive patches)")
+        print(f"   - Pre-resize to: {[max(args.roi_size[0], 256), max(args.roi_size[1], 256), max(args.roi_size[2], 64)]}")
+        print(f"   - Then crop to: {args.roi_size}")
     else:
         # Use standard resizing for validation/testing
         transforms_list = base_transforms + [
