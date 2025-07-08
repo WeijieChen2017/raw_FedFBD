@@ -212,13 +212,35 @@ def train(model, train_loader, task, criterion, optimizer, epochs, device, updat
         
         for batch_data in train_loader:
             # Handle different data formats
+            if num_batches == 0:  # Debug first batch
+                print(f"🔍 Debug batch_data type: {type(batch_data)}")
+                if hasattr(batch_data, '__len__'):
+                    print(f"   Length: {len(batch_data)}")
+                if isinstance(batch_data, (list, tuple)):
+                    for i, item in enumerate(batch_data):
+                        print(f"   Item {i}: {type(item)}")
+                        if isinstance(item, dict):
+                            print(f"     Keys: {list(item.keys())}")
+            
             if isinstance(batch_data, dict):
                 # Dictionary format (SIIM dataset)
                 inputs = batch_data["image"]
                 targets = batch_data["label"]
-            else:
+            elif isinstance(batch_data, (list, tuple)) and len(batch_data) == 1 and isinstance(batch_data[0], dict):
+                # MONAI dataset might return [dict] instead of dict
+                batch_dict = batch_data[0]
+                inputs = batch_dict["image"]
+                targets = batch_dict["label"]
+                print("🔧 Handled MONAI list format")
+            elif isinstance(batch_data, (list, tuple)) and len(batch_data) == 2:
                 # Tuple format (original datasets)
                 inputs, targets = batch_data
+            else:
+                print(f"❌ Unexpected batch_data format: {type(batch_data)}")
+                if hasattr(batch_data, '__len__'):
+                    print(f"   Length: {len(batch_data)}")
+                    print(f"   Content: {batch_data}")
+                raise ValueError(f"Unsupported batch_data format: {type(batch_data)}")
             
             optimizer.zero_grad()
             outputs = model(inputs.to(device))

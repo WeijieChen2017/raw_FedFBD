@@ -40,7 +40,13 @@ class SIIMForegroundDataset(Dataset):
     
     def __getitem__(self, idx):
         data = self.data_list[idx]
-        return self.transforms(data)
+        result = self.transforms(data)
+        # Debug: Check what transforms return
+        if idx == 0:  # Only debug first item
+            print(f"🔍 Dataset __getitem__ returns: {type(result)}")
+            if isinstance(result, dict):
+                print(f"   Keys: {list(result.keys())}")
+        return result
 
 class SIIMSegmentationDataset(Dataset):
     """Dataset class for SIIM segmentation data."""
