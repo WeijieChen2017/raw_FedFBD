@@ -598,12 +598,29 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
     
     # Create the DataLoader for the client's partition
     if args.experiment_name == "siim":
-        # Use balanced data loader to handle extreme class imbalance
-        train_loader = get_siim_data_loader(
-            client_dataset, 
-            args.batch_size, 
-            balanced=True,  # Enable balanced sampling
-            positive_ratio=0.8  # 80% positive samples per batch for extreme imbalance
+        # Use MONAI foreground-focused data loader for extreme class imbalance
+        from fbd_dataset_siim import get_siim_foreground_data_loader
+        
+        # Extract data_list from client_dataset for MONAI transforms
+        if hasattr(client_dataset, 'data_list'):
+            data_list = client_dataset.data_list
+        else:
+            # Fallback: create data_list from dataset indices
+            data_list = []
+            for i in range(len(client_dataset)):
+                sample = client_dataset[i]
+                if isinstance(sample, dict):
+                    data_list.append(sample)
+                else:
+                    # Convert tuple to dict format
+                    data_list.append({"image": sample[0], "label": sample[1]})
+        
+        train_loader = get_siim_foreground_data_loader(
+            data_list=data_list,
+            args=args, 
+            batch_size=args.batch_size,
+            is_training=True,
+            norm_range=getattr(args, 'norm_range', '0to1')
         )
     else:
         DataClass = getattr(medmnist, info['python_class'])

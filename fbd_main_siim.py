@@ -55,7 +55,8 @@ def create_siim_fold_partitions(fold_config, args):
     from monai.transforms import (
         Compose, LoadImaged, EnsureChannelFirstd, ScaleIntensityRanged,
         CenterSpatialCropd, RandFlipd, RandRotate90d, RandShiftIntensityd,
-        RandScaleIntensityd, ToTensord, EnsureTyped, Resized, DivisiblePadd
+        RandScaleIntensityd, ToTensord, EnsureTyped, Resized, DivisiblePadd,
+        RandCropByPosNegLabeld
     )
     
     # Define transforms (same as in load_siim_data)

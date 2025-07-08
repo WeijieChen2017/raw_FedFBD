@@ -38,8 +38,15 @@ def get_siim_loss_function(loss_type="dice_ce"):
         return DiceFocalLoss(sigmoid=True, focal_weight=1.0, dice_weight=1.0)
     
     elif loss_type == "weighted_bce":
-        # Weight for class imbalance (higher weight for positive class)
-        pos_weight = torch.tensor([10.0])  # Adjust based on your data
+        # Weight for extreme class imbalance in SIIM (99% background, 1% foreground)
+        pos_weight = torch.tensor([99.0])  # Much higher weight for positive class
+        print(f"🎯 Using weighted BCE with pos_weight={pos_weight.item():.1f}")
+        return nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    
+    elif loss_type == "extreme_weighted_bce":
+        # Extremely aggressive weights for SIIM's extreme imbalance
+        pos_weight = torch.tensor([500.0])  # Very high weight for positive class
+        print(f"🎯 Using EXTREME weighted BCE with pos_weight={pos_weight.item():.1f}")
         return nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     
     elif loss_type == "dice_ce_no_sigmoid":
