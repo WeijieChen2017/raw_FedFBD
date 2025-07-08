@@ -598,7 +598,14 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
     
     # Create the DataLoader for the client's partition
     if args.experiment_name == "siim":
-        train_loader = get_siim_data_loader(client_dataset, args.batch_size)
+        # Use balanced data loader to handle extreme class imbalance
+        from balanced_siim_dataloader import get_balanced_siim_data_loader
+        train_loader = get_balanced_siim_data_loader(
+            client_dataset, 
+            args.batch_size, 
+            positive_ratio=0.3,  # 30% positive samples per batch
+            max_positive_per_batch=1  # At most 1 positive sample per batch
+        )
     else:
         DataClass = getattr(medmnist, info['python_class'])
         as_rgb = getattr(args, 'as_rgb', False)
@@ -721,6 +728,7 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
     if val_dataset is not None and len(val_dataset) > 0:
         # Create validation data loader
         if args.experiment_name == "siim":
+            # Use standard loader for validation (no balancing needed for evaluation)
             val_loader = get_siim_data_loader(val_dataset, args.batch_size, shuffle=False)
             from monai.metrics import DiceMetric
             dice_metric_val = DiceMetric(include_background=True, reduction="mean")
