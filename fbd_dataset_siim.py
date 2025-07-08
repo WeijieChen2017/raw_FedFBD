@@ -256,7 +256,7 @@ def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True, balan
         balanced: Whether to use balanced sampling for class imbalance
         positive_ratio: Ratio of positive samples when balanced=True
     """
-    if balanced and shuffle and batch_size > 1:
+    if balanced and shuffle:
         # Use balanced sampling for training
         from balanced_siim_dataloader import get_balanced_siim_data_loader
         return get_balanced_siim_data_loader(
