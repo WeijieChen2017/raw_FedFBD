@@ -265,7 +265,7 @@ def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True, balan
             dataset, 
             batch_size, 
             positive_ratio=positive_ratio,
-            max_positive_per_batch=min(batch_size, 2)  # At most 2 positive per batch
+            max_positive_per_batch=batch_size  # Allow all samples to be positive for extreme imbalance
         )
     else:
         # Standard DataLoader for validation/testing or when balanced=False

@@ -603,7 +603,7 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
             client_dataset, 
             args.batch_size, 
             balanced=True,  # Enable balanced sampling
-            positive_ratio=0.4  # 40% positive samples per batch
+            positive_ratio=0.8  # 80% positive samples per batch for extreme imbalance
         )
     else:
         DataClass = getattr(medmnist, info['python_class'])
