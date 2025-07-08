@@ -25,8 +25,8 @@ class BalancedBatchSampler:
         
         # Calculate target composition - handle batch_size=1 case
         if batch_size == 1:
-            # For batch_size=1, use probabilistic sampling with 10% minimum positive ratio
-            self.min_positive_ratio = max(0.1, positive_ratio)  # At least 10% positive
+            # For batch_size=1, use probabilistic sampling with higher minimum positive ratio
+            self.min_positive_ratio = max(0.5, positive_ratio)  # At least 50% positive for better training
             self.positive_per_batch = 1  # Will be handled probabilistically
             self.negative_per_batch = 0
         else:
@@ -42,6 +42,7 @@ class BalancedBatchSampler:
         else:
             print(f"   Target batch composition: {self.positive_per_batch} positive + {self.negative_per_batch} negative")
         print(f"   Estimated batches per epoch: {self.num_batches}")
+        print(f"   🔍 Balanced Sampler INITIALIZED and ACTIVE")
     
     def __iter__(self):
         """Generate balanced batches on-the-fly."""
@@ -82,13 +83,23 @@ class BalancedBatchSampler:
                         negative_indices.append(current_idx)
                 
                 # Probabilistic selection: prefer positive samples with min_positive_ratio probability
-                if positive_indices and (random.random() < self.min_positive_ratio or len(negative_indices) == 0):
-                    yield [random.choice(positive_indices)]
+                random_val = random.random()
+                if positive_indices and (random_val < self.min_positive_ratio or len(negative_indices) == 0):
+                    selected_idx = random.choice(positive_indices)
+                    if batch_count < 5:  # Debug first few batches
+                        print(f"   🟢 Batch {batch_count}: Selected POSITIVE sample (random={random_val:.3f} < {self.min_positive_ratio:.3f})")
+                    yield [selected_idx]
                 elif negative_indices:
-                    yield [random.choice(negative_indices)]
+                    selected_idx = random.choice(negative_indices)
+                    if batch_count < 5:  # Debug first few batches
+                        print(f"   🔴 Batch {batch_count}: Selected NEGATIVE sample (random={random_val:.3f} >= {self.min_positive_ratio:.3f})")
+                    yield [selected_idx]
                 else:
                     # Fallback to next available sample
-                    yield [dataset_indices[idx % len(dataset_indices)]]
+                    selected_idx = dataset_indices[idx % len(dataset_indices)]
+                    if batch_count < 5:  # Debug first few batches
+                        print(f"   ⚪ Batch {batch_count}: Fallback sample")
+                    yield [selected_idx]
                 
                 idx += 1
                 batch_count += 1

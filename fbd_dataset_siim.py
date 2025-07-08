@@ -258,6 +258,7 @@ def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True, balan
     """
     if balanced and shuffle:
         # Use balanced sampling for training
+        print(f"🎯 Using BALANCED data loader: batch_size={batch_size}, positive_ratio={positive_ratio}")
         from balanced_siim_dataloader import get_balanced_siim_data_loader
         return get_balanced_siim_data_loader(
             dataset, 
@@ -267,4 +268,5 @@ def get_siim_data_loader(dataset, batch_size, num_workers=0, shuffle=True, balan
         )
     else:
         # Standard DataLoader for validation/testing or when balanced=False
+        print(f"📦 Using STANDARD data loader: batch_size={batch_size}, balanced={balanced}, shuffle={shuffle}")
         return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=shuffle)
