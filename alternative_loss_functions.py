@@ -7,18 +7,13 @@ import torch
 import torch.nn as nn
 from monai.losses import DiceLoss, FocalLoss, DiceFocalLoss
 
-def get_siim_loss_function(loss_type="dice_ce"):
+def get_siim_loss_function(loss_type="dice_ce", device=None):
     """
     Get appropriate loss function for SIIM segmentation.
     
     Args:
         loss_type (str): Type of loss function to use
-            - "dice_ce": DiceCELoss (current)
-            - "dice_only": Dice loss only
-            - "bce_only": BCE with logits only  
-            - "focal": Focal loss for imbalanced data
-            - "dice_focal": Combined Dice + Focal
-            - "weighted_bce": Weighted BCE for class imbalance
+        device: Device to place tensors on (for weighted losses)
     """
     
     if loss_type == "dice_ce":
@@ -39,14 +34,18 @@ def get_siim_loss_function(loss_type="dice_ce"):
     
     elif loss_type == "weighted_bce":
         # Weight for extreme class imbalance in SIIM (99% background, 1% foreground)
-        pos_weight = torch.tensor([99.0])  # Much higher weight for positive class
-        print(f"🎯 Using weighted BCE with pos_weight={pos_weight.item():.1f}")
+        pos_weight = torch.tensor([99.0])
+        if device is not None:
+            pos_weight = pos_weight.to(device)
+        print(f"🎯 Using weighted BCE with pos_weight={pos_weight.item():.1f} on device {device}")
         return nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     
     elif loss_type == "extreme_weighted_bce":
         # Extremely aggressive weights for SIIM's extreme imbalance
-        pos_weight = torch.tensor([500.0])  # Very high weight for positive class
-        print(f"🎯 Using EXTREME weighted BCE with pos_weight={pos_weight.item():.1f}")
+        pos_weight = torch.tensor([500.0])
+        if device is not None:
+            pos_weight = pos_weight.to(device)
+        print(f"🎯 Using EXTREME weighted BCE with pos_weight={pos_weight.item():.1f} on device {device}")
         return nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     
     elif loss_type == "dice_ce_no_sigmoid":

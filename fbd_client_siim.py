@@ -697,7 +697,7 @@ def simulate_client_task(model_or_reusable_model, client_id, client_dataset, arg
         from alternative_loss_functions import get_siim_loss_function
         
         loss_type = getattr(args, 'loss_type', 'dice_ce')
-        criterion = get_siim_loss_function(loss_type)
+        criterion = get_siim_loss_function(loss_type, device=device)
         print(f"🎯 Using loss function: {loss_type}")
     else:
         criterion = nn.BCEWithLogitsLoss() if task == "multi-label, binary-class" else nn.CrossEntropyLoss()
