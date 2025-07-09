@@ -22,7 +22,7 @@ workbook = openpyxl.load_workbook('al.xlsx')
 sheet = workbook.active
 
 for i_row, folder in enumerate(folder_list):
-    if "al" in folder:
+    if "_al" in folder:
         print(folder)
         folder_name = os.path.basename(folder)
         segments = folder_name.split("_")
