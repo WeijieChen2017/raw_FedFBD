@@ -30,7 +30,7 @@ for i_row, folder in enumerate(folder_list):
             alpha = 0.5
             FA = True
         else:
-            alpha = float(segments[-1])
+            alpha = segments[-1]
             if "FA" in folder_name:
                 FA = True
             else:
