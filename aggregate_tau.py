@@ -41,7 +41,7 @@ for i_row, folder in enumerate(folder_list):
         # write the tau value to the excel file
         sheet.cell(row=i_row+2, column=1).value = dataset
         sheet.cell(row=i_row+2, column=2).value = alpha
-        sheet.cell(row=i_row+2, column=3).value = FA
+        sheet.cell(row=i_row+2, column=3).value = str(FA)
 
 workbook.save('tau.xlsx')
 print(f"Saved {i_row+1} rows to tau.xlsx")
