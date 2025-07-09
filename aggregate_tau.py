@@ -9,12 +9,12 @@ folder_list = glob.glob(os.path.join(results_dir, "*_tau*"))
 # write the header to the excel file
 # create  the xlsx file if it does not exist
 if not os.path.exists('tau.xlsx'):
-    with openpyxl.Workbook() as workbook:
-        sheet = workbook.active
-        sheet.cell(row=1, column=1).value = "dataset"
-        sheet.cell(row=1, column=2).value = "alpha"
-        sheet.cell(row=1, column=3).value = "FA"
-        workbook.save('tau.xlsx')
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.cell(row=1, column=1).value = "dataset"
+    sheet.cell(row=1, column=2).value = "alpha"
+    sheet.cell(row=1, column=3).value = "FA"
+    workbook.save('tau.xlsx')
 
 for i_row, folder in enumerate(folder_list):
     if "tau" in folder:
