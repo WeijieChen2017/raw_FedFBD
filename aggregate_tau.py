@@ -16,6 +16,9 @@ if not os.path.exists('tau.xlsx'):
     sheet.cell(row=1, column=3).value = "FA"
     workbook.save('tau.xlsx')
 
+workbook = openpyxl.load_workbook('tau.xlsx')
+sheet = workbook.active
+
 for i_row, folder in enumerate(folder_list):
     if "tau" in folder:
         print(folder)
@@ -36,9 +39,9 @@ for i_row, folder in enumerate(folder_list):
         dataset = segments[0]
 
         # write the tau value to the excel file
-        with openpyxl.load_workbook('tau.xlsx') as workbook:
-            sheet = workbook.active
-            sheet.cell(row=i_row+2, column=1).value = dataset
-            sheet.cell(row=i_row+2, column=2).value = alpha
-            sheet.cell(row=i_row+2, column=3).value = FA
-            workbook.save('tau.xlsx')
+        sheet.cell(row=i_row+2, column=1).value = dataset
+        sheet.cell(row=i_row+2, column=2).value = alpha
+        sheet.cell(row=i_row+2, column=3).value = FA
+
+workbook.save('tau.xlsx')
+print(f"Saved {i_row+1} rows to tau.xlsx")
