@@ -46,7 +46,7 @@ for i_row, folder in enumerate(folder_list):
         sheet.cell(row=i_row+2, column=2).value = alpha
         sheet.cell(row=i_row+2, column=3).value = str(FA)
 
-        train_results = os.path.join(folder, "eval_results", "server_training_history.json")
+        train_results = os.path.join(folder, "eval_results", "server_evaluation_history.json")
         with open(train_results, "r") as f:
             train_results = json.load(f)
         
