@@ -141,9 +141,21 @@ def extract_features_from_dataset(dataset, max_samples=5000):
     for idx in indices:
         img, label = dataset[idx]
         
-        # Convert to numpy if it's a tensor
-        if hasattr(img, 'numpy'):
+        # Convert PIL Image to numpy array
+        if hasattr(img, 'mode'):  # PIL Image
+            img = np.array(img)
+        elif hasattr(img, 'numpy'):  # PyTorch tensor
             img = img.numpy()
+        elif not isinstance(img, np.ndarray):  # Other formats
+            img = np.array(img)
+        
+        # Ensure image is in proper format and flatten
+        if img.ndim == 3 and img.shape[2] == 1:  # (H, W, 1) -> (H, W)
+            img = img.squeeze(axis=2)
+        elif img.ndim == 3 and img.shape[0] == 1:  # (1, H, W) -> (H, W)
+            img = img.squeeze(axis=0)
+        elif img.ndim == 3 and img.shape[0] == 3:  # (3, H, W) -> (H, W, 3)
+            img = img.transpose(1, 2, 0)
         
         # Flatten the image
         img_flat = img.flatten()
@@ -154,6 +166,8 @@ def extract_features_from_dataset(dataset, max_samples=5000):
             label = label.item()
         elif isinstance(label, np.ndarray):
             label = label.item() if label.size == 1 else label[0]
+        elif hasattr(label, '__len__') and len(label) == 1:
+            label = label[0]
         
         y.append(label)
     
