@@ -7,6 +7,7 @@ from scipy.spatial.distance import cdist, pdist
 import medmnist
 from medmnist import INFO
 import os
+import sys
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -18,6 +19,25 @@ plt.rcParams['axes.titlesize'] = 12
 plt.rcParams['axes.labelsize'] = 10
 plt.rcParams['xtick.labelsize'] = 9
 plt.rcParams['ytick.labelsize'] = 9
+
+class TeeOutput:
+    """Class to duplicate output to both console and file"""
+    def __init__(self, file_path):
+        self.terminal = sys.stdout
+        self.log_file = open(file_path, 'w')
+    
+    def write(self, message):
+        self.terminal.write(message)
+        self.log_file.write(message)
+        self.log_file.flush()  # Ensure immediate write to file
+    
+    def flush(self):
+        self.terminal.flush()
+        self.log_file.flush()
+    
+    def close(self):
+        self.log_file.close()
+        sys.stdout = self.terminal
 
 def class_separability_report(X, y, dataset_name, split_name, output_dir="class_separability_reports"):
     """
@@ -163,13 +183,40 @@ def extract_features_from_dataset(dataset, max_samples=5000):
         
         # Handle label format
         if hasattr(label, 'item'):
-            label = label.item()
+            try:
+                label = label.item()
+            except ValueError:
+                # Multi-dimensional label, convert to single class
+                label = np.array(label).flatten()
+                if len(label) == 1:
+                    label = label[0]
+                else:
+                    # For multi-label, use first positive label or create composite label
+                    if np.any(label == 1):
+                        label = np.where(label == 1)[0][0]  # First positive class
+                    else:
+                        label = int(np.sum(label * np.arange(len(label))))  # Weighted sum
         elif isinstance(label, np.ndarray):
-            label = label.item() if label.size == 1 else label[0]
+            if label.size == 1:
+                label = label.item()
+            else:
+                # Multi-label case
+                label = label.flatten()
+                if np.any(label == 1):
+                    label = np.where(label == 1)[0][0]  # First positive class
+                else:
+                    label = int(np.sum(label * np.arange(len(label))))  # Weighted sum
         elif hasattr(label, '__len__') and len(label) == 1:
             label = label[0]
+        elif hasattr(label, '__len__') and len(label) > 1:
+            # Multi-label case
+            label = np.array(label)
+            if np.any(label == 1):
+                label = np.where(label == 1)[0][0]  # First positive class
+            else:
+                label = int(np.sum(label * np.arange(len(label))))  # Weighted sum
         
-        y.append(label)
+        y.append(int(label))
     
     return np.array(X), np.array(y)
 
@@ -179,6 +226,18 @@ def main():
     # Create output directory
     output_dir = "class_separability_reports"
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Setup output logging to file
+    log_file_path = os.path.join(output_dir, "class_separability_analysis_log.txt")
+    tee_output = TeeOutput(log_file_path)
+    sys.stdout = tee_output
+    
+    print("="*80)
+    print("MEDMNIST CLASS SEPARABILITY ANALYSIS")
+    print("="*80)
+    print(f"Log file: {log_file_path}")
+    print(f"Output directory: {output_dir}")
+    print("="*80)
     
     # Get all 2D datasets (exclude 3D datasets)
     all_2d_datasets = []
@@ -322,6 +381,11 @@ def main():
     print(f"📊 Generated {len(all_results)} reports with high-quality figures (300 DPI)")
     print(f"📋 Summary saved as Excel files with multiple sheets")
     print(f"🔢 Processed {len(target_datasets)} datasets across {len(splits)} splits each")
+    print(f"📝 Complete log saved to: {log_file_path}")
+    print("="*80)
+    
+    # Close the log file and restore normal output
+    tee_output.close()
 
 if __name__ == "__main__":
     main() 
